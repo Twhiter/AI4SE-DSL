@@ -50,6 +50,31 @@ npm test
 npm run web:dev        # browser editor on http://localhost:5174
 ```
 
+## The web chatbot
+
+The browser editor's chat pane talks to the chatbot's document server (`packages/chatbot`), which runs the agents.
+After the setup above:
+
+1. Start Docker: the agents read their skills in a container, one per conversation (not needed with `SKILLS=off`).
+2. Write `packages/chatbot/.env` (git ignores it):
+   ```
+   OPENAI_API_KEY=…    # the endpoint's key
+   OPENAI_BASE_URL=…   # the endpoint (OpenAI's Responses API, or one compatible with it)
+   OPENAI_MODEL=…      # optional: gpt-5.4 by default; a claude-… model works too
+   SKILLS=off          # optional: no skills, and no Docker
+   OPTIONS=off         # optional: no option buttons under the replies
+   ```
+3. From the root folder, start the document server (ws://localhost:1234) and the browser editor together:
+   ```bash
+   npm run dev
+   ```
+4. Open http://localhost:5174, describe the domain, and chat. Each browser tab is a session, logged in
+   `packages/chatbot/logs/session-<id>.md` (and `.json`).
+
+Ctrl+C stops both. Restart them after changing the chatbot's code or `.env`; the agents then start each conversation
+over, as they keep its memory only while the server runs. The prompts (`prompt/`) are read at every turn, and a skill
+(`skills/`) from the next conversation on, so changing them needs no restart.
+
 The browser editor checks every error-free version of the text with Z3 (`packages/web/src/checks.ts`): the
 specifications together (`checkConsistency`), each scenario on its own (`checkScenarios`), and the scenarios with the
 same When against each other (`checkCrossScenarios`). The Problems panel lists what they find with the language's
