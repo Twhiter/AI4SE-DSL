@@ -1,0 +1,49 @@
+Entity Printer {
+    Actions: start, print
+    Data properties: speed: int, ready: boolean, jobs: a list, waiting: a queue
+    States: online, idle, busy
+}
+
+Role Operator.
+
+Action start { Initiators: Operator }
+Action print { Initiators: Operator, Observers: Printer, Input: file: string, copies: int }
+Action reboot { Initiators: Operator }
+
+Declarative specification Printer is busy means {
+    it is online
+    AND the jobs is not empty
+    AND print is pending
+    AND print is available
+}
+
+Declarative specification Printer is idle means {
+    it is online
+    AND the jobs is empty
+    AND the waiting is not full
+}
+
+Declarative specification Printer is online means {
+    the ready equal to true
+}
+
+Action print is enabled means {
+    start was executed or is not available
+    AND reboot is not pending or is not available
+}
+
+Scenario: Print job
+Given the Printer is busy
+    AND "report.pdf" is included in the Printer's jobs
+    AND the Printer's speed larger than 2
+When print is executed with inputs file = "report.pdf", copies = 2
+Then the Printer's jobs is removed with "report.pdf"
+    AND the Printer's waiting is enqueued with "report.pdf"
+    AND print is not available.
+
+Scenario: Next job
+Given the Printer is idle AND the Printer's waiting is not empty
+When start is executed
+Then the Printer's waiting is dequeued
+    AND 42 is added to the Printer's jobs
+    AND print is pending.

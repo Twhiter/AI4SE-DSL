@@ -1,0 +1,14 @@
+{
+    "extends": "../../tsconfig.json",
+    "compilerOptions": {
+      "rootDir": "src",
+      "outDir": "out"
+    },
+    "include": [
+      "src/**/*.ts",
+    ],
+    // disconnected until their semantics follows the new model (see src/index.ts)
+    "exclude": [
+      "src/scenario-check.ts"
+    ]
+  }

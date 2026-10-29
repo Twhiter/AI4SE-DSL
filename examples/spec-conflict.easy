@@ -1,0 +1,35 @@
+// Specifications that cannot hold together: one needs another whose conditions it contradicts.
+// Expected: 'Printer is busy' conflicts with 'print is enabled';
+//           'Printer is printing' conflicts with 'Printer is warm'.
+
+Entity Printer {
+    Actions: start, print
+    States: busy, printing, warm
+}
+
+Role Operator.
+
+Action start { Initiators: Operator }
+Action print { Initiators: Operator }
+
+// busy needs print to be enabled, which needs start to be executed or not available, but busy asks for start to be
+// available and not executed
+Declarative specification Printer is busy means {
+    print is enabled
+    AND start is available
+    AND start was not executed
+}
+
+Action print is enabled means {
+    start was executed or is not available
+}
+
+// printing needs the printer to be warm, and a warm printer has no print pending
+Declarative specification Printer is printing means {
+    it is warm
+    AND print is pending
+}
+
+Declarative specification Printer is warm means {
+    print is not pending
+}

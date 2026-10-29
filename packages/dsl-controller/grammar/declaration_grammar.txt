@@ -1,0 +1,45 @@
+start:                   declaration*
+
+declaration:             entity_declaration
+                       | role_declaration
+                       | action_specification
+                       | enabled_specification
+
+// ---- entity: its parts in any order, each at most once ----
+entity_declaration:      "Entity" entity "{" entity_part* "}"
+
+entity_part:             "Actions" ":" action ("," action)*                          // the actions in its lifecycle
+                       | "Data" "properties" ":" data_property ("," data_property)*
+                       | "States" ":" state ("," state)*
+
+data_property:           property_name ":" property_type
+
+property_type:           scalar_type
+                       | "a" ("list" | "queue") ("of" scalar_type)?                  // without "of": holds Any
+
+scalar_type:             "int" | "string" | "boolean" | "Any"                        // Any: an int, a string or a boolean
+
+// ---- role ----
+role_declaration:        "Role" role "."
+
+// ---- action specification: who initiates and observes an action, its inputs and outputs ----
+action_specification:    "Action" action "{"
+                         "Initiators" ":" participant ("," participant)*
+                         (","? "Observers" ":" participant ("," participant)*)?
+                         (","? "Input" ":" parameter ("," parameter)*)?
+                         (","? "Output" ":" parameter ("," parameter)*)?
+                         "}"
+
+participant:             role | entity
+
+parameter:               name ":" scalar_type                                         // file: string; a When names it: file = "a.pdf"
+
+// ---- enabled specification: what an action needs to be enabled; at most one per action ----
+enabled_specification:   "Action" action "is" "enabled" "means"
+                         "{" enabling_condition ("AND" enabling_condition)* "}"
+
+enabling_condition:      action "was" "executed" "or" "is" "not" "available"         // a condition
+                       | action "is" "not" "pending" "or" "is" "not" "available"     // a milestone
+
+// names (entity, state, action, role, property_name, name) are words; a name with a keyword in it joins its words
+// with underscores: ready_to_submit

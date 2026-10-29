@@ -1,0 +1,27 @@
+// A scenario whose Given contradicts a specification.
+// Expected: the Given of 'Idle printer' contradicts 'Printer is idle' (an idle printer's jobs is empty).
+
+Entity Printer {
+    Actions: start, print
+    Data properties: jobs: a list
+    States: online, idle
+}
+
+Role Operator.
+
+Action start { Initiators: Operator }
+Action print { Initiators: Operator }
+
+Declarative specification Printer is idle means {
+    it is online
+    AND the jobs is empty
+}
+
+Declarative specification Printer is online means {
+    the jobs is not full
+}
+
+Scenario: Idle printer
+Given the Printer is idle AND "report.pdf" is included in the Printer's jobs
+When start is executed
+Then print is pending.

@@ -1,0 +1,42 @@
+// No type converts to another, except Any: a value or variable of another type is an error.
+// Expected errors: 'name' is a string, but 'speed' is an int ('Wrong type');
+//                  'amount' is an int, but 'label' is a string ('Wrong number');
+//                  'flag' is a boolean, but 'speed' is an int ('Wrong flag');
+//                  'counts' is a list of int, but this is a string ('Wrong value').
+// While a document has errors, the Z3 checks wait for them to be fixed.
+
+Entity Printer {
+    Actions: start
+    Data properties: speed: int, label: string, counts: a list of int, waiting jobs: a queue of string, flags: a queue of boolean
+}
+
+Role Operator.
+
+Action start { Initiators: Operator }
+Action count { Initiators: Operator, Input: amount: int }
+
+// a string is never an int
+Scenario: Wrong type
+Given start is available
+When start is executed
+Then the Printer's waiting jobs is dequeued as name
+    AND the Printer's speed is set to name.
+
+// an int input is never a string
+Scenario: Wrong number
+Given count is available
+When count is executed with inputs amount
+Then the Printer's label is set to amount.
+
+// a boolean is never an int
+Scenario: Wrong flag
+Given start is available
+When start is executed
+Then the Printer's flags is dequeued as flag
+    AND the Printer's speed is set to flag.
+
+// a literal value of another type
+Scenario: Wrong value
+Given start is available
+When start is executed
+Then "three" is added to the Printer's counts.

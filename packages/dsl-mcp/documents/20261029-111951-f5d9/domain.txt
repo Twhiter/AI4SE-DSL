@@ -1,0 +1,30 @@
+Process Description – Care Allowance
+
+The citizen begins by starting application. Then the citizen needs to submit the information, including the child's age, medical certificate from the specialist and the number of caregivers. Once all information is submitted, the system robots must determine the fact: it must determine whether the age is minor, it must verify the certificate using the verification system, and it must check the child's national insurance membership. All of the above steps needs to be done once.
+
+Based on the robots precheck, the following rejection consequences are produced:
+- If the certificate is fake, the caseworker must reject it and must not approve it.
+- If the child doesn't have the national insurance membership, the caseworker must reject it and must not approve it.
+
+Once the robot's precheck are passed, the caseworker must manually assess the criteria.
+
+If the child is adult:
+- The caseworker will assess whether the child has developmental disability
+- The caseworker will assess whether the child need continuous supervision (life-threatening case) and care
+Otherwise:
+- The caseworker must assess whether the child has illness or disability
+- The caseworker must assess whether the child needs continuous supervision
+
+Moreover,
+- The caseworker needs to determine whether care requires caregiver absent from work
+- If the citizen input number of caregiver more than 1 during submission, the caseworker must determine whether the care needs justifies a second caregivers.
+
+Once all of the manual assessment is done, if any of the applicable conditions fails, the caseworker will reject it. Otherwise, the caseworker will grant the care allowance.
+
+Additionally, during assessing the criteria, the caseworker must open a case after the robot precheck finishes. After the caseworker open the case, can assess criteria can happen.
+
+Moreover, after the caseworker opened case, he can ask for both similar cases and relevant law. Then the system robot must find the similar cases or relevant laws. Once the finding is complete, the caseworker must review the similar cases or review relevant laws.
+
+During reviewing information of both similar cases or relevant law, the manually assessing the information is blocked until the review is finished. And it also blocks the grant decision as well.
+
+When grant decision is finished, the robot must summarize the case and the caseworker must issues assessment and justification after the robot summarization. Until then, the citizen can see the justification after issuing.

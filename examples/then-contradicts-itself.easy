@@ -1,0 +1,32 @@
+// A scenario whose Then contradicts itself: its effects cannot hold together once the When action was executed.
+// Expected: the Then of 'Toggle print' contradicts itself: print is available and not available;
+//           the Then of 'Set speed' contradicts itself: the speed is set to 3 and to 5;
+//           the Then of 'Finish job' contradicts itself: "report.pdf" is removed from the jobs and added to them.
+
+Entity Printer {
+    Actions: start, print
+    Data properties: speed: int, jobs: a list
+}
+
+Role Operator.
+
+Action start { Initiators: Operator }
+Action print { Initiators: Operator }
+
+// an action is available or not, never both
+Scenario: Toggle print
+Given start is available
+When start is executed
+Then print is available AND print is not available.
+
+// a property has one value
+Scenario: Set speed
+Given start is available
+When start is executed
+Then the Printer's speed is set to 3 AND the Printer's speed is set to 5.
+
+// a value is in the jobs or not, never both
+Scenario: Finish job
+Given "report.pdf" is included in the Printer's jobs
+When print is executed
+Then "report.pdf" is removed from the Printer's jobs AND "report.pdf" is added to the Printer's jobs.

@@ -1,0 +1,14 @@
+// for editor support only; Vite bundles the code without type checking
+{
+    "compilerOptions": {
+        "target": "ES2022",
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "lib": ["ES2022", "DOM", "DOM.Iterable"],
+        "strict": true,
+        "noEmit": true,
+        "skipLibCheck": true,
+        "allowImportingTsExtensions": true
+    },
+    "include": ["src/**/*.ts", "../language/syntaxes/easy.monarch.ts"]
+}

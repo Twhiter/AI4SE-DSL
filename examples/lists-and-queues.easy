@@ -1,0 +1,24 @@
+// Lists and queues: an element makes them not empty.
+// Expected: 'Printer is stuck' and 'Printer is blocked' can never hold (their conditions contradict each other).
+
+Entity Printer {
+    Actions: start
+    Data properties: jobs: a list, waiting: a queue
+    States: stuck, blocked
+}
+
+Role Operator.
+
+Action start { Initiators: Operator }
+
+// a list with an element is not empty
+Declarative specification Printer is stuck means {
+    "a" is included in the jobs
+    AND the jobs is empty
+}
+
+// a queue with an element is not empty
+Declarative specification Printer is blocked means {
+    1 is included in the waiting
+    AND the waiting is empty
+}

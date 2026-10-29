@@ -1,0 +1,46 @@
+// Typed lists and queues ('a queue of string'), the type Any, and names for the effects of a Then:
+//   '… is executed with inputs job' names what the user inputs, of the type the action declares for that input;
+//   '… is dequeued as job' names the dequeued element, of the element type of its queue.
+// Only Any converts to another type: a variable of type Any where a type is needed is a warning, and Z3 takes it as
+// a value of that type. Any other mismatch is an error (see type-errors.easy).
+// Expected: 'Schedule job' and 'Submit job' have no problem;
+//           'Untyped item': a warning, 'item' can be any value, but 'speed' is an int (Z3: fine, if item is an int);
+//           'Tune speed': a warning, 'level' can be any value, but 'speed' is an int (Z3: fine, if level is an int).
+
+Entity Printer {
+    Actions: start
+    Data properties: speed: int, note: Any, inbox: a queue, waiting jobs: a queue of string, scheduled jobs: a queue of string
+}
+
+Role Operator.
+
+Action start { Initiators: Operator }
+Action submit { Initiators: Operator, Input: job: string }
+Action tune { Initiators: Operator, Input: level: Any }
+
+// the first waiting job goes to the end of the scheduled jobs: both hold strings
+Scenario: Schedule job
+Given start is available
+When start is executed
+Then the Printer's waiting jobs is dequeued as job
+    AND the Printer's scheduled jobs is enqueued with job.
+
+// the inbox holds Any, so the item may or may not be an int
+Scenario: Untyped item
+Given start is available
+When start is executed
+Then the Printer's inbox is dequeued as item
+    AND the Printer's speed is set to item
+    AND the Printer's note is set to item.
+
+// what the user inputs is a string, as the waiting jobs are
+Scenario: Submit job
+Given submit is available
+When submit is executed with inputs job
+Then the Printer's waiting jobs is enqueued with job.
+
+// tune takes any value, so the level may or may not be an int
+Scenario: Tune speed
+Given tune is available
+When tune is executed with inputs level
+Then the Printer's speed is set to level.

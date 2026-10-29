@@ -1,0 +1,21 @@
+{
+    "name": "dsl-controller",
+    "description": "DSL controller: the model of a DSL easy document, the tools that read and change it, and its checks (validation and Z3), for the chatbot and for any other client of the tools, such as an MCP server",
+    "version": "0.0.1",
+    "type": "module",
+    "private": true,
+    "exports": {
+        ".": "./src/index.ts"
+    },
+    "scripts": {
+        "build": "echo nothing to build",
+        "clean": "echo nothing to clean",
+        "test": "vitest run"
+    },
+    "dependencies": {
+        "easy-language": "0.0.1",
+        "langium": "~4.4.0",
+        "z3-solver": "~5.2.0",
+        "zod": "~4.6.7"
+    }
+}

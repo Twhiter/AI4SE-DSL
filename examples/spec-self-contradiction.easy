@@ -1,0 +1,24 @@
+// A specification whose own conditions contradict each other: its head can never hold.
+// Expected: 'Printer is jammed' and 'Printer is overheated' can never hold (their conditions contradict each other).
+
+Entity Printer {
+    Actions: start
+    Data properties: speed: int, jobs: a list
+    States: jammed, overheated
+}
+
+Role Operator.
+
+Action start { Initiators: Operator }
+
+// a list cannot be empty and full at once
+Declarative specification Printer is jammed means {
+    the jobs is empty
+    AND the jobs is full
+}
+
+// no speed is both larger than 5 and smaller than 3
+Declarative specification Printer is overheated means {
+    the speed larger than 5
+    AND the speed smaller than 3
+}

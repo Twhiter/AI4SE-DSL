@@ -1,0 +1,112 @@
+{
+    "name": "vscode-dsl-easy",
+    "description": "The extension specific package",
+    "version": "0.0.1",
+    "displayName": "DSL easy",
+    "type": "module",
+    "engines": {
+        "vscode": "^1.91.0"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "contributes": {
+        "languages": [
+            {
+                "id": "easy",
+                "aliases": [
+                    "easy",
+                    "easy"
+                ],
+                "extensions": [
+                    ".easy"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "easy",
+                "scopeName": "source.easy",
+                "path": "syntaxes/easy.tmLanguage.json"
+            }
+        ],
+        "configurationDefaults": {
+            "editor.tokenColorCustomizations": {
+                "textMateRules": [
+                    {
+                        "scope": "keyword.control.easy",
+                        "settings": {
+                            "foreground": "#C586C0"
+                        }
+                    },
+                    {
+                        "scope": "string.quoted.double.easy",
+                        "settings": {
+                            "foreground": "#CE9178"
+                        }
+                    },
+                    {
+                        "scope": [
+                            "comment.block.easy",
+                            "comment.line.easy"
+                        ],
+                        "settings": {
+                            "foreground": "#6A9955"
+                        }
+                    }
+                ]
+            }
+        },
+        "commands": [
+            {
+                "command": "easy.showDcrGraph",
+                "title": "Show DCR graph",
+                "category": "DSL easy",
+                "icon": "$(type-hierarchy)"
+            }
+        ],
+        "menus": {
+            "editor/title": [
+                {
+                    "command": "easy.showDcrGraph",
+                    "when": "resourceLangId == easy",
+                    "group": "navigation"
+                }
+            ],
+            "commandPalette": [
+                {
+                    "command": "easy.showDcrGraph",
+                    "when": "editorLangId == easy"
+                }
+            ]
+        }
+    },
+    "activationEvents": [
+        "onLanguage:easy"
+    ],
+    "main": "./out/extension/main.cjs",
+    "scripts": {
+        "clean": "shx rm -fr *.tsbuildinfo out syntaxes",
+        "vscode:prepublish": "npm run build",
+        "build:prepare": "shx mkdir -p ./syntaxes/ && shx cp -f ../language/syntaxes/easy.tmLanguage.json ./syntaxes/easy.tmLanguage.json",
+        "build": "npm run build:prepare && tsc -b tsconfig.json && tsc -p tsconfig.webview.json && node esbuild.mjs",
+        "build:clean": "npm run clean && npm run build",
+        "watch": "npm run build:prepare && concurrently -n tsc,esbuild -c blue,yellow \"tsc -b tsconfig.json --watch\" \"node esbuild.mjs --watch\""
+    },
+    "dependencies": {
+        "dcr-view": "0.0.1",
+        "easy-language": "0.0.1",
+        "vscode-languageclient": "~10.1.0",
+        "vscode-languageserver": "~10.1.0",
+        "z3-solver": "~5.2.0"
+    },
+    "devDependencies": {
+        "@types/vscode": "~1.91.0",
+        "concurrently": "~10.0.4",
+        "esbuild": "0.28.2"
+    },
+    "vsce": {
+        "dependencies": false
+    }
+}

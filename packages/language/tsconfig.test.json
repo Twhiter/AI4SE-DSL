@@ -1,0 +1,19 @@
+{
+    "extends": "./tsconfig.src.json",
+    "compilerOptions": {
+      "noEmit": true,
+      "rootDir": "test"
+    },
+    "references": [{
+      "path": "./tsconfig.src.json"
+    }],
+    "include": [
+      "test/**/*.ts",
+    ],
+    // disconnected until the semantics follows the new model: these tests check it with Z3 (see vitest.config.ts)
+    "exclude": [
+      "test/model-z3.test.ts",
+      "test/scenario-check.test.ts"
+    ]
+  }
+  

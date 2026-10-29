@@ -1,0 +1,19 @@
+{
+    "projectName": "Easy",
+    "languages": [
+        {
+            "id": "easy",
+            "grammar": "src/easy.langium",
+            "fileExtensions": [
+                ".easy"
+            ],
+            "textMate": {
+                "out": "syntaxes/easy.tmLanguage.json"
+            },
+            "monarch": {
+                "out": "syntaxes/easy.monarch.ts"
+            }
+        }
+    ],
+    "out": "src/generated"
+}

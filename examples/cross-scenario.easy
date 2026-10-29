@@ -1,0 +1,69 @@
+// Scenarios with the same When are checked against each other as one rule, when(a): (Given₁ ⇒ Then₁) ∧ (Given₂ ⇒ Then₂):
+// where their Givens can hold together, with the specifications, both scenarios apply, so their Thens must hold
+// together after the When. An input without a value (… with inputs job) is whatever the user inputs, so it can be any value.
+// Expected: an error for 'Rush job' and 'Fast job': both apply to a busy printer (busy means a speed larger than 5),
+//           but one Then sets the speed to 10 and the other to 3;
+//           an error for 'Submit' and 'Resubmit': the same Given and the same input (whatever the user inputs), but
+//           one Then adds it to the jobs and the other removes it;
+//           an error for 'Submit' and 'Submit draft': when the user inputs "draft", both apply, but one Then adds it
+//           to the jobs and the other removes it;
+//           an error for 'Take job' and 'Drop job': both Thens dequeue the waiting as a variable, so the two are
+//           aligned (job = next), but one Then adds it to the jobs and the other removes it;
+//           no error for 'Slow job': its Given cannot hold together with the Given of 'Rush job' or 'Fast job';
+//           no error for 'Resubmit' and 'Submit draft': both Thens remove the input from the jobs.
+
+Entity Printer {
+    Actions: print
+    Data properties: speed: int, jobs: a list of string, waiting: a queue of string
+    States: busy
+}
+
+Role Operator.
+
+Action print { Initiators: Operator }
+Action submit { Initiators: Operator, Input: job: string }
+Action take { Initiators: Operator }
+
+Declarative specification Printer is busy means {
+    the speed larger than 5
+}
+
+Scenario: Rush job
+Given the Printer is busy
+When print is executed
+Then the Printer's speed is set to 10.
+
+Scenario: Fast job
+Given the Printer's speed larger than 3
+When print is executed
+Then the Printer's speed is set to 3.
+
+Scenario: Slow job
+Given the Printer's speed smaller than 2
+When print is executed
+Then the Printer's speed is set to 1.
+
+Scenario: Submit
+Given submit is available
+When submit is executed with inputs job
+Then job is added to the Printer's jobs.
+
+Scenario: Resubmit
+Given submit is available
+When submit is executed with inputs job
+Then the Printer's jobs is removed with job.
+
+Scenario: Submit draft
+Given submit is available
+When submit is executed with inputs job = "draft"
+Then "draft" is removed from the Printer's jobs.
+
+Scenario: Take job
+Given take is available
+When take is executed
+Then the Printer's waiting is dequeued as job AND job is added to the Printer's jobs.
+
+Scenario: Drop job
+Given take is available
+When take is executed
+Then the Printer's waiting is dequeued as next AND the Printer's jobs is removed with next.

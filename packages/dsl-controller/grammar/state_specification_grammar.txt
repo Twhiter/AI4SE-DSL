@@ -1,0 +1,25 @@
+start:                   declarative_specification*
+
+declarative_specification:
+                         "Declarative" "specification" entity "is" state "means"
+                         "{" spec_condition ("AND" spec_condition)* "}"
+
+spec_condition:          "it" "is" state                                  // another state of the same entity
+                       | property_assertion
+                       | action "is" "not"? ("pending" | "available")
+                       | action "was" "not"? "executed"
+                       | action "is" "enabled"                            // no "not"
+
+property:                "its" property_name
+                       | "the" (entity "'s")? property_name               // a property of the specified entity
+
+// ---- property assertions, by type ----
+property_assertion:      property "not"? int_operation value              // int
+                       | property "not"? "equal" "to" value               // string, boolean, Any
+                       | property "is" "not"? "undefined"                 // int, string, boolean, Any: has no value
+                       | value "is" "not"? "included" "in" property       // list, queue
+                       | property "is" "not"? ("empty" | "full")          // list, queue
+
+int_operation:           "equal" "to" | "larger" "than" | "smaller" "than"
+
+value:                   int_value | string_value | "true" | "false"

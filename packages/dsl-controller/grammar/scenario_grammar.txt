@@ -1,0 +1,40 @@
+scenario:          "Scenario:" scenario_name
+                   "Given" given_condition ("AND" given_condition)*
+                   "When" action "is" "executed" with_part? ("AND" property_assertion)*
+                   "Then" then_effect ("AND" then_effect)* "."
+
+given_condition:   "the" entity "is" state                          // no "not"
+                 | action "is" "not"? ("pending" | "available")
+                 | action "was" "not"? "executed"
+                 | action "is" "enabled"                            // no "not"
+                 | property_assertion
+
+// ---- the When's inputs and outputs, by their names in the action's Input and Output ----
+with_part:         "with" "inputs" binding ("," binding)* ("," "outputs" binding ("," binding)*)?
+                 | "with" "outputs" binding ("," binding)*
+binding:           name ("=" (value | property))?                   // without "=": any value
+
+then_effect:       property_assignment
+                 | action "is" "pending"                            // no "not pending"
+                 | action "is" "not"? "available"
+
+property:          "the" entity "'s" property_name
+operand:           value | name                                     // name: a When binding or a dequeued element (When and Then only)
+value:             int_value | string_value | "true" | "false"
+
+// ---- property assertions, by type (in the When, a binding's name can also be the subject) ----
+property_assertion:
+                   property "not"? ("equal" "to" | "larger" "than" | "smaller" "than") operand   // int
+                 | property "not"? "equal" "to" operand                     // string, boolean, Any
+                 | property "is" "not"? "undefined"                         // int, string, boolean, Any: has no value
+                 | operand "is" "not"? "included" "in" property             // list, queue
+                 | property "is" "not"? ("empty" | "full")                  // list, queue
+
+// ---- property assignments, by type ----
+property_assignment:
+                   property "is" "set" "to" operand                         // int, string, boolean, Any
+                 | property "is" ("added" | "removed") "with" operand       // list
+                 | operand "is" ("added" "to" | "removed" "from") property  // list
+                 | property "is" "enqueued" "with" operand                  // queue
+                 | property "is" "dequeued" ("as" name)?                    // queue; later effects can use the name
+                 | property "is" "set" "to" "empty"                         // list, queue

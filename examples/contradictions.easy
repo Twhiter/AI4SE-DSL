@@ -1,0 +1,31 @@
+Entity Printer {
+    Actions: start, print
+    Data properties: ready: boolean, jobs: a list
+    States: online, idle, jammed
+}
+
+Role Operator.
+
+Action start { Initiators: Operator }
+Action print { Initiators: Operator }
+
+// 1. contradicts itself: a list cannot be empty and full at once
+Declarative specification Printer is jammed means {
+    the jobs is empty
+    AND the jobs is full
+}
+
+Declarative specification Printer is idle means {
+    it is online
+    AND the jobs is empty
+}
+
+Declarative specification Printer is online means {
+    the ready equal to true
+}
+
+// 2. the Given contradicts 'Printer is idle': an idle printer's jobs is empty
+Scenario: Idle printer
+Given the Printer is idle AND "report.pdf" is included in the Printer's jobs
+When start is executed
+Then print is pending.

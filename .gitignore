@@ -1,0 +1,15 @@
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+node_modules/
+dist/
+out/
+**/src/generated
+syntaxes/
+*.tsbuildinfo
+*.vsix
+# secrets such as packages/chatbot/.env (OPENAI_API_KEY); .env.example lists what they hold
+.env
+.env.*
+!.env.example

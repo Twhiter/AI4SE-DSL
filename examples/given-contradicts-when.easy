@@ -1,0 +1,29 @@
+// A scenario whose When cannot happen: the Given contradicts what the action needs to be available or enabled.
+// Expected: the Given of 'Unready printer' contradicts its When: print is not available (When: print is enabled);
+//           the Given of 'Pending print' contradicts 'start is enabled' (When: start is enabled).
+
+Entity Printer {
+    Actions: start, print
+}
+
+Role Operator.
+
+Action start { Initiators: Operator }
+Action print { Initiators: Operator }
+
+// start has an 'enabled' specification, so the When needs start to be enabled; a pending print stops it while
+// print is available
+Action start is enabled means {
+    print is not pending or is not available
+}
+
+// print has no 'enabled' specification, so it is enabled exactly when it is available
+Scenario: Unready printer
+Given print is not available
+When print is executed
+Then print is not available.
+
+Scenario: Pending print
+Given print is pending AND print is available
+When start is executed
+Then print is pending.

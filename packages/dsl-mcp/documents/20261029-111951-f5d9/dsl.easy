@@ -1,0 +1,9 @@
+Entity Application { }
+
+Role Citizen.
+
+Role Caseworker.
+
+Role System robot.
+
+Role Verification system.

@@ -1,0 +1,45 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "easy-web",
+      "runtimeExecutable": "/opt/homebrew/bin/node",
+      "runtimeArgs": [
+        "node_modules/vite/bin/vite.js",
+        "packages/web"
+      ],
+      "port": 5174
+    },
+    {
+      "name": "easy-web-dist",
+      "runtimeExecutable": "/opt/homebrew/bin/node",
+      "runtimeArgs": [
+        "node_modules/vite/bin/vite.js",
+        "preview",
+        "packages/web",
+        "--port",
+        "4174",
+        "--strictPort"
+      ],
+      "port": 4174
+    },
+    {
+      "name": "easy-documents",
+      "runtimeExecutable": "/opt/homebrew/bin/node",
+      "runtimeArgs": [
+        "packages/chatbot/src/document-server.ts"
+      ],
+      "port": 1234
+    },
+    {
+      "name": "easy-documents-no-skills",
+      "runtimeExecutable": "/usr/bin/env",
+      "runtimeArgs": [
+        "SKILLS=off",
+        "/opt/homebrew/bin/node",
+        "packages/chatbot/src/document-server.ts"
+      ],
+      "port": 1234
+    }
+  ]
+}
