@@ -61,8 +61,8 @@ After the setup above:
    OPENAI_API_KEY=…    # the endpoint's key
    OPENAI_BASE_URL=…   # the endpoint (OpenAI's Responses API, or one compatible with it)
    OPENAI_MODEL=…      # optional: gpt-5.4 by default; a claude-… model works too
-   SKILLS=off          # optional: no skills, and no Docker
-   OPTIONS=off         # optional: no option buttons under the replies
+   SKILLS=on          # optional: no skills, and no Docker
+   OPTIONS=on         # optional: no option buttons under the replies
    ```
 3. From the root folder, start the document server (ws://localhost:1234) and the browser editor together:
    ```bash
