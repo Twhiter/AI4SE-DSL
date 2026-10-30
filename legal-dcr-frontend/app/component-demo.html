@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DCR page component</title>
+  <style>
+    body { margin: 0; height: 100vh; display: grid; grid-template-columns: minmax(16rem, 1fr) 2fr; font: 14px sans-serif; }
+    aside { display: flex; flex-direction: column; gap: 8px; padding: 12px; box-sizing: border-box; min-height: 0; }
+    textarea { flex: 1; font: 12px monospace; }
+    pre { margin: 0; white-space: pre-wrap; }
+    #page { position: relative; border-left: 1px solid #ccc; min-width: 0; }
+  </style>
+</head>
+
+<body>
+  <aside>
+    <strong>DCR.js editor XML</strong>
+    <textarea id="xml" spellcheck="false"></textarea>
+    <button id="show">Show</button>
+    <pre id="result"></pre>
+  </aside>
+  <div id="page"></div>
+  <script type="module" src="/src/dcr-page/demo.ts"></script>
+</body>
+
+</html>
