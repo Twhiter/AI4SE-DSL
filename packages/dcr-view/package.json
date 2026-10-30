@@ -15,7 +15,8 @@
     },
     "scripts": {
         "build": "echo nothing to build",
-        "clean": "echo nothing to clean"
+        "clean": "echo nothing to clean",
+        "test": "vitest run"
     },
     "dependencies": {
         "diagram-js": "~12.8.1",
@@ -29,5 +30,8 @@
         "moddle-xml": "^10.1.0",
         "object-refs": "^0.3.0",
         "tiny-svg": "^3.1.3"
+    },
+    "devDependencies": {
+        "vitest": "~4.1.10"
     }
 }

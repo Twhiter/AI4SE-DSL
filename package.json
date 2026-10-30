@@ -11,7 +11,7 @@
         "build:clean": "npm run clean && npm run build",
         "langium:generate": "npm run --workspace packages/language langium:generate",
         "langium:watch": "npm run --workspace packages/language langium:watch",
-        "test": "npm run --workspace packages/language --workspace packages/dsl-controller --workspace packages/dsl-mcp --workspace packages/chatbot test",
+        "test": "npm run --workspace packages/language --workspace packages/dcr-view --workspace packages/dsl-controller --workspace packages/dsl-mcp --workspace packages/chatbot test",
         "web:dev": "npm run dev --workspace packages/web",
         "web:build": "npm run build --workspace packages/web",
         "dev": "concurrently --names documents,web --prefix-colors blue,magenta --kill-others \"npm run documents --workspace packages/chatbot\" \"npm run dev --workspace packages/web\""

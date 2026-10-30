@@ -5,7 +5,7 @@
 // Assumes that the specifications and the scenarios are consistent (consistency.ts, scenario-consistency.ts).
 
 import type { Bool } from 'z3-solver';
-import type { Comparison, ComparisonOperation, Model, NamedConstant, Operand, Parameter, PropertyAssertion, WhenAssertions, WhenRule } from './model.js';
+import type { Comparison, ComparisonOperation, DataProperty, Model, NamedConstant, Operand, Parameter, PropertyAssertion, WhenAssertions, WhenRule } from './model.js';
 import { Z3Vocabulary, type Instance, type Z3Context, type Z3VocabularyOptions } from './z3-vocabulary.js';
 
 /** What executing the 'from' activity does to the 'to' activity (response, include, exclude), or what the 'to' activity needs (condition, milestone). */
@@ -28,14 +28,17 @@ export class DcrEvent {
     defaultIncluded: boolean;
     /** Whether it is pending at the start: false for every activity. */
     defaultPending = false;
+    /** The data property an activity stands for, whose value a guard names by the activity's name; none for an action. */
+    data: DataProperty | undefined;
 
-    constructor(name: string, initiators: string[], observers: string[], inputs: Parameter[], outputs: Parameter[], defaultIncluded = false) {
+    constructor(name: string, initiators: string[], observers: string[], inputs: Parameter[], outputs: Parameter[], defaultIncluded = false, data?: DataProperty) {
         this.name = name;
         this.initiators = initiators;
         this.observers = observers;
         this.inputs = inputs;
         this.outputs = outputs;
         this.defaultIncluded = defaultIncluded;
+        this.data = data;
     }
 }
 
@@ -93,7 +96,7 @@ export async function toDcrGraph(z3: Z3Context, model: Model, options?: Z3Vocabu
     const graph = new DcrGraph();
     const activities = dataActivities(model);
     graph.events = [
-        ...model.entities.flatMap(entity => entity.dataProperties.map(property => new DcrEvent(activities.get(propertyKey(entity.name, property.name))!, [entity.name], [], [], [], true))),
+        ...model.entities.flatMap(entity => entity.dataProperties.map(property => new DcrEvent(activities.get(propertyKey(entity.name, property.name))!, [entity.name], [], [], [], true, property))),
         ...model.actions.map(action => new DcrEvent(action, model.initiators[action] ?? [], model.observers[action] ?? [], model.inputs[action] ?? [],
             model.outputs[action] ?? []))
     ];

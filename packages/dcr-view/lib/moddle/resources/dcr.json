@@ -40,6 +40,11 @@
           "type": "String"
         },
         {
+          "name": "parameters",
+          "isAttr": true,
+          "type": "String"
+        },
+        {
           "name": "description",
           "isAttr": true,
           "type": "String"

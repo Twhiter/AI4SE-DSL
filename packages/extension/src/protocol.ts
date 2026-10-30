@@ -11,3 +11,6 @@ export type DcrGraphParams = { uri: string, graph: DcrGraph } | { uri: string, o
 
 /** What the webview shows: the graph of the document `name` (its path in the workspace). */
 export type DcrGraphMessage = DcrGraphParams & { name: string };
+
+/** What the webview tells the extension: save the graph of the document `name` as `xml`, in dcr-js's own format or DCR Solutions'. */
+export type DcrExportMessage = { export: string, format: 'dcr-js' | 'dcr-solutions', name: string };

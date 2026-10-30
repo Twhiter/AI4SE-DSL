@@ -1,10 +1,11 @@
 // The DCR graph panel: a webview beside the editor, opened by the command 'DSL easy: Show DCR graph' (the button on an
 // .easy file's title bar). It shows the graph of the .easy document shown last, as the language server sends it after
 // every check (DCR_GRAPH); the webview (src/webview/dcr.ts) draws it with dcr-view's graph view, and keeps what was
-// dragged in each document's graph while the panel is open.
+// dragged in each document's graph while the panel is open. Its 'Export' buttons save the graph as DCR Solutions XML or
+// dcr-js XML where the user chooses (a save dialog).
 
 import * as vscode from 'vscode';
-import type { DcrGraphMessage, DcrGraphParams } from '../protocol.js';
+import type { DcrExportMessage, DcrGraphMessage, DcrGraphParams } from '../protocol.js';
 
 export class DcrPanel {
     private readonly extensionUri: vscode.Uri;
@@ -42,7 +43,22 @@ export class DcrPanel {
             { enableScripts: true, retainContextWhenHidden: true, localResourceRoots: [scripts] });
         this.panel.webview.html = html(this.panel.webview, scripts);
         this.panel.onDidDispose(() => this.panel = undefined);
+        this.panel.webview.onDidReceiveMessage((message: DcrExportMessage) => void this.save(message));
         this.post();
+    }
+
+    /** Saves the exported XML as the file the user chooses, named after the document. */
+    private async save({ export: xml, format, name }: DcrExportMessage): Promise<void> {
+        const folder = vscode.workspace.workspaceFolders?.[0]?.uri;
+        const file = `${name.replace(/\.easy$/, '')}${format === 'dcr-js' ? '.dcr-js' : ''}.xml`;
+        const target = await vscode.window.showSaveDialog({
+            defaultUri: folder ? vscode.Uri.joinPath(folder, file) : vscode.Uri.file(file),
+            filters: { [format === 'dcr-js' ? 'dcr-js XML' : 'DCR Solutions XML']: ['xml'] },
+            title: `Save the DCR graph as ${format === 'dcr-js' ? 'dcr-js' : 'DCR Solutions'} XML`
+        });
+        if (target) {
+            await vscode.workspace.fs.writeFile(target, new TextEncoder().encode(xml));
+        }
     }
 
     /** Follows the editor shown, when it shows an .easy document. */

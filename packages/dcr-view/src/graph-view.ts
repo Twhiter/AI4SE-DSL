@@ -2,7 +2,11 @@
 // and VS Code's DCR graph panel (packages/extension/src/webview): each graph is laid out by elkjs and drawn by dcr-js's
 // viewer (lib), with pan and zoom; a group of activities (Data) is a box around them, a dcr-js nesting. Its activities
 // and relations can be dragged (nothing else changes), and stay where they were dragged when the graph is drawn again,
-// until 'Layout'. A graph that comes while the view is hidden is drawn when it is shown. Its page styles the toolbar
+// until 'Layout'. A graph that comes while the view is hidden is drawn when it is shown. 'Export' saves the graph as it is
+// drawn, in dcr-js's own XML or as DCR Solutions XML (lib/DCRXML.js), downloaded as a file unless whoever made the view
+// saves it otherwise. A data property's activity has the property's data (dcr:eventData, for an int, a string or a boolean),
+// which a guard names, and so has an action's when it has one input or output; an action's `parameters` are all of
+// them (both exports name the data as their readers do: lib/DCRXML.js, lib/DcrJsXML.js). Its page styles the toolbar
 // (.dcr-toolbar, .dcr-status, buttons) and the canvas (.canvas).
 
 import ELK, { type ElkNode } from 'elkjs/lib/elk.bundled.js';
@@ -49,15 +53,30 @@ export interface GraphView {
     outOfDate(why: string): void;
     /** Call it whenever the view is shown. */
     shown(): void;
+    /** The drawn graph as DCR Solutions XML (dcrgraphs.net's format), with the layout as it is drawn; undefined while no graph is drawn. */
+    dcrSolutionsXml(): Promise<string | undefined>;
+    /** The drawn graph as dcr-js's own XML (what its modeler opens and simulates: lib/DcrJsXML.js), with the layout as it is drawn; undefined while no graph is drawn. */
+    dcrJsXml(): Promise<string | undefined>;
+}
+
+/** The formats of an export: dcr-js's own XML, or DCR Solutions XML. */
+export type ExportFormat = 'dcr-js' | 'dcr-solutions';
+
+/** What whoever makes a graph view can choose. */
+export interface GraphViewOptions {
+    /** Saves the XML an export button gives; by default, the browser downloads it as dcr-graph.xml (DCR Solutions) or dcr-graph.dcr-js.xml. */
+    export?: (xml: string, format: ExportFormat) => void;
 }
 
 /** The DCR graph view in `view`. */
-export function createGraphView(view: HTMLElement): GraphView {
+export function createGraphView(view: HTMLElement, options: GraphViewOptions = {}): GraphView {
     view.innerHTML = `
         <div class="dcr-toolbar">
             <div class="dcr-status">Waiting for the first check…</div>
             <button class="layout" title="Lay the graph out again, forgetting what was dragged">Layout</button>
             <button class="fit" title="Fit the graph into the view">Fit</button>
+            <button class="export-dcr-solutions" title="Save the graph as DCR Solutions XML (dcrgraphs.net)">Export DCR Solutions</button>
+            <button class="export-dcr-js" title="Save the graph as dcr-js XML (its modeler opens it)">Export dcr-js</button>
         </div>
         <div class="canvas"></div>`;
     const status = view.querySelector<HTMLElement>('.dcr-status')!;
@@ -104,7 +123,20 @@ export function createGraphView(view: HTMLElement): GraphView {
         }
     };
 
+    const dcrSolutionsXml = async (): Promise<string | undefined> => drawn ? (await viewer.saveDCRXML()).xml : undefined;
+    const dcrJsXml = async (): Promise<string | undefined> => drawn ? (await viewer.saveDcrJsXML({ format: true })).xml : undefined;
     view.querySelector<HTMLElement>('.fit')!.onclick = () => canvas().zoom('fit-viewport');
+    const exporting = (selector: string, format: ExportFormat, xmlOf: () => Promise<string | undefined>) => {
+        view.querySelector<HTMLElement>(selector)!.onclick = () => {
+            void xmlOf().then(xml => {
+                if (xml !== undefined) {
+                    (options.export ?? download)(xml, format);
+                }
+            });
+        };
+    };
+    exporting('.export-dcr-solutions', 'dcr-solutions', dcrSolutionsXml);
+    exporting('.export-dcr-js', 'dcr-js', dcrJsXml);
     view.querySelector<HTMLElement>('.layout')!.onclick = () => {
         dragged = undefined;
         if (latest) {
@@ -129,8 +161,20 @@ export function createGraphView(view: HTMLElement): GraphView {
                 canvas().zoom('fit-viewport');
                 shown = true;
             }
-        }
+        },
+        dcrSolutionsXml,
+        dcrJsXml
     };
+}
+
+/** Downloads `xml` as dcr-graph.xml (DCR Solutions) or dcr-graph.dcr-js.xml. */
+function download(xml: string, format: ExportFormat): void {
+    const url = URL.createObjectURL(new Blob([xml], { type: 'application/xml' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = format === 'dcr-js' ? 'dcr-graph.dcr-js.xml' : 'dcr-graph.xml';
+    link.click();
+    URL.revokeObjectURL(url);
 }
 
 /** Where the events and relations of the drawn graph are. */
@@ -220,10 +264,16 @@ export async function toDcrXml(graph: DcrGraph, dragged?: DraggedLayout): Promis
         return [];
     };
 
-    const eventXml = (event: DcrEvent, indent: string) => `${indent}<dcr:event id="${ids.get(event.name)}" description="${attribute(event.name)}"`
-        + ` initiators="${attribute(event.initiators.join(', '))}"`
-        + (event.observers.length > 0 ? ` observers="${attribute(event.observers.join(', '))}"` : '')
-        + ` included="${event.defaultIncluded}" executed="false" pending="${event.defaultPending}" enabled="false"/>`;
+    const eventXml = (event: DcrEvent, indent: string) => {
+        const data = dataOf(event);
+        const parameters = [...event.inputs, ...event.outputs];
+        return `${indent}<dcr:event id="${ids.get(event.name)}" description="${attribute(event.name)}"`
+            + ` initiators="${attribute(event.initiators.join(', '))}"`
+            + (event.observers.length > 0 ? ` observers="${attribute(event.observers.join(', '))}"` : '')
+            + (parameters.length > 0 ? ` parameters="${attribute(parameters.map(({ name, type }) => `${name}:${type}`).join(', '))}"` : '')
+            + ` included="${event.defaultIncluded}" executed="false" pending="${event.defaultPending}" enabled="false"`
+            + (data ? `>\n${indent} <dcr:eventData name="${attribute(data.name)}" type="${data.type}"/>\n${indent}</dcr:event>` : '/>');
+    };
     const shapeXml = (id: string, { x, y, width, height }: { x: number, y: number, width: number, height: number }) =>
         `   <dcrDi:dcrShape id="${id}_di" boardElement="${id}"><dc:Bounds x="${x}" y="${y}" width="${width}" height="${height}"/></dcrDi:dcrShape>`;
     const lines = [
@@ -253,6 +303,23 @@ export async function toDcrXml(graph: DcrGraph, dragged?: DraggedLayout): Promis
         '</dcr:definitions>'
     ];
     return { xml: lines.join('\n'), unrouted };
+}
+
+/**
+ * The data of an activity, which a guard names: a data property's, or the only input or output of an action (an action
+ * with several has none: each is written in `parameters`); its type as dcr-js has it: Any, any value, is text (String).
+ * None for a list or a queue.
+ */
+function dataOf(event: DcrEvent): { name: string, type: 'Int' | 'String' | 'Bool' } | undefined {
+    const parameters = [...event.inputs, ...event.outputs];
+    const { name, type } = event.data ? { name: event.name, type: event.data.type } : parameters.length === 1 ? parameters[0] : { name: event.name, type: undefined };
+    switch (type) {
+        case 'int': return { name, type: 'Int' };
+        case 'string': return { name, type: 'String' };
+        case 'boolean': return { name, type: 'Bool' };
+        case 'Any': return { name, type: 'String' };
+        default: return undefined;
+    }
 }
 
 /** Room for a guard, drawn on one line per 'and' or 'or' part (packages/dcr-view/lib/draw/DCRRenderer.js). */

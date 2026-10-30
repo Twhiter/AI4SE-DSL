@@ -54,14 +54,14 @@ async function relationsOf(text: string): Promise<Array<[string, string, string,
 describe('toDcrGraph', () => {
 
     it('makes an activity of every data property, initiated by its entity, in the group Data, and of every action, with its inputs and outputs; only the data included', async () => {
-        const none = { observers: [], inputs: [], outputs: [], defaultIncluded: false, defaultPending: false };
+        const none = { observers: [], inputs: [], outputs: [], defaultIncluded: false, defaultPending: false, data: undefined };
         const data = { ...none, defaultIncluded: true };
         const graph = await graphOf('');
         expect(graph.events).toEqual([
-            { name: 'speed', initiators: ['Printer'], ...data },
-            { name: 'ready', initiators: ['Printer'], ...data },
-            { name: 'jobs', initiators: ['Printer'], ...data },
-            { name: 'level', initiators: ['Tray'], ...data },
+            { name: 'speed', initiators: ['Printer'], ...data, data: { name: 'speed', type: 'int', elementType: undefined } },
+            { name: 'ready', initiators: ['Printer'], ...data, data: { name: 'ready', type: 'boolean', elementType: undefined } },
+            { name: 'jobs', initiators: ['Printer'], ...data, data: { name: 'jobs', type: 'list', elementType: 'string' } },
+            { name: 'level', initiators: ['Tray'], ...data, data: { name: 'level', type: 'int', elementType: undefined } },
             { ...none, name: 'start', initiators: ['Operator'], observers: ['Viewer'] },
             { ...none, name: 'print', initiators: ['Operator'], inputs: [{ name: 'file', type: 'string' }, { name: 'copies', type: 'int' }], outputs: [{ name: 'pages', type: 'int' }] },
             { ...none, name: 'refill', initiators: [] },   // no 'Action refill { … }'

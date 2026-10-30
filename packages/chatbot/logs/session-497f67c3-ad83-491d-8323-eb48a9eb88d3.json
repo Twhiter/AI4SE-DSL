@@ -1,0 +1,618 @@
+{
+  "session": "session-497f67c3-ad83-491d-8323-eb48a9eb88d3",
+  "domain": "\"Process Description – Care Allowance\\n\\nThe citizen begins by starting application.  Then the citizen needs to submit the information, including the child's age, medical certificate from the specialist and the number of caregivers. Once all information is submitted, the system robots must determine the fact: it must determine whether the age is minor, it must verify the certificate using the verification system, and it must check the child's national insurance membership. All of the above steps needs to be done once.\\nBased on the robots precheck, the following  rejection consequences are produced:\\n\\t• If the certificate is fake, the caseworker must reject it and must not approve it.\\n\\t• If the child doesn't have the national insurance membership, the caseworker must reject it and must not approve it.\\n\\n\\nOnce the robot's precheck are passed, the caseworker must manually assess the criteria.\\n\\nIf the child is adult:\\n\\t• The caseworker will assess whether the child has developmental disability\\n\\t• The caseworker will assess whether the child need continuous supervision (life-threatening case) and care\\n\\nOtherwise:\\n\\t• The caseworker must assess whether the child has illness or disability\\n\\t• The caseworker must assess whether the child needs continuous supervision\\n\\nMoreover, \\n\\t• The caseworker needs to determine whether care requires caregiver absent from work\\n\\t• If the citizen input number of caregiver more than 1 during submission, the caseworker must determine whether the care needs justifies a second caregivers.\\n\\n\\nOnce all of the manual assessment is done, if any of the applicable conditions fails, the caseworker will reject it. Otherwise, the caseworker will grant the care allowance.\\nAdditionally, during assessing the criteria, the caseworker must open a case after the robot precheck finishes. After the caseworker open the case, can assess criteria can happen.\\nMoreover, after the caseworker opened case, he can ask for both similar cases and relevant law. Then the system robot must find the similar cases or relevant laws. Once the finding is complete, the caseworker must review the similar cases or review relevant laws.\\nDuring reviewing information of both similar cases or relevant law, the manually assessing the information is blocked until the review is finished. And it also blocks the grant decision as well. \\nWhen grant decision is finished,  the robot must summarize the case and the caseworker must issues assessment and justification after the robot summarization. Until then, the citizen can see the justification after issuing.\",",
+  "agents": {
+    "Planning agent": {
+      "model": "gpt-6.1-sol",
+      "effort": "low"
+    },
+    "Chat agent": {
+      "model": "gpt-6.1-sol",
+      "effort": "low"
+    }
+  },
+  "entries": [
+    {
+      "type": "start",
+      "time": "2026-10-30T07:37:22.365Z",
+      "skills": true,
+      "options": true
+    },
+    {
+      "type": "user",
+      "time": "2026-10-30T07:42:25.679Z",
+      "text": "write the DSL"
+    },
+    {
+      "type": "plan",
+      "time": "2026-10-30T07:42:35.344Z",
+      "plan": 1
+    },
+    {
+      "type": "reply",
+      "time": "2026-10-30T07:44:20.892Z",
+      "text": "The proposed DSL models the care-allowance workflow, from application submission through eligibility checks, assessment, decision, and justification publication.\n\nThe plan adds:\n- **Application**, four roles, and three submitted-data properties.\n- **23 actions** with initiators, observers, and inputs or outputs.\n- Prerequisites and rules blocking assessment and granting while reviews are pending.\n- **22 scenarios** covering eligibility branches, rejection, research, and grant follow-up.\n\nThe simulated document check reports **no problems or warnings**. This confirms the checker accepts the model, not that every business requirement has been proven; the “prechecks happen once” requirement still needs explicit review.\n\nThe plan is awaiting your approval and has **not yet been applied**.",
+      "tools": [
+        {
+          "tool": "read_document",
+          "arguments": "{}"
+        }
+      ],
+      "tokens": {
+        "requests": 3,
+        "input": 17451,
+        "output": 181,
+        "total": 17632
+      },
+      "effort": "low",
+      "document": ""
+    },
+    {
+      "type": "decision",
+      "time": "2026-10-30T07:44:53.716Z",
+      "plan": 1,
+      "approved": true
+    },
+    {
+      "type": "reply",
+      "time": "2026-10-30T07:44:58.687Z",
+      "text": "The DSL has been added to the document. The current check reports **no problems or warnings**.\n\nIt covers submission, prechecks, manual assessments, research and review, decisions, and justification publication. The requirement that each robot precheck runs **only once** still needs explicit modeling.",
+      "tools": [],
+      "tokens": {
+        "requests": 1,
+        "input": 10535,
+        "output": 61,
+        "total": 10596
+      },
+      "effort": "low",
+      "document": "Entity Application {\n    Actions: start application, submit information, determine minority, verify certificate, check insurance membership, open case, assess developmental disability, assess adult supervision, assess illness disability, assess minor supervision, assess work absence, assess second caregiver, request similar cases, find similar cases, review similar cases, request relevant law, find relevant law, review relevant law, grant allowance, reject application, summarize case, issue assessment justification, view justification\n    Data properties: child age: int, medical certificate: string, caregiver count: int\n}\n\nRole Citizen.\n\nRole Robot.\n\nRole Caseworker.\n\nRole Verification system.\n\nAction start application { Initiators: Citizen, Observers: Robot }\n\nAction submit information { Initiators: Citizen, Observers: Robot, Input: age: int, certificate: string, caregivers: int }\n\nAction determine minority { Initiators: Robot, Observers: Caseworker, Output: minor: boolean }\n\nAction verify certificate { Initiators: Robot, Observers: Verification system, Caseworker, Output: passed: boolean }\n\nAction check insurance membership { Initiators: Robot, Observers: Caseworker, Output: passed: boolean }\n\nAction open case { Initiators: Caseworker }\n\nAction assess developmental disability { Initiators: Caseworker, Output: passed: boolean }\n\nAction assess adult supervision { Initiators: Caseworker, Output: passed: boolean }\n\nAction assess illness disability { Initiators: Caseworker, Output: passed: boolean }\n\nAction assess minor supervision { Initiators: Caseworker, Output: passed: boolean }\n\nAction assess work absence { Initiators: Caseworker, Output: passed: boolean }\n\nAction assess second caregiver { Initiators: Caseworker, Output: passed: boolean }\n\nAction request similar cases { Initiators: Caseworker, Observers: Robot }\n\nAction find similar cases { Initiators: Robot, Observers: Caseworker }\n\nAction review similar cases { Initiators: Caseworker }\n\nAction request relevant law { Initiators: Caseworker, Observers: Robot }\n\nAction find relevant law { Initiators: Robot, Observers: Caseworker }\n\nAction review relevant law { Initiators: Caseworker }\n\nAction grant allowance { Initiators: Caseworker, Observers: Citizen, Robot }\n\nAction reject application { Initiators: Caseworker, Observers: Citizen }\n\nAction summarize case { Initiators: Robot, Observers: Caseworker }\n\nAction issue assessment justification { Initiators: Caseworker, Observers: Citizen }\n\nAction view justification { Initiators: Citizen }\n\nAction submit information is enabled means { start application was executed or is not available }\n\nAction determine minority is enabled means { submit information was executed or is not available }\n\nAction verify certificate is enabled means { submit information was executed or is not available }\n\nAction check insurance membership is enabled means { submit information was executed or is not available }\n\nAction open case is enabled means { determine minority was executed or is not available AND verify certificate was executed or is not available AND check insurance membership was executed or is not available }\n\nAction assess developmental disability is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\n\nAction assess adult supervision is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\n\nAction assess illness disability is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\n\nAction assess minor supervision is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\n\nAction assess work absence is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\n\nAction assess second caregiver is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\n\nAction request similar cases is enabled means { open case was executed or is not available }\n\nAction request relevant law is enabled means { open case was executed or is not available }\n\nAction find similar cases is enabled means { request similar cases was executed or is not available }\n\nAction find relevant law is enabled means { request relevant law was executed or is not available }\n\nAction review similar cases is enabled means { find similar cases was executed or is not available AND find similar cases is not pending or is not available }\n\nAction review relevant law is enabled means { find relevant law was executed or is not available AND find relevant law is not pending or is not available }\n\nAction grant allowance is enabled means { open case was executed or is not available AND assess developmental disability was executed or is not available AND assess adult supervision was executed or is not available AND assess illness disability was executed or is not available AND assess minor supervision was executed or is not available AND assess work absence was executed or is not available AND assess second caregiver was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\n\nAction reject application is enabled means { determine minority was executed or is not available AND verify certificate was executed or is not available AND check insurance membership was executed or is not available AND assess developmental disability was executed or is not available AND assess adult supervision was executed or is not available AND assess illness disability was executed or is not available AND assess minor supervision was executed or is not available AND assess work absence was executed or is not available AND assess second caregiver was executed or is not available }\n\nAction summarize case is enabled means { grant allowance was executed or is not available }\n\nAction issue assessment justification is enabled means { summarize case was executed or is not available }\n\nAction view justification is enabled means { issue assessment justification was executed or is not available }\n\nScenario: Begin application Given start application is available When start application is executed Then submit information is pending AND reject application is not available AND grant allowance is not available AND summarize case is not available AND issue assessment justification is not available AND view justification is not available AND find similar cases is not available AND find relevant law is not available AND review similar cases is not available AND review relevant law is not available .\n\nScenario: Submit application data Given submit information is enabled When submit information is executed with inputs age, certificate, caregivers Then the Application's child age is set to age AND the Application's medical certificate is set to certificate AND the Application's caregiver count is set to caregivers AND determine minority is pending AND verify certificate is pending AND check insurance membership is pending .\n\nScenario: Single caregiver Given submit information is enabled When submit information is executed with inputs age, certificate, caregivers AND caregivers not larger than 1 Then assess second caregiver is not available .\n\nScenario: Minor route Given determine minority is enabled When determine minority is executed with outputs minor = true Then assess developmental disability is not available AND assess adult supervision is not available AND open case is pending .\n\nScenario: Adult route Given determine minority is enabled When determine minority is executed with outputs minor = false Then assess illness disability is not available AND assess minor supervision is not available AND open case is pending .\n\nScenario: Fake certificate Given verify certificate is enabled When verify certificate is executed with outputs passed = false Then reject application is available AND reject application is pending AND grant allowance is not available AND open case is not available AND assess developmental disability is not available AND assess adult supervision is not available AND assess illness disability is not available AND assess minor supervision is not available AND assess work absence is not available AND assess second caregiver is not available AND request similar cases is not available AND request relevant law is not available .\n\nScenario: Missing insurance membership Given check insurance membership is enabled When check insurance membership is executed with outputs passed = false Then reject application is available AND reject application is pending AND grant allowance is not available AND open case is not available AND assess developmental disability is not available AND assess adult supervision is not available AND assess illness disability is not available AND assess minor supervision is not available AND assess work absence is not available AND assess second caregiver is not available AND request similar cases is not available AND request relevant law is not available .\n\nScenario: Open assessment Given open case is enabled When open case is executed Then grant allowance is available AND grant allowance is pending AND assess developmental disability is pending AND assess adult supervision is pending AND assess illness disability is pending AND assess minor supervision is pending AND assess work absence is pending AND assess second caregiver is pending .\n\nScenario: Developmental criterion failure Given assess developmental disability is enabled When assess developmental disability is executed with outputs passed = false Then grant allowance is not available AND reject application is available AND reject application is pending .\n\nScenario: Adult supervision criterion failure Given assess adult supervision is enabled When assess adult supervision is executed with outputs passed = false Then grant allowance is not available AND reject application is available AND reject application is pending .\n\nScenario: Illness criterion failure Given assess illness disability is enabled When assess illness disability is executed with outputs passed = false Then grant allowance is not available AND reject application is available AND reject application is pending .\n\nScenario: Minor supervision criterion failure Given assess minor supervision is enabled When assess minor supervision is executed with outputs passed = false Then grant allowance is not available AND reject application is available AND reject application is pending .\n\nScenario: Work absence criterion failure Given assess work absence is enabled When assess work absence is executed with outputs passed = false Then grant allowance is not available AND reject application is available AND reject application is pending .\n\nScenario: Second caregiver criterion failure Given assess second caregiver is enabled When assess second caregiver is executed with outputs passed = false Then grant allowance is not available AND reject application is available AND reject application is pending .\n\nScenario: Request case research Given request similar cases is enabled When request similar cases is executed Then find similar cases is available AND find similar cases is pending AND review similar cases is available AND review similar cases is pending .\n\nScenario: Request law research Given request relevant law is enabled When request relevant law is executed Then find relevant law is available AND find relevant law is pending AND review relevant law is available AND review relevant law is pending .\n\nScenario: Case research complete Given find similar cases is enabled When find similar cases is executed Then review similar cases is pending .\n\nScenario: Law research complete Given find relevant law is enabled When find relevant law is executed Then review relevant law is pending .\n\nScenario: Grant followup Given grant allowance is enabled When grant allowance is executed Then summarize case is available AND summarize case is pending AND reject application is not available AND request similar cases is not available AND request relevant law is not available .\n\nScenario: Reject closes decision Given reject application is enabled When reject application is executed Then grant allowance is not available AND request similar cases is not available AND request relevant law is not available .\n\nScenario: Summary followup Given summarize case is enabled When summarize case is executed Then issue assessment justification is available AND issue assessment justification is pending .\n\nScenario: Publish justification Given issue assessment justification is enabled When issue assessment justification is executed Then view justification is available .\n"
+    },
+    {
+      "type": "user",
+      "time": "2026-10-30T07:53:26.432Z",
+      "text": "give me a download link for the generated dcr graph"
+    },
+    {
+      "type": "reply",
+      "time": "2026-10-30T07:53:36.834Z",
+      "text": "I can’t generate a download link from this interface: the available tools don’t export or host a DCR graph file.\n\nThe generated **DSL is in your document editor**. If the application offers **Export** or **Download**, use that to save it or export the graph.\n\nDo you need the graph as **DCR XML** or as an **image**?",
+      "tools": [],
+      "tokens": {
+        "requests": 1,
+        "input": 10613,
+        "output": 79,
+        "total": 10692
+      },
+      "effort": "low",
+      "document": "Entity Application {\n    Actions: start application, submit information, determine minority, verify certificate, check insurance membership, open case, assess developmental disability, assess adult supervision, assess illness disability, assess minor supervision, assess work absence, assess second caregiver, request similar cases, find similar cases, review similar cases, request relevant law, find relevant law, review relevant law, grant allowance, reject application, summarize case, issue assessment justification, view justification\n    Data properties: child age: int, medical certificate: string, caregiver count: int\n}\n\nRole Citizen.\n\nRole Robot.\n\nRole Caseworker.\n\nRole Verification system.\n\nAction start application { Initiators: Citizen, Observers: Robot }\n\nAction submit information { Initiators: Citizen, Observers: Robot, Input: age: int, certificate: string, caregivers: int }\n\nAction determine minority { Initiators: Robot, Observers: Caseworker, Output: minor: boolean }\n\nAction verify certificate { Initiators: Robot, Observers: Verification system, Caseworker, Output: passed: boolean }\n\nAction check insurance membership { Initiators: Robot, Observers: Caseworker, Output: passed: boolean }\n\nAction open case { Initiators: Caseworker }\n\nAction assess developmental disability { Initiators: Caseworker, Output: passed: boolean }\n\nAction assess adult supervision { Initiators: Caseworker, Output: passed: boolean }\n\nAction assess illness disability { Initiators: Caseworker, Output: passed: boolean }\n\nAction assess minor supervision { Initiators: Caseworker, Output: passed: boolean }\n\nAction assess work absence { Initiators: Caseworker, Output: passed: boolean }\n\nAction assess second caregiver { Initiators: Caseworker, Output: passed: boolean }\n\nAction request similar cases { Initiators: Caseworker, Observers: Robot }\n\nAction find similar cases { Initiators: Robot, Observers: Caseworker }\n\nAction review similar cases { Initiators: Caseworker }\n\nAction request relevant law { Initiators: Caseworker, Observers: Robot }\n\nAction find relevant law { Initiators: Robot, Observers: Caseworker }\n\nAction review relevant law { Initiators: Caseworker }\n\nAction grant allowance { Initiators: Caseworker, Observers: Citizen, Robot }\n\nAction reject application { Initiators: Caseworker, Observers: Citizen }\n\nAction summarize case { Initiators: Robot, Observers: Caseworker }\n\nAction issue assessment justification { Initiators: Caseworker, Observers: Citizen }\n\nAction view justification { Initiators: Citizen }\n\nAction submit information is enabled means { start application was executed or is not available }\n\nAction determine minority is enabled means { submit information was executed or is not available }\n\nAction verify certificate is enabled means { submit information was executed or is not available }\n\nAction check insurance membership is enabled means { submit information was executed or is not available }\n\nAction open case is enabled means { determine minority was executed or is not available AND verify certificate was executed or is not available AND check insurance membership was executed or is not available }\n\nAction assess developmental disability is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\n\nAction assess adult supervision is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\n\nAction assess illness disability is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\n\nAction assess minor supervision is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\n\nAction assess work absence is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\n\nAction assess second caregiver is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\n\nAction request similar cases is enabled means { open case was executed or is not available }\n\nAction request relevant law is enabled means { open case was executed or is not available }\n\nAction find similar cases is enabled means { request similar cases was executed or is not available }\n\nAction find relevant law is enabled means { request relevant law was executed or is not available }\n\nAction review similar cases is enabled means { find similar cases was executed or is not available AND find similar cases is not pending or is not available }\n\nAction review relevant law is enabled means { find relevant law was executed or is not available AND find relevant law is not pending or is not available }\n\nAction grant allowance is enabled means { open case was executed or is not available AND assess developmental disability was executed or is not available AND assess adult supervision was executed or is not available AND assess illness disability was executed or is not available AND assess minor supervision was executed or is not available AND assess work absence was executed or is not available AND assess second caregiver was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\n\nAction reject application is enabled means { determine minority was executed or is not available AND verify certificate was executed or is not available AND check insurance membership was executed or is not available AND assess developmental disability was executed or is not available AND assess adult supervision was executed or is not available AND assess illness disability was executed or is not available AND assess minor supervision was executed or is not available AND assess work absence was executed or is not available AND assess second caregiver was executed or is not available }\n\nAction summarize case is enabled means { grant allowance was executed or is not available }\n\nAction issue assessment justification is enabled means { summarize case was executed or is not available }\n\nAction view justification is enabled means { issue assessment justification was executed or is not available }\n\nScenario: Begin application Given start application is available When start application is executed Then submit information is pending AND reject application is not available AND grant allowance is not available AND summarize case is not available AND issue assessment justification is not available AND view justification is not available AND find similar cases is not available AND find relevant law is not available AND review similar cases is not available AND review relevant law is not available .\n\nScenario: Submit application data Given submit information is enabled When submit information is executed with inputs age, certificate, caregivers Then the Application's child age is set to age AND the Application's medical certificate is set to certificate AND the Application's caregiver count is set to caregivers AND determine minority is pending AND verify certificate is pending AND check insurance membership is pending .\n\nScenario: Single caregiver Given submit information is enabled When submit information is executed with inputs age, certificate, caregivers AND caregivers not larger than 1 Then assess second caregiver is not available .\n\nScenario: Minor route Given determine minority is enabled When determine minority is executed with outputs minor = true Then assess developmental disability is not available AND assess adult supervision is not available AND open case is pending .\n\nScenario: Adult route Given determine minority is enabled When determine minority is executed with outputs minor = false Then assess illness disability is not available AND assess minor supervision is not available AND open case is pending .\n\nScenario: Fake certificate Given verify certificate is enabled When verify certificate is executed with outputs passed = false Then reject application is available AND reject application is pending AND grant allowance is not available AND open case is not available AND assess developmental disability is not available AND assess adult supervision is not available AND assess illness disability is not available AND assess minor supervision is not available AND assess work absence is not available AND assess second caregiver is not available AND request similar cases is not available AND request relevant law is not available .\n\nScenario: Missing insurance membership Given check insurance membership is enabled When check insurance membership is executed with outputs passed = false Then reject application is available AND reject application is pending AND grant allowance is not available AND open case is not available AND assess developmental disability is not available AND assess adult supervision is not available AND assess illness disability is not available AND assess minor supervision is not available AND assess work absence is not available AND assess second caregiver is not available AND request similar cases is not available AND request relevant law is not available .\n\nScenario: Open assessment Given open case is enabled When open case is executed Then grant allowance is available AND grant allowance is pending AND assess developmental disability is pending AND assess adult supervision is pending AND assess illness disability is pending AND assess minor supervision is pending AND assess work absence is pending AND assess second caregiver is pending .\n\nScenario: Developmental criterion failure Given assess developmental disability is enabled When assess developmental disability is executed with outputs passed = false Then grant allowance is not available AND reject application is available AND reject application is pending .\n\nScenario: Adult supervision criterion failure Given assess adult supervision is enabled When assess adult supervision is executed with outputs passed = false Then grant allowance is not available AND reject application is available AND reject application is pending .\n\nScenario: Illness criterion failure Given assess illness disability is enabled When assess illness disability is executed with outputs passed = false Then grant allowance is not available AND reject application is available AND reject application is pending .\n\nScenario: Minor supervision criterion failure Given assess minor supervision is enabled When assess minor supervision is executed with outputs passed = false Then grant allowance is not available AND reject application is available AND reject application is pending .\n\nScenario: Work absence criterion failure Given assess work absence is enabled When assess work absence is executed with outputs passed = false Then grant allowance is not available AND reject application is available AND reject application is pending .\n\nScenario: Second caregiver criterion failure Given assess second caregiver is enabled When assess second caregiver is executed with outputs passed = false Then grant allowance is not available AND reject application is available AND reject application is pending .\n\nScenario: Request case research Given request similar cases is enabled When request similar cases is executed Then find similar cases is available AND find similar cases is pending AND review similar cases is available AND review similar cases is pending .\n\nScenario: Request law research Given request relevant law is enabled When request relevant law is executed Then find relevant law is available AND find relevant law is pending AND review relevant law is available AND review relevant law is pending .\n\nScenario: Case research complete Given find similar cases is enabled When find similar cases is executed Then review similar cases is pending .\n\nScenario: Law research complete Given find relevant law is enabled When find relevant law is executed Then review relevant law is pending .\n\nScenario: Grant followup Given grant allowance is enabled When grant allowance is executed Then summarize case is available AND summarize case is pending AND reject application is not available AND request similar cases is not available AND request relevant law is not available .\n\nScenario: Reject closes decision Given reject application is enabled When reject application is executed Then grant allowance is not available AND request similar cases is not available AND request relevant law is not available .\n\nScenario: Summary followup Given summarize case is enabled When summarize case is executed Then issue assessment justification is available AND issue assessment justification is pending .\n\nScenario: Publish justification Given issue assessment justification is enabled When issue assessment justification is executed Then view justification is available .\n"
+    },
+    {
+      "type": "user",
+      "time": "2026-10-30T07:53:58.688Z",
+      "text": "as DCR XML"
+    },
+    {
+      "type": "reply",
+      "time": "2026-10-30T07:54:07.484Z",
+      "text": "I can’t provide a downloadable **DCR XML** file here—the available tools access the DSL document but do not export it to DCR XML or create download links.\n\nIf your editor has an export menu, look for **Export → DCR XML**. Otherwise, share a sample XML file from your target DCR application so I can help map the model to its expected format.",
+      "tools": [],
+      "tokens": {
+        "requests": 1,
+        "input": 10702,
+        "output": 81,
+        "total": 10783
+      },
+      "effort": "low",
+      "document": "Entity Application {\n    Actions: start application, submit information, determine minority, verify certificate, check insurance membership, open case, assess developmental disability, assess adult supervision, assess illness disability, assess minor supervision, assess work absence, assess second caregiver, request similar cases, find similar cases, review similar cases, request relevant law, find relevant law, review relevant law, grant allowance, reject application, summarize case, issue assessment justification, view justification\n    Data properties: child age: int, medical certificate: string, caregiver count: int\n}\n\nRole Citizen.\n\nRole Robot.\n\nRole Caseworker.\n\nRole Verification system.\n\nAction start application { Initiators: Citizen, Observers: Robot }\n\nAction submit information { Initiators: Citizen, Observers: Robot, Input: age: int, certificate: string, caregivers: int }\n\nAction determine minority { Initiators: Robot, Observers: Caseworker, Output: minor: boolean }\n\nAction verify certificate { Initiators: Robot, Observers: Verification system, Caseworker, Output: passed: boolean }\n\nAction check insurance membership { Initiators: Robot, Observers: Caseworker, Output: passed: boolean }\n\nAction open case { Initiators: Caseworker }\n\nAction assess developmental disability { Initiators: Caseworker, Output: passed: boolean }\n\nAction assess adult supervision { Initiators: Caseworker, Output: passed: boolean }\n\nAction assess illness disability { Initiators: Caseworker, Output: passed: boolean }\n\nAction assess minor supervision { Initiators: Caseworker, Output: passed: boolean }\n\nAction assess work absence { Initiators: Caseworker, Output: passed: boolean }\n\nAction assess second caregiver { Initiators: Caseworker, Output: passed: boolean }\n\nAction request similar cases { Initiators: Caseworker, Observers: Robot }\n\nAction find similar cases { Initiators: Robot, Observers: Caseworker }\n\nAction review similar cases { Initiators: Caseworker }\n\nAction request relevant law { Initiators: Caseworker, Observers: Robot }\n\nAction find relevant law { Initiators: Robot, Observers: Caseworker }\n\nAction review relevant law { Initiators: Caseworker }\n\nAction grant allowance { Initiators: Caseworker, Observers: Citizen, Robot }\n\nAction reject application { Initiators: Caseworker, Observers: Citizen }\n\nAction summarize case { Initiators: Robot, Observers: Caseworker }\n\nAction issue assessment justification { Initiators: Caseworker, Observers: Citizen }\n\nAction view justification { Initiators: Citizen }\n\nAction submit information is enabled means { start application was executed or is not available }\n\nAction determine minority is enabled means { submit information was executed or is not available }\n\nAction verify certificate is enabled means { submit information was executed or is not available }\n\nAction check insurance membership is enabled means { submit information was executed or is not available }\n\nAction open case is enabled means { determine minority was executed or is not available AND verify certificate was executed or is not available AND check insurance membership was executed or is not available }\n\nAction assess developmental disability is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\n\nAction assess adult supervision is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\n\nAction assess illness disability is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\n\nAction assess minor supervision is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\n\nAction assess work absence is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\n\nAction assess second caregiver is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\n\nAction request similar cases is enabled means { open case was executed or is not available }\n\nAction request relevant law is enabled means { open case was executed or is not available }\n\nAction find similar cases is enabled means { request similar cases was executed or is not available }\n\nAction find relevant law is enabled means { request relevant law was executed or is not available }\n\nAction review similar cases is enabled means { find similar cases was executed or is not available AND find similar cases is not pending or is not available }\n\nAction review relevant law is enabled means { find relevant law was executed or is not available AND find relevant law is not pending or is not available }\n\nAction grant allowance is enabled means { open case was executed or is not available AND assess developmental disability was executed or is not available AND assess adult supervision was executed or is not available AND assess illness disability was executed or is not available AND assess minor supervision was executed or is not available AND assess work absence was executed or is not available AND assess second caregiver was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\n\nAction reject application is enabled means { determine minority was executed or is not available AND verify certificate was executed or is not available AND check insurance membership was executed or is not available AND assess developmental disability was executed or is not available AND assess adult supervision was executed or is not available AND assess illness disability was executed or is not available AND assess minor supervision was executed or is not available AND assess work absence was executed or is not available AND assess second caregiver was executed or is not available }\n\nAction summarize case is enabled means { grant allowance was executed or is not available }\n\nAction issue assessment justification is enabled means { summarize case was executed or is not available }\n\nAction view justification is enabled means { issue assessment justification was executed or is not available }\n\nScenario: Begin application Given start application is available When start application is executed Then submit information is pending AND reject application is not available AND grant allowance is not available AND summarize case is not available AND issue assessment justification is not available AND view justification is not available AND find similar cases is not available AND find relevant law is not available AND review similar cases is not available AND review relevant law is not available .\n\nScenario: Submit application data Given submit information is enabled When submit information is executed with inputs age, certificate, caregivers Then the Application's child age is set to age AND the Application's medical certificate is set to certificate AND the Application's caregiver count is set to caregivers AND determine minority is pending AND verify certificate is pending AND check insurance membership is pending .\n\nScenario: Single caregiver Given submit information is enabled When submit information is executed with inputs age, certificate, caregivers AND caregivers not larger than 1 Then assess second caregiver is not available .\n\nScenario: Minor route Given determine minority is enabled When determine minority is executed with outputs minor = true Then assess developmental disability is not available AND assess adult supervision is not available AND open case is pending .\n\nScenario: Adult route Given determine minority is enabled When determine minority is executed with outputs minor = false Then assess illness disability is not available AND assess minor supervision is not available AND open case is pending .\n\nScenario: Fake certificate Given verify certificate is enabled When verify certificate is executed with outputs passed = false Then reject application is available AND reject application is pending AND grant allowance is not available AND open case is not available AND assess developmental disability is not available AND assess adult supervision is not available AND assess illness disability is not available AND assess minor supervision is not available AND assess work absence is not available AND assess second caregiver is not available AND request similar cases is not available AND request relevant law is not available .\n\nScenario: Missing insurance membership Given check insurance membership is enabled When check insurance membership is executed with outputs passed = false Then reject application is available AND reject application is pending AND grant allowance is not available AND open case is not available AND assess developmental disability is not available AND assess adult supervision is not available AND assess illness disability is not available AND assess minor supervision is not available AND assess work absence is not available AND assess second caregiver is not available AND request similar cases is not available AND request relevant law is not available .\n\nScenario: Open assessment Given open case is enabled When open case is executed Then grant allowance is available AND grant allowance is pending AND assess developmental disability is pending AND assess adult supervision is pending AND assess illness disability is pending AND assess minor supervision is pending AND assess work absence is pending AND assess second caregiver is pending .\n\nScenario: Developmental criterion failure Given assess developmental disability is enabled When assess developmental disability is executed with outputs passed = false Then grant allowance is not available AND reject application is available AND reject application is pending .\n\nScenario: Adult supervision criterion failure Given assess adult supervision is enabled When assess adult supervision is executed with outputs passed = false Then grant allowance is not available AND reject application is available AND reject application is pending .\n\nScenario: Illness criterion failure Given assess illness disability is enabled When assess illness disability is executed with outputs passed = false Then grant allowance is not available AND reject application is available AND reject application is pending .\n\nScenario: Minor supervision criterion failure Given assess minor supervision is enabled When assess minor supervision is executed with outputs passed = false Then grant allowance is not available AND reject application is available AND reject application is pending .\n\nScenario: Work absence criterion failure Given assess work absence is enabled When assess work absence is executed with outputs passed = false Then grant allowance is not available AND reject application is available AND reject application is pending .\n\nScenario: Second caregiver criterion failure Given assess second caregiver is enabled When assess second caregiver is executed with outputs passed = false Then grant allowance is not available AND reject application is available AND reject application is pending .\n\nScenario: Request case research Given request similar cases is enabled When request similar cases is executed Then find similar cases is available AND find similar cases is pending AND review similar cases is available AND review similar cases is pending .\n\nScenario: Request law research Given request relevant law is enabled When request relevant law is executed Then find relevant law is available AND find relevant law is pending AND review relevant law is available AND review relevant law is pending .\n\nScenario: Case research complete Given find similar cases is enabled When find similar cases is executed Then review similar cases is pending .\n\nScenario: Law research complete Given find relevant law is enabled When find relevant law is executed Then review relevant law is pending .\n\nScenario: Grant followup Given grant allowance is enabled When grant allowance is executed Then summarize case is available AND summarize case is pending AND reject application is not available AND request similar cases is not available AND request relevant law is not available .\n\nScenario: Reject closes decision Given reject application is enabled When reject application is executed Then grant allowance is not available AND request similar cases is not available AND request relevant law is not available .\n\nScenario: Summary followup Given summarize case is enabled When summarize case is executed Then issue assessment justification is available AND issue assessment justification is pending .\n\nScenario: Publish justification Given issue assessment justification is enabled When issue assessment justification is executed Then view justification is available .\n"
+    }
+  ],
+  "plans": [
+    {
+      "number": 1,
+      "started": "2026-10-30T07:42:35.344Z",
+      "attempts": [
+        {
+          "number": 1,
+          "steps": [],
+          "ran": false,
+          "mistake": "tool",
+          "reason": "The plan has no steps.",
+          "newErrors": [],
+          "earlierErrors": 0,
+          "warnings": 0,
+          "document": "\n"
+        },
+        {
+          "number": 2,
+          "steps": [
+            {
+              "tool": "create_entity",
+              "arguments": "{\"name\":\"Application\"}"
+            },
+            {
+              "tool": "create_role",
+              "arguments": "{\"name\":\"Citizen\"}"
+            },
+            {
+              "tool": "create_role",
+              "arguments": "{\"name\":\"Robot\"}"
+            },
+            {
+              "tool": "create_role",
+              "arguments": "{\"name\":\"Caseworker\"}"
+            },
+            {
+              "tool": "create_role",
+              "arguments": "{\"name\":\"Verification system\"}"
+            },
+            {
+              "tool": "create_data_property",
+              "arguments": "{\"entity\":\"Application\",\"name\":\"child age\",\"type\":\"int\",\"element_type\":null}"
+            },
+            {
+              "tool": "create_data_property",
+              "arguments": "{\"entity\":\"Application\",\"name\":\"medical certificate\",\"type\":\"string\",\"element_type\":null}"
+            },
+            {
+              "tool": "create_data_property",
+              "arguments": "{\"entity\":\"Application\",\"name\":\"caregiver count\",\"type\":\"int\",\"element_type\":null}"
+            },
+            {
+              "tool": "add_entity_action",
+              "arguments": "{\"entity\":\"Application\",\"action\":\"start application\"}"
+            },
+            {
+              "tool": "add_entity_action",
+              "arguments": "{\"entity\":\"Application\",\"action\":\"submit information\"}"
+            },
+            {
+              "tool": "add_entity_action",
+              "arguments": "{\"entity\":\"Application\",\"action\":\"determine minority\"}"
+            },
+            {
+              "tool": "add_entity_action",
+              "arguments": "{\"entity\":\"Application\",\"action\":\"verify certificate\"}"
+            },
+            {
+              "tool": "add_entity_action",
+              "arguments": "{\"entity\":\"Application\",\"action\":\"check insurance membership\"}"
+            },
+            {
+              "tool": "add_entity_action",
+              "arguments": "{\"entity\":\"Application\",\"action\":\"open case\"}"
+            },
+            {
+              "tool": "add_entity_action",
+              "arguments": "{\"entity\":\"Application\",\"action\":\"assess developmental disability\"}"
+            },
+            {
+              "tool": "add_entity_action",
+              "arguments": "{\"entity\":\"Application\",\"action\":\"assess adult supervision\"}"
+            },
+            {
+              "tool": "add_entity_action",
+              "arguments": "{\"entity\":\"Application\",\"action\":\"assess illness disability\"}"
+            },
+            {
+              "tool": "add_entity_action",
+              "arguments": "{\"entity\":\"Application\",\"action\":\"assess minor supervision\"}"
+            },
+            {
+              "tool": "add_entity_action",
+              "arguments": "{\"entity\":\"Application\",\"action\":\"assess work absence\"}"
+            },
+            {
+              "tool": "add_entity_action",
+              "arguments": "{\"entity\":\"Application\",\"action\":\"assess second caregiver\"}"
+            },
+            {
+              "tool": "add_entity_action",
+              "arguments": "{\"entity\":\"Application\",\"action\":\"request similar cases\"}"
+            },
+            {
+              "tool": "add_entity_action",
+              "arguments": "{\"entity\":\"Application\",\"action\":\"find similar cases\"}"
+            },
+            {
+              "tool": "add_entity_action",
+              "arguments": "{\"entity\":\"Application\",\"action\":\"review similar cases\"}"
+            },
+            {
+              "tool": "add_entity_action",
+              "arguments": "{\"entity\":\"Application\",\"action\":\"request relevant law\"}"
+            },
+            {
+              "tool": "add_entity_action",
+              "arguments": "{\"entity\":\"Application\",\"action\":\"find relevant law\"}"
+            },
+            {
+              "tool": "add_entity_action",
+              "arguments": "{\"entity\":\"Application\",\"action\":\"review relevant law\"}"
+            },
+            {
+              "tool": "add_entity_action",
+              "arguments": "{\"entity\":\"Application\",\"action\":\"grant allowance\"}"
+            },
+            {
+              "tool": "add_entity_action",
+              "arguments": "{\"entity\":\"Application\",\"action\":\"reject application\"}"
+            },
+            {
+              "tool": "add_entity_action",
+              "arguments": "{\"entity\":\"Application\",\"action\":\"summarize case\"}"
+            },
+            {
+              "tool": "add_entity_action",
+              "arguments": "{\"entity\":\"Application\",\"action\":\"issue assessment justification\"}"
+            },
+            {
+              "tool": "add_entity_action",
+              "arguments": "{\"entity\":\"Application\",\"action\":\"view justification\"}"
+            },
+            {
+              "tool": "create_action_specification",
+              "arguments": "{\"action\":\"start application\",\"initiators\":[\"Citizen\"],\"observers\":[\"Robot\"],\"inputs\":null,\"outputs\":null}"
+            },
+            {
+              "tool": "create_action_specification",
+              "arguments": "{\"action\":\"submit information\",\"initiators\":[\"Citizen\"],\"observers\":[\"Robot\"],\"inputs\":[{\"name\":\"age\",\"type\":\"int\"},{\"name\":\"certificate\",\"type\":\"string\"},{\"name\":\"caregivers\",\"type\":\"int\"}],\"outputs\":null}"
+            },
+            {
+              "tool": "create_action_specification",
+              "arguments": "{\"action\":\"determine minority\",\"initiators\":[\"Robot\"],\"observers\":[\"Caseworker\"],\"inputs\":null,\"outputs\":[{\"name\":\"minor\",\"type\":\"boolean\"}]}"
+            },
+            {
+              "tool": "create_action_specification",
+              "arguments": "{\"action\":\"verify certificate\",\"initiators\":[\"Robot\"],\"observers\":[\"Verification system\",\"Caseworker\"],\"inputs\":null,\"outputs\":[{\"name\":\"passed\",\"type\":\"boolean\"}]}"
+            },
+            {
+              "tool": "create_action_specification",
+              "arguments": "{\"action\":\"check insurance membership\",\"initiators\":[\"Robot\"],\"observers\":[\"Caseworker\"],\"inputs\":null,\"outputs\":[{\"name\":\"passed\",\"type\":\"boolean\"}]}"
+            },
+            {
+              "tool": "create_action_specification",
+              "arguments": "{\"action\":\"open case\",\"initiators\":[\"Caseworker\"],\"observers\":null,\"inputs\":null,\"outputs\":null}"
+            },
+            {
+              "tool": "create_action_specification",
+              "arguments": "{\"action\":\"assess developmental disability\",\"initiators\":[\"Caseworker\"],\"observers\":null,\"inputs\":null,\"outputs\":[{\"name\":\"passed\",\"type\":\"boolean\"}]}"
+            },
+            {
+              "tool": "create_action_specification",
+              "arguments": "{\"action\":\"assess adult supervision\",\"initiators\":[\"Caseworker\"],\"observers\":null,\"inputs\":null,\"outputs\":[{\"name\":\"passed\",\"type\":\"boolean\"}]}"
+            },
+            {
+              "tool": "create_action_specification",
+              "arguments": "{\"action\":\"assess illness disability\",\"initiators\":[\"Caseworker\"],\"observers\":null,\"inputs\":null,\"outputs\":[{\"name\":\"passed\",\"type\":\"boolean\"}]}"
+            },
+            {
+              "tool": "create_action_specification",
+              "arguments": "{\"action\":\"assess minor supervision\",\"initiators\":[\"Caseworker\"],\"observers\":null,\"inputs\":null,\"outputs\":[{\"name\":\"passed\",\"type\":\"boolean\"}]}"
+            },
+            {
+              "tool": "create_action_specification",
+              "arguments": "{\"action\":\"assess work absence\",\"initiators\":[\"Caseworker\"],\"observers\":null,\"inputs\":null,\"outputs\":[{\"name\":\"passed\",\"type\":\"boolean\"}]}"
+            },
+            {
+              "tool": "create_action_specification",
+              "arguments": "{\"action\":\"assess second caregiver\",\"initiators\":[\"Caseworker\"],\"observers\":null,\"inputs\":null,\"outputs\":[{\"name\":\"passed\",\"type\":\"boolean\"}]}"
+            },
+            {
+              "tool": "create_action_specification",
+              "arguments": "{\"action\":\"request similar cases\",\"initiators\":[\"Caseworker\"],\"observers\":[\"Robot\"],\"inputs\":null,\"outputs\":null}"
+            },
+            {
+              "tool": "create_action_specification",
+              "arguments": "{\"action\":\"find similar cases\",\"initiators\":[\"Robot\"],\"observers\":[\"Caseworker\"],\"inputs\":null,\"outputs\":null}"
+            },
+            {
+              "tool": "create_action_specification",
+              "arguments": "{\"action\":\"review similar cases\",\"initiators\":[\"Caseworker\"],\"observers\":null,\"inputs\":null,\"outputs\":null}"
+            },
+            {
+              "tool": "create_action_specification",
+              "arguments": "{\"action\":\"request relevant law\",\"initiators\":[\"Caseworker\"],\"observers\":[\"Robot\"],\"inputs\":null,\"outputs\":null}"
+            },
+            {
+              "tool": "create_action_specification",
+              "arguments": "{\"action\":\"find relevant law\",\"initiators\":[\"Robot\"],\"observers\":[\"Caseworker\"],\"inputs\":null,\"outputs\":null}"
+            },
+            {
+              "tool": "create_action_specification",
+              "arguments": "{\"action\":\"review relevant law\",\"initiators\":[\"Caseworker\"],\"observers\":null,\"inputs\":null,\"outputs\":null}"
+            },
+            {
+              "tool": "create_action_specification",
+              "arguments": "{\"action\":\"grant allowance\",\"initiators\":[\"Caseworker\"],\"observers\":[\"Citizen\",\"Robot\"],\"inputs\":null,\"outputs\":null}"
+            },
+            {
+              "tool": "create_action_specification",
+              "arguments": "{\"action\":\"reject application\",\"initiators\":[\"Caseworker\"],\"observers\":[\"Citizen\"],\"inputs\":null,\"outputs\":null}"
+            },
+            {
+              "tool": "create_action_specification",
+              "arguments": "{\"action\":\"summarize case\",\"initiators\":[\"Robot\"],\"observers\":[\"Caseworker\"],\"inputs\":null,\"outputs\":null}"
+            },
+            {
+              "tool": "create_action_specification",
+              "arguments": "{\"action\":\"issue assessment justification\",\"initiators\":[\"Caseworker\"],\"observers\":[\"Citizen\"],\"inputs\":null,\"outputs\":null}"
+            },
+            {
+              "tool": "create_action_specification",
+              "arguments": "{\"action\":\"view justification\",\"initiators\":[\"Citizen\"],\"observers\":null,\"inputs\":null,\"outputs\":null}"
+            },
+            {
+              "tool": "create_enabled_specification",
+              "arguments": "{\"action\":\"submit information\",\"text\":\"Action submit information is enabled means { start application was executed or is not available }\"}"
+            },
+            {
+              "tool": "create_enabled_specification",
+              "arguments": "{\"action\":\"determine minority\",\"text\":\"Action determine minority is enabled means { submit information was executed or is not available }\"}"
+            },
+            {
+              "tool": "create_enabled_specification",
+              "arguments": "{\"action\":\"verify certificate\",\"text\":\"Action verify certificate is enabled means { submit information was executed or is not available }\"}"
+            },
+            {
+              "tool": "create_enabled_specification",
+              "arguments": "{\"action\":\"check insurance membership\",\"text\":\"Action check insurance membership is enabled means { submit information was executed or is not available }\"}"
+            },
+            {
+              "tool": "create_enabled_specification",
+              "arguments": "{\"action\":\"open case\",\"text\":\"Action open case is enabled means { determine minority was executed or is not available AND verify certificate was executed or is not available AND check insurance membership was executed or is not available }\"}"
+            },
+            {
+              "tool": "create_enabled_specification",
+              "arguments": "{\"action\":\"assess developmental disability\",\"text\":\"Action assess developmental disability is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\"}"
+            },
+            {
+              "tool": "create_enabled_specification",
+              "arguments": "{\"action\":\"assess adult supervision\",\"text\":\"Action assess adult supervision is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\"}"
+            },
+            {
+              "tool": "create_enabled_specification",
+              "arguments": "{\"action\":\"assess illness disability\",\"text\":\"Action assess illness disability is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\"}"
+            },
+            {
+              "tool": "create_enabled_specification",
+              "arguments": "{\"action\":\"assess minor supervision\",\"text\":\"Action assess minor supervision is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\"}"
+            },
+            {
+              "tool": "create_enabled_specification",
+              "arguments": "{\"action\":\"assess work absence\",\"text\":\"Action assess work absence is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\"}"
+            },
+            {
+              "tool": "create_enabled_specification",
+              "arguments": "{\"action\":\"assess second caregiver\",\"text\":\"Action assess second caregiver is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\"}"
+            },
+            {
+              "tool": "create_enabled_specification",
+              "arguments": "{\"action\":\"request similar cases\",\"text\":\"Action request similar cases is enabled means { open case was executed or is not available }\"}"
+            },
+            {
+              "tool": "create_enabled_specification",
+              "arguments": "{\"action\":\"request relevant law\",\"text\":\"Action request relevant law is enabled means { open case was executed or is not available }\"}"
+            },
+            {
+              "tool": "create_enabled_specification",
+              "arguments": "{\"action\":\"find similar cases\",\"text\":\"Action find similar cases is enabled means { request similar cases was executed or is not available }\"}"
+            },
+            {
+              "tool": "create_enabled_specification",
+              "arguments": "{\"action\":\"find relevant law\",\"text\":\"Action find relevant law is enabled means { request relevant law was executed or is not available }\"}"
+            },
+            {
+              "tool": "create_enabled_specification",
+              "arguments": "{\"action\":\"review similar cases\",\"text\":\"Action review similar cases is enabled means { find similar cases was executed or is not available AND find similar cases is not pending or is not available }\"}"
+            },
+            {
+              "tool": "create_enabled_specification",
+              "arguments": "{\"action\":\"review relevant law\",\"text\":\"Action review relevant law is enabled means { find relevant law was executed or is not available AND find relevant law is not pending or is not available }\"}"
+            },
+            {
+              "tool": "create_enabled_specification",
+              "arguments": "{\"action\":\"grant allowance\",\"text\":\"Action grant allowance is enabled means { open case was executed or is not available AND assess developmental disability was executed or is not available AND assess adult supervision was executed or is not available AND assess illness disability was executed or is not available AND assess minor supervision was executed or is not available AND assess work absence was executed or is not available AND assess second caregiver was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\"}"
+            },
+            {
+              "tool": "create_enabled_specification",
+              "arguments": "{\"action\":\"reject application\",\"text\":\"Action reject application is enabled means { determine minority was executed or is not available AND verify certificate was executed or is not available AND check insurance membership was executed or is not available AND assess developmental disability was executed or is not available AND assess adult supervision was executed or is not available AND assess illness disability was executed or is not available AND assess minor supervision was executed or is not available AND assess work absence was executed or is not available AND assess second caregiver was executed or is not available }\"}"
+            },
+            {
+              "tool": "create_enabled_specification",
+              "arguments": "{\"action\":\"summarize case\",\"text\":\"Action summarize case is enabled means { grant allowance was executed or is not available }\"}"
+            },
+            {
+              "tool": "create_enabled_specification",
+              "arguments": "{\"action\":\"issue assessment justification\",\"text\":\"Action issue assessment justification is enabled means { summarize case was executed or is not available }\"}"
+            },
+            {
+              "tool": "create_enabled_specification",
+              "arguments": "{\"action\":\"view justification\",\"text\":\"Action view justification is enabled means { issue assessment justification was executed or is not available }\"}"
+            },
+            {
+              "tool": "create_scenario",
+              "arguments": "{\"name\":\"Begin application\",\"text\":\"Scenario: Begin application Given start application is available When start application is executed Then submit information is pending AND reject application is not available AND grant allowance is not available AND summarize case is not available AND issue assessment justification is not available AND view justification is not available AND find similar cases is not available AND find relevant law is not available AND review similar cases is not available AND review relevant law is not available .\"}"
+            },
+            {
+              "tool": "create_scenario",
+              "arguments": "{\"name\":\"Submit application data\",\"text\":\"Scenario: Submit application data Given submit information is enabled When submit information is executed with inputs age, certificate, caregivers Then the Application's child age is set to age AND the Application's medical certificate is set to certificate AND the Application's caregiver count is set to caregivers AND determine minority is pending AND verify certificate is pending AND check insurance membership is pending .\"}"
+            },
+            {
+              "tool": "create_scenario",
+              "arguments": "{\"name\":\"Single caregiver\",\"text\":\"Scenario: Single caregiver Given submit information is enabled When submit information is executed with inputs age, certificate, caregivers AND caregivers not larger than 1 Then assess second caregiver is not available .\"}"
+            },
+            {
+              "tool": "create_scenario",
+              "arguments": "{\"name\":\"Minor route\",\"text\":\"Scenario: Minor route Given determine minority is enabled When determine minority is executed with outputs minor = true Then assess developmental disability is not available AND assess adult supervision is not available AND open case is pending .\"}"
+            },
+            {
+              "tool": "create_scenario",
+              "arguments": "{\"name\":\"Adult route\",\"text\":\"Scenario: Adult route Given determine minority is enabled When determine minority is executed with outputs minor = false Then assess illness disability is not available AND assess minor supervision is not available AND open case is pending .\"}"
+            },
+            {
+              "tool": "create_scenario",
+              "arguments": "{\"name\":\"Fake certificate\",\"text\":\"Scenario: Fake certificate Given verify certificate is enabled When verify certificate is executed with outputs passed = false Then reject application is available AND reject application is pending AND grant allowance is not available AND open case is not available AND assess developmental disability is not available AND assess adult supervision is not available AND assess illness disability is not available AND assess minor supervision is not available AND assess work absence is not available AND assess second caregiver is not available AND request similar cases is not available AND request relevant law is not available .\"}"
+            },
+            {
+              "tool": "create_scenario",
+              "arguments": "{\"name\":\"Missing insurance membership\",\"text\":\"Scenario: Missing insurance membership Given check insurance membership is enabled When check insurance membership is executed with outputs passed = false Then reject application is available AND reject application is pending AND grant allowance is not available AND open case is not available AND assess developmental disability is not available AND assess adult supervision is not available AND assess illness disability is not available AND assess minor supervision is not available AND assess work absence is not available AND assess second caregiver is not available AND request similar cases is not available AND request relevant law is not available .\"}"
+            },
+            {
+              "tool": "create_scenario",
+              "arguments": "{\"name\":\"Open assessment\",\"text\":\"Scenario: Open assessment Given open case is enabled When open case is executed Then grant allowance is available AND grant allowance is pending AND assess developmental disability is pending AND assess adult supervision is pending AND assess illness disability is pending AND assess minor supervision is pending AND assess work absence is pending AND assess second caregiver is pending .\"}"
+            },
+            {
+              "tool": "create_scenario",
+              "arguments": "{\"name\":\"Developmental criterion failure\",\"text\":\"Scenario: Developmental criterion failure Given assess developmental disability is enabled When assess developmental disability is executed with outputs passed = false Then grant allowance is not available AND reject application is available AND reject application is pending .\"}"
+            },
+            {
+              "tool": "create_scenario",
+              "arguments": "{\"name\":\"Adult supervision criterion failure\",\"text\":\"Scenario: Adult supervision criterion failure Given assess adult supervision is enabled When assess adult supervision is executed with outputs passed = false Then grant allowance is not available AND reject application is available AND reject application is pending .\"}"
+            },
+            {
+              "tool": "create_scenario",
+              "arguments": "{\"name\":\"Illness criterion failure\",\"text\":\"Scenario: Illness criterion failure Given assess illness disability is enabled When assess illness disability is executed with outputs passed = false Then grant allowance is not available AND reject application is available AND reject application is pending .\"}"
+            },
+            {
+              "tool": "create_scenario",
+              "arguments": "{\"name\":\"Minor supervision criterion failure\",\"text\":\"Scenario: Minor supervision criterion failure Given assess minor supervision is enabled When assess minor supervision is executed with outputs passed = false Then grant allowance is not available AND reject application is available AND reject application is pending .\"}"
+            },
+            {
+              "tool": "create_scenario",
+              "arguments": "{\"name\":\"Work absence criterion failure\",\"text\":\"Scenario: Work absence criterion failure Given assess work absence is enabled When assess work absence is executed with outputs passed = false Then grant allowance is not available AND reject application is available AND reject application is pending .\"}"
+            },
+            {
+              "tool": "create_scenario",
+              "arguments": "{\"name\":\"Second caregiver criterion failure\",\"text\":\"Scenario: Second caregiver criterion failure Given assess second caregiver is enabled When assess second caregiver is executed with outputs passed = false Then grant allowance is not available AND reject application is available AND reject application is pending .\"}"
+            },
+            {
+              "tool": "create_scenario",
+              "arguments": "{\"name\":\"Request case research\",\"text\":\"Scenario: Request case research Given request similar cases is enabled When request similar cases is executed Then find similar cases is available AND find similar cases is pending AND review similar cases is available AND review similar cases is pending .\"}"
+            },
+            {
+              "tool": "create_scenario",
+              "arguments": "{\"name\":\"Request law research\",\"text\":\"Scenario: Request law research Given request relevant law is enabled When request relevant law is executed Then find relevant law is available AND find relevant law is pending AND review relevant law is available AND review relevant law is pending .\"}"
+            },
+            {
+              "tool": "create_scenario",
+              "arguments": "{\"name\":\"Case research complete\",\"text\":\"Scenario: Case research complete Given find similar cases is enabled When find similar cases is executed Then review similar cases is pending .\"}"
+            },
+            {
+              "tool": "create_scenario",
+              "arguments": "{\"name\":\"Law research complete\",\"text\":\"Scenario: Law research complete Given find relevant law is enabled When find relevant law is executed Then review relevant law is pending .\"}"
+            },
+            {
+              "tool": "create_scenario",
+              "arguments": "{\"name\":\"Grant followup\",\"text\":\"Scenario: Grant followup Given grant allowance is enabled When grant allowance is executed Then summarize case is available AND summarize case is pending AND reject application is not available AND request similar cases is not available AND request relevant law is not available .\"}"
+            },
+            {
+              "tool": "create_scenario",
+              "arguments": "{\"name\":\"Reject closes decision\",\"text\":\"Scenario: Reject closes decision Given reject application is enabled When reject application is executed Then grant allowance is not available AND request similar cases is not available AND request relevant law is not available .\"}"
+            },
+            {
+              "tool": "create_scenario",
+              "arguments": "{\"name\":\"Summary followup\",\"text\":\"Scenario: Summary followup Given summarize case is enabled When summarize case is executed Then issue assessment justification is available AND issue assessment justification is pending .\"}"
+            },
+            {
+              "tool": "create_scenario",
+              "arguments": "{\"name\":\"Publish justification\",\"text\":\"Scenario: Publish justification Given issue assessment justification is enabled When issue assessment justification is executed Then view justification is available .\"}"
+            }
+          ],
+          "ran": true,
+          "newErrors": [],
+          "earlierErrors": 0,
+          "warnings": 0,
+          "document": "Entity Application {\n    Actions: start application, submit information, determine minority, verify certificate, check insurance membership, open case, assess developmental disability, assess adult supervision, assess illness disability, assess minor supervision, assess work absence, assess second caregiver, request similar cases, find similar cases, review similar cases, request relevant law, find relevant law, review relevant law, grant allowance, reject application, summarize case, issue assessment justification, view justification\n    Data properties: child age: int, medical certificate: string, caregiver count: int\n}\n\nRole Citizen.\n\nRole Robot.\n\nRole Caseworker.\n\nRole Verification system.\n\nAction start application { Initiators: Citizen, Observers: Robot }\n\nAction submit information { Initiators: Citizen, Observers: Robot, Input: age: int, certificate: string, caregivers: int }\n\nAction determine minority { Initiators: Robot, Observers: Caseworker, Output: minor: boolean }\n\nAction verify certificate { Initiators: Robot, Observers: Verification system, Caseworker, Output: passed: boolean }\n\nAction check insurance membership { Initiators: Robot, Observers: Caseworker, Output: passed: boolean }\n\nAction open case { Initiators: Caseworker }\n\nAction assess developmental disability { Initiators: Caseworker, Output: passed: boolean }\n\nAction assess adult supervision { Initiators: Caseworker, Output: passed: boolean }\n\nAction assess illness disability { Initiators: Caseworker, Output: passed: boolean }\n\nAction assess minor supervision { Initiators: Caseworker, Output: passed: boolean }\n\nAction assess work absence { Initiators: Caseworker, Output: passed: boolean }\n\nAction assess second caregiver { Initiators: Caseworker, Output: passed: boolean }\n\nAction request similar cases { Initiators: Caseworker, Observers: Robot }\n\nAction find similar cases { Initiators: Robot, Observers: Caseworker }\n\nAction review similar cases { Initiators: Caseworker }\n\nAction request relevant law { Initiators: Caseworker, Observers: Robot }\n\nAction find relevant law { Initiators: Robot, Observers: Caseworker }\n\nAction review relevant law { Initiators: Caseworker }\n\nAction grant allowance { Initiators: Caseworker, Observers: Citizen, Robot }\n\nAction reject application { Initiators: Caseworker, Observers: Citizen }\n\nAction summarize case { Initiators: Robot, Observers: Caseworker }\n\nAction issue assessment justification { Initiators: Caseworker, Observers: Citizen }\n\nAction view justification { Initiators: Citizen }\n\nAction submit information is enabled means { start application was executed or is not available }\n\nAction determine minority is enabled means { submit information was executed or is not available }\n\nAction verify certificate is enabled means { submit information was executed or is not available }\n\nAction check insurance membership is enabled means { submit information was executed or is not available }\n\nAction open case is enabled means { determine minority was executed or is not available AND verify certificate was executed or is not available AND check insurance membership was executed or is not available }\n\nAction assess developmental disability is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\n\nAction assess adult supervision is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\n\nAction assess illness disability is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\n\nAction assess minor supervision is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\n\nAction assess work absence is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\n\nAction assess second caregiver is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\n\nAction request similar cases is enabled means { open case was executed or is not available }\n\nAction request relevant law is enabled means { open case was executed or is not available }\n\nAction find similar cases is enabled means { request similar cases was executed or is not available }\n\nAction find relevant law is enabled means { request relevant law was executed or is not available }\n\nAction review similar cases is enabled means { find similar cases was executed or is not available AND find similar cases is not pending or is not available }\n\nAction review relevant law is enabled means { find relevant law was executed or is not available AND find relevant law is not pending or is not available }\n\nAction grant allowance is enabled means { open case was executed or is not available AND assess developmental disability was executed or is not available AND assess adult supervision was executed or is not available AND assess illness disability was executed or is not available AND assess minor supervision was executed or is not available AND assess work absence was executed or is not available AND assess second caregiver was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\n\nAction reject application is enabled means { determine minority was executed or is not available AND verify certificate was executed or is not available AND check insurance membership was executed or is not available AND assess developmental disability was executed or is not available AND assess adult supervision was executed or is not available AND assess illness disability was executed or is not available AND assess minor supervision was executed or is not available AND assess work absence was executed or is not available AND assess second caregiver was executed or is not available }\n\nAction summarize case is enabled means { grant allowance was executed or is not available }\n\nAction issue assessment justification is enabled means { summarize case was executed or is not available }\n\nAction view justification is enabled means { issue assessment justification was executed or is not available }\n\nScenario: Begin application Given start application is available When start application is executed Then submit information is pending AND reject application is not available AND grant allowance is not available AND summarize case is not available AND issue assessment justification is not available AND view justification is not available AND find similar cases is not available AND find relevant law is not available AND review similar cases is not available AND review relevant law is not available .\n\nScenario: Submit application data Given submit information is enabled When submit information is executed with inputs age, certificate, caregivers Then the Application's child age is set to age AND the Application's medical certificate is set to certificate AND the Application's caregiver count is set to caregivers AND determine minority is pending AND verify certificate is pending AND check insurance membership is pending .\n\nScenario: Single caregiver Given submit information is enabled When submit information is executed with inputs age, certificate, caregivers AND caregivers not larger than 1 Then assess second caregiver is not available .\n\nScenario: Minor route Given determine minority is enabled When determine minority is executed with outputs minor = true Then assess developmental disability is not available AND assess adult supervision is not available AND open case is pending .\n\nScenario: Adult route Given determine minority is enabled When determine minority is executed with outputs minor = false Then assess illness disability is not available AND assess minor supervision is not available AND open case is pending .\n\nScenario: Fake certificate Given verify certificate is enabled When verify certificate is executed with outputs passed = false Then reject application is available AND reject application is pending AND grant allowance is not available AND open case is not available AND assess developmental disability is not available AND assess adult supervision is not available AND assess illness disability is not available AND assess minor supervision is not available AND assess work absence is not available AND assess second caregiver is not available AND request similar cases is not available AND request relevant law is not available .\n\nScenario: Missing insurance membership Given check insurance membership is enabled When check insurance membership is executed with outputs passed = false Then reject application is available AND reject application is pending AND grant allowance is not available AND open case is not available AND assess developmental disability is not available AND assess adult supervision is not available AND assess illness disability is not available AND assess minor supervision is not available AND assess work absence is not available AND assess second caregiver is not available AND request similar cases is not available AND request relevant law is not available .\n\nScenario: Open assessment Given open case is enabled When open case is executed Then grant allowance is available AND grant allowance is pending AND assess developmental disability is pending AND assess adult supervision is pending AND assess illness disability is pending AND assess minor supervision is pending AND assess work absence is pending AND assess second caregiver is pending .\n\nScenario: Developmental criterion failure Given assess developmental disability is enabled When assess developmental disability is executed with outputs passed = false Then grant allowance is not available AND reject application is available AND reject application is pending .\n\nScenario: Adult supervision criterion failure Given assess adult supervision is enabled When assess adult supervision is executed with outputs passed = false Then grant allowance is not available AND reject application is available AND reject application is pending .\n\nScenario: Illness criterion failure Given assess illness disability is enabled When assess illness disability is executed with outputs passed = false Then grant allowance is not available AND reject application is available AND reject application is pending .\n\nScenario: Minor supervision criterion failure Given assess minor supervision is enabled When assess minor supervision is executed with outputs passed = false Then grant allowance is not available AND reject application is available AND reject application is pending .\n\nScenario: Work absence criterion failure Given assess work absence is enabled When assess work absence is executed with outputs passed = false Then grant allowance is not available AND reject application is available AND reject application is pending .\n\nScenario: Second caregiver criterion failure Given assess second caregiver is enabled When assess second caregiver is executed with outputs passed = false Then grant allowance is not available AND reject application is available AND reject application is pending .\n\nScenario: Request case research Given request similar cases is enabled When request similar cases is executed Then find similar cases is available AND find similar cases is pending AND review similar cases is available AND review similar cases is pending .\n\nScenario: Request law research Given request relevant law is enabled When request relevant law is executed Then find relevant law is available AND find relevant law is pending AND review relevant law is available AND review relevant law is pending .\n\nScenario: Case research complete Given find similar cases is enabled When find similar cases is executed Then review similar cases is pending .\n\nScenario: Law research complete Given find relevant law is enabled When find relevant law is executed Then review relevant law is pending .\n\nScenario: Grant followup Given grant allowance is enabled When grant allowance is executed Then summarize case is available AND summarize case is pending AND reject application is not available AND request similar cases is not available AND request relevant law is not available .\n\nScenario: Reject closes decision Given reject application is enabled When reject application is executed Then grant allowance is not available AND request similar cases is not available AND request relevant law is not available .\n\nScenario: Summary followup Given summarize case is enabled When summarize case is executed Then issue assessment justification is available AND issue assessment justification is pending .\n\nScenario: Publish justification Given issue assessment justification is enabled When issue assessment justification is executed Then view justification is available .\n"
+        }
+      ],
+      "tools": [
+        {
+          "tool": "simulate_plan",
+          "arguments": "{\"steps\":[]}"
+        },
+        {
+          "tool": "load_skill",
+          "arguments": "{\"skill_name\":\"extract-action\"}"
+        },
+        {
+          "tool": "load_skill",
+          "arguments": "{\"skill_name\":\"extract-role-entity\"}"
+        },
+        {
+          "tool": "load_skill",
+          "arguments": "{\"skill_name\":\"extract-enableness\"}"
+        },
+        {
+          "tool": "load_skill",
+          "arguments": "{\"skill_name\":\"extract-scenario\"}"
+        },
+        {
+          "tool": "exec_command",
+          "arguments": "{\"cmd\":\"cat .agents/extract-{role-entity,action,enableness,scenario}/SKILL.md\",\"workdir\":\"/workspace\",\"shell\":null,\"login\":false,\"tty\":false,\"yield_time_ms\":1000,\"max_output_tokens\":14000}"
+        },
+        {
+          "tool": "exec_command",
+          "arguments": "{\"cmd\":\"cat .agents/extract-role-entity/SKILL.md .agents/extract-action/SKILL.md .agents/extract-enableness/SKILL.md .agents/extract-scenario/SKILL.md\",\"workdir\":\"/workspace\",\"shell\":null,\"login\":false,\"tty\":false,\"yield_time_ms\":1000,\"max_output_tokens\":18000}"
+        },
+        {
+          "tool": "read_declaration_grammar",
+          "arguments": "{}"
+        },
+        {
+          "tool": "read_scenario_grammar",
+          "arguments": "{}"
+        },
+        {
+          "tool": "load_skill",
+          "arguments": "{\"skill_name\":\"extract-data-property\"}"
+        },
+        {
+          "tool": "load_skill",
+          "arguments": "{\"skill_name\":\"understand-dsl-data\"}"
+        },
+        {
+          "tool": "exec_command",
+          "arguments": "{\"cmd\":\"cat .agents/extract-data-property/SKILL.md .agents/understand-dsl-data/SKILL.md\",\"workdir\":\"/workspace\",\"shell\":null,\"login\":false,\"tty\":false,\"yield_time_ms\":1000,\"max_output_tokens\":6000}"
+        },
+        {
+          "tool": "simulate_plan",
+          "arguments": "{\"steps\":[\n{\"tool\":\"create_entity\",\"arguments\":\"{\\\"name\\\":\\\"Application\\\"}\"},\n{\"tool\":\"create_role\",\"arguments\":\"{\\\"name\\\":\\\"Citizen\\\"}\"},\n{\"tool\":\"create_role\",\"arguments\":\"{\\\"name\\\":\\\"Robot\\\"}\"},\n{\"tool\":\"create_role\",\"arguments\":\"{\\\"name\\\":\\\"Caseworker\\\"}\"},\n{\"tool\":\"create_role\",\"arguments\":\"{\\\"name\\\":\\\"Verification system\\\"}\"},\n{\"tool\":\"create_data_property\",\"arguments\":\"{\\\"entity\\\":\\\"Application\\\",\\\"name\\\":\\\"child age\\\",\\\"type\\\":\\\"int\\\",\\\"element_type\\\":null}\"},\n{\"tool\":\"create_data_property\",\"arguments\":\"{\\\"entity\\\":\\\"Application\\\",\\\"name\\\":\\\"medical certificate\\\",\\\"type\\\":\\\"string\\\",\\\"element_type\\\":null}\"},\n{\"tool\":\"create_data_property\",\"arguments\":\"{\\\"entity\\\":\\\"Application\\\",\\\"name\\\":\\\"caregiver count\\\",\\\"type\\\":\\\"int\\\",\\\"element_type\\\":null}\"},\n{\"tool\":\"add_entity_action\",\"arguments\":\"{\\\"entity\\\":\\\"Application\\\",\\\"action\\\":\\\"start application\\\"}\"},\n{\"tool\":\"add_entity_action\",\"arguments\":\"{\\\"entity\\\":\\\"Application\\\",\\\"action\\\":\\\"submit information\\\"}\"},\n{\"tool\":\"add_entity_action\",\"arguments\":\"{\\\"entity\\\":\\\"Application\\\",\\\"action\\\":\\\"determine minority\\\"}\"},\n{\"tool\":\"add_entity_action\",\"arguments\":\"{\\\"entity\\\":\\\"Application\\\",\\\"action\\\":\\\"verify certificate\\\"}\"},\n{\"tool\":\"add_entity_action\",\"arguments\":\"{\\\"entity\\\":\\\"Application\\\",\\\"action\\\":\\\"check insurance membership\\\"}\"},\n{\"tool\":\"add_entity_action\",\"arguments\":\"{\\\"entity\\\":\\\"Application\\\",\\\"action\\\":\\\"open case\\\"}\"},\n{\"tool\":\"add_entity_action\",\"arguments\":\"{\\\"entity\\\":\\\"Application\\\",\\\"action\\\":\\\"assess developmental disability\\\"}\"},\n{\"tool\":\"add_entity_action\",\"arguments\":\"{\\\"entity\\\":\\\"Application\\\",\\\"action\\\":\\\"assess adult supervision\\\"}\"},\n{\"tool\":\"add_entity_action\",\"arguments\":\"{\\\"entity\\\":\\\"Application\\\",\\\"action\\\":\\\"assess illness disability\\\"}\"},\n{\"tool\":\"add_entity_action\",\"arguments\":\"{\\\"entity\\\":\\\"Application\\\",\\\"action\\\":\\\"assess minor supervision\\\"}\"},\n{\"tool\":\"add_entity_action\",\"arguments\":\"{\\\"entity\\\":\\\"Application\\\",\\\"action\\\":\\\"assess work absence\\\"}\"},\n{\"tool\":\"add_entity_action\",\"arguments\":\"{\\\"entity\\\":\\\"Application\\\",\\\"action\\\":\\\"assess second caregiver\\\"}\"},\n{\"tool\":\"add_entity_action\",\"arguments\":\"{\\\"entity\\\":\\\"Application\\\",\\\"action\\\":\\\"request similar cases\\\"}\"},\n{\"tool\":\"add_entity_action\",\"arguments\":\"{\\\"entity\\\":\\\"Application\\\",\\\"action\\\":\\\"find similar cases\\\"}\"},\n{\"tool\":\"add_entity_action\",\"arguments\":\"{\\\"entity\\\":\\\"Application\\\",\\\"action\\\":\\\"review similar cases\\\"}\"},\n{\"tool\":\"add_entity_action\",\"arguments\":\"{\\\"entity\\\":\\\"Application\\\",\\\"action\\\":\\\"request relevant law\\\"}\"},\n{\"tool\":\"add_entity_action\",\"arguments\":\"{\\\"entity\\\":\\\"Application\\\",\\\"action\\\":\\\"find relevant law\\\"}\"},\n{\"tool\":\"add_entity_action\",\"arguments\":\"{\\\"entity\\\":\\\"Application\\\",\\\"action\\\":\\\"review relevant law\\\"}\"},\n{\"tool\":\"add_entity_action\",\"arguments\":\"{\\\"entity\\\":\\\"Application\\\",\\\"action\\\":\\\"grant allowance\\\"}\"},\n{\"tool\":\"add_entity_action\",\"arguments\":\"{\\\"entity\\\":\\\"Application\\\",\\\"action\\\":\\\"reject application\\\"}\"},\n{\"tool\":\"add_entity_action\",\"arguments\":\"{\\\"entity\\\":\\\"Application\\\",\\\"action\\\":\\\"summarize case\\\"}\"},\n{\"tool\":\"add_entity_action\",\"arguments\":\"{\\\"entity\\\":\\\"Application\\\",\\\"action\\\":\\\"issue assessment justification\\\"}\"},\n{\"tool\":\"add_entity_action\",\"arguments\":\"{\\\"entity\\\":\\\"Application\\\",\\\"action\\\":\\\"view justification\\\"}\"},\n{\"tool\":\"create_action_specification\",\"arguments\":\"{\\\"action\\\":\\\"start application\\\",\\\"initiators\\\":[\\\"Citizen\\\"],\\\"observers\\\":[\\\"Robot\\\"],\\\"inputs\\\":null,\\\"outputs\\\":null}\"},\n{\"tool\":\"create_action_specification\",\"arguments\":\"{\\\"action\\\":\\\"submit information\\\",\\\"initiators\\\":[\\\"Citizen\\\"],\\\"observers\\\":[\\\"Robot\\\"],\\\"inputs\\\":[{\\\"name\\\":\\\"age\\\",\\\"type\\\":\\\"int\\\"},{\\\"name\\\":\\\"certificate\\\",\\\"type\\\":\\\"string\\\"},{\\\"name\\\":\\\"caregivers\\\",\\\"type\\\":\\\"int\\\"}],\\\"outputs\\\":null}\"},\n{\"tool\":\"create_action_specification\",\"arguments\":\"{\\\"action\\\":\\\"determine minority\\\",\\\"initiators\\\":[\\\"Robot\\\"],\\\"observers\\\":[\\\"Caseworker\\\"],\\\"inputs\\\":null,\\\"outputs\\\":[{\\\"name\\\":\\\"minor\\\",\\\"type\\\":\\\"boolean\\\"}]}\"},\n{\"tool\":\"create_action_specification\",\"arguments\":\"{\\\"action\\\":\\\"verify certificate\\\",\\\"initiators\\\":[\\\"Robot\\\"],\\\"observers\\\":[\\\"Verification system\\\",\\\"Caseworker\\\"],\\\"inputs\\\":null,\\\"outputs\\\":[{\\\"name\\\":\\\"passed\\\",\\\"type\\\":\\\"boolean\\\"}]}\"},\n{\"tool\":\"create_action_specification\",\"arguments\":\"{\\\"action\\\":\\\"check insurance membership\\\",\\\"initiators\\\":[\\\"Robot\\\"],\\\"observers\\\":[\\\"Caseworker\\\"],\\\"inputs\\\":null,\\\"outputs\\\":[{\\\"name\\\":\\\"passed\\\",\\\"type\\\":\\\"boolean\\\"}]}\"},\n{\"tool\":\"create_action_specification\",\"arguments\":\"{\\\"action\\\":\\\"open case\\\",\\\"initiators\\\":[\\\"Caseworker\\\"],\\\"observers\\\":null,\\\"inputs\\\":null,\\\"outputs\\\":null}\"},\n{\"tool\":\"create_action_specification\",\"arguments\":\"{\\\"action\\\":\\\"assess developmental disability\\\",\\\"initiators\\\":[\\\"Caseworker\\\"],\\\"observers\\\":null,\\\"inputs\\\":null,\\\"outputs\\\":[{\\\"name\\\":\\\"passed\\\",\\\"type\\\":\\\"boolean\\\"}]}\"},\n{\"tool\":\"create_action_specification\",\"arguments\":\"{\\\"action\\\":\\\"assess adult supervision\\\",\\\"initiators\\\":[\\\"Caseworker\\\"],\\\"observers\\\":null,\\\"inputs\\\":null,\\\"outputs\\\":[{\\\"name\\\":\\\"passed\\\",\\\"type\\\":\\\"boolean\\\"}]}\"},\n{\"tool\":\"create_action_specification\",\"arguments\":\"{\\\"action\\\":\\\"assess illness disability\\\",\\\"initiators\\\":[\\\"Caseworker\\\"],\\\"observers\\\":null,\\\"inputs\\\":null,\\\"outputs\\\":[{\\\"name\\\":\\\"passed\\\",\\\"type\\\":\\\"boolean\\\"}]}\"},\n{\"tool\":\"create_action_specification\",\"arguments\":\"{\\\"action\\\":\\\"assess minor supervision\\\",\\\"initiators\\\":[\\\"Caseworker\\\"],\\\"observers\\\":null,\\\"inputs\\\":null,\\\"outputs\\\":[{\\\"name\\\":\\\"passed\\\",\\\"type\\\":\\\"boolean\\\"}]}\"},\n{\"tool\":\"create_action_specification\",\"arguments\":\"{\\\"action\\\":\\\"assess work absence\\\",\\\"initiators\\\":[\\\"Caseworker\\\"],\\\"observers\\\":null,\\\"inputs\\\":null,\\\"outputs\\\":[{\\\"name\\\":\\\"passed\\\",\\\"type\\\":\\\"boolean\\\"}]}\"},\n{\"tool\":\"create_action_specification\",\"arguments\":\"{\\\"action\\\":\\\"assess second caregiver\\\",\\\"initiators\\\":[\\\"Caseworker\\\"],\\\"observers\\\":null,\\\"inputs\\\":null,\\\"outputs\\\":[{\\\"name\\\":\\\"passed\\\",\\\"type\\\":\\\"boolean\\\"}]}\"},\n{\"tool\":\"create_action_specification\",\"arguments\":\"{\\\"action\\\":\\\"request similar cases\\\",\\\"initiators\\\":[\\\"Caseworker\\\"],\\\"observers\\\":[\\\"Robot\\\"],\\\"inputs\\\":null,\\\"outputs\\\":null}\"},\n{\"tool\":\"create_action_specification\",\"arguments\":\"{\\\"action\\\":\\\"find similar cases\\\",\\\"initiators\\\":[\\\"Robot\\\"],\\\"observers\\\":[\\\"Caseworker\\\"],\\\"inputs\\\":null,\\\"outputs\\\":null}\"},\n{\"tool\":\"create_action_specification\",\"arguments\":\"{\\\"action\\\":\\\"review similar cases\\\",\\\"initiators\\\":[\\\"Caseworker\\\"],\\\"observers\\\":null,\\\"inputs\\\":null,\\\"outputs\\\":null}\"},\n{\"tool\":\"create_action_specification\",\"arguments\":\"{\\\"action\\\":\\\"request relevant law\\\",\\\"initiators\\\":[\\\"Caseworker\\\"],\\\"observers\\\":[\\\"Robot\\\"],\\\"inputs\\\":null,\\\"outputs\\\":null}\"},\n{\"tool\":\"create_action_specification\",\"arguments\":\"{\\\"action\\\":\\\"find relevant law\\\",\\\"initiators\\\":[\\\"Robot\\\"],\\\"observers\\\":[\\\"Caseworker\\\"],\\\"inputs\\\":null,\\\"outputs\\\":null}\"},\n{\"tool\":\"create_action_specification\",\"arguments\":\"{\\\"action\\\":\\\"review relevant law\\\",\\\"initiators\\\":[\\\"Caseworker\\\"],\\\"observers\\\":null,\\\"inputs\\\":null,\\\"outputs\\\":null}\"},\n{\"tool\":\"create_action_specification\",\"arguments\":\"{\\\"action\\\":\\\"grant allowance\\\",\\\"initiators\\\":[\\\"Caseworker\\\"],\\\"observers\\\":[\\\"Citizen\\\",\\\"Robot\\\"],\\\"inputs\\\":null,\\\"outputs\\\":null}\"},\n{\"tool\":\"create_action_specification\",\"arguments\":\"{\\\"action\\\":\\\"reject application\\\",\\\"initiators\\\":[\\\"Caseworker\\\"],\\\"observers\\\":[\\\"Citizen\\\"],\\\"inputs\\\":null,\\\"outputs\\\":null}\"},\n{\"tool\":\"create_action_specification\",\"arguments\":\"{\\\"action\\\":\\\"summarize case\\\",\\\"initiators\\\":[\\\"Robot\\\"],\\\"observers\\\":[\\\"Caseworker\\\"],\\\"inputs\\\":null,\\\"outputs\\\":null}\"},\n{\"tool\":\"create_action_specification\",\"arguments\":\"{\\\"action\\\":\\\"issue assessment justification\\\",\\\"initiators\\\":[\\\"Caseworker\\\"],\\\"observers\\\":[\\\"Citizen\\\"],\\\"inputs\\\":null,\\\"outputs\\\":null}\"},\n{\"tool\":\"create_action_specification\",\"arguments\":\"{\\\"action\\\":\\\"view justification\\\",\\\"initiators\\\":[\\\"Citizen\\\"],\\\"observers\\\":null,\\\"inputs\\\":null,\\\"outputs\\\":null}\"},\n{\"tool\":\"create_enabled_specification\",\"arguments\":\"{\\\"action\\\":\\\"submit information\\\",\\\"text\\\":\\\"Action submit information is enabled means { start application was executed or is not available }\\\"}\"},\n{\"tool\":\"create_enabled_specification\",\"arguments\":\"{\\\"action\\\":\\\"determine minority\\\",\\\"text\\\":\\\"Action determine minority is enabled means { submit information was executed or is not available }\\\"}\"},\n{\"tool\":\"create_enabled_specification\",\"arguments\":\"{\\\"action\\\":\\\"verify certificate\\\",\\\"text\\\":\\\"Action verify certificate is enabled means { submit information was executed or is not available }\\\"}\"},\n{\"tool\":\"create_enabled_specification\",\"arguments\":\"{\\\"action\\\":\\\"check insurance membership\\\",\\\"text\\\":\\\"Action check insurance membership is enabled means { submit information was executed or is not available }\\\"}\"},\n{\"tool\":\"create_enabled_specification\",\"arguments\":\"{\\\"action\\\":\\\"open case\\\",\\\"text\\\":\\\"Action open case is enabled means { determine minority was executed or is not available AND verify certificate was executed or is not available AND check insurance membership was executed or is not available }\\\"}\"},\n{\"tool\":\"create_enabled_specification\",\"arguments\":\"{\\\"action\\\":\\\"assess developmental disability\\\",\\\"text\\\":\\\"Action assess developmental disability is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\\\"}\"},\n{\"tool\":\"create_enabled_specification\",\"arguments\":\"{\\\"action\\\":\\\"assess adult supervision\\\",\\\"text\\\":\\\"Action assess adult supervision is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\\\"}\"},\n{\"tool\":\"create_enabled_specification\",\"arguments\":\"{\\\"action\\\":\\\"assess illness disability\\\",\\\"text\\\":\\\"Action assess illness disability is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\\\"}\"},\n{\"tool\":\"create_enabled_specification\",\"arguments\":\"{\\\"action\\\":\\\"assess minor supervision\\\",\\\"text\\\":\\\"Action assess minor supervision is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\\\"}\"},\n{\"tool\":\"create_enabled_specification\",\"arguments\":\"{\\\"action\\\":\\\"assess work absence\\\",\\\"text\\\":\\\"Action assess work absence is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\\\"}\"},\n{\"tool\":\"create_enabled_specification\",\"arguments\":\"{\\\"action\\\":\\\"assess second caregiver\\\",\\\"text\\\":\\\"Action assess second caregiver is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\\\"}\"},\n{\"tool\":\"create_enabled_specification\",\"arguments\":\"{\\\"action\\\":\\\"request similar cases\\\",\\\"text\\\":\\\"Action request similar cases is enabled means { open case was executed or is not available }\\\"}\"},\n{\"tool\":\"create_enabled_specification\",\"arguments\":\"{\\\"action\\\":\\\"request relevant law\\\",\\\"text\\\":\\\"Action request relevant law is enabled means { open case was executed or is not available }\\\"}\"},\n{\"tool\":\"create_enabled_specification\",\"arguments\":\"{\\\"action\\\":\\\"find similar cases\\\",\\\"text\\\":\\\"Action find similar cases is enabled means { request similar cases was executed or is not available }\\\"}\"},\n{\"tool\":\"create_enabled_specification\",\"arguments\":\"{\\\"action\\\":\\\"find relevant law\\\",\\\"text\\\":\\\"Action find relevant law is enabled means { request relevant law was executed or is not available }\\\"}\"},\n{\"tool\":\"create_enabled_specification\",\"arguments\":\"{\\\"action\\\":\\\"review similar cases\\\",\\\"text\\\":\\\"Action review similar cases is enabled means { find similar cases was executed or is not available AND find similar cases is not pending or is not available }\\\"}\"},\n{\"tool\":\"create_enabled_specification\",\"arguments\":\"{\\\"action\\\":\\\"review relevant law\\\",\\\"text\\\":\\\"Action review relevant law is enabled means { find relevant law was executed or is not available AND find relevant law is not pending or is not available }\\\"}\"},\n{\"tool\":\"create_enabled_specification\",\"arguments\":\"{\\\"action\\\":\\\"grant allowance\\\",\\\"text\\\":\\\"Action grant allowance is enabled means { open case was executed or is not available AND assess developmental disability was executed or is not available AND assess adult supervision was executed or is not available AND assess illness disability was executed or is not available AND assess minor supervision was executed or is not available AND assess work absence was executed or is not available AND assess second caregiver was executed or is not available AND review similar cases is not pending or is not available AND review relevant law is not pending or is not available }\\\"}\"},\n{\"tool\":\"create_enabled_specification\",\"arguments\":\"{\\\"action\\\":\\\"reject application\\\",\\\"text\\\":\\\"Action reject application is enabled means { determine minority was executed or is not available AND verify certificate was executed or is not available AND check insurance membership was executed or is not available AND assess developmental disability was executed or is not available AND assess adult supervision was executed or is not available AND assess illness disability was executed or is not available AND assess minor supervision was executed or is not available AND assess work absence was executed or is not available AND assess second caregiver was executed or is not available }\\\"}\"},\n{\"tool\":\"create_enabled_specification\",\"arguments\":\"{\\\"action\\\":\\\"summarize case\\\",\\\"text\\\":\\\"Action summarize case is enabled means { grant allowance was executed or is not available }\\\"}\"},\n{\"tool\":\"create_enabled_specification\",\"arguments\":\"{\\\"action\\\":\\\"issue assessment justification\\\",\\\"text\\\":\\\"Action issue assessment justification is enabled means { summarize case was executed or is not available }\\\"}\"},\n{\"tool\":\"create_enabled_specification\",\"arguments\":\"{\\\"action\\\":\\\"view justification\\\",\\\"text\\\":\\\"Action view justification is enabled means { issue assessment justification was executed or is not available }\\\"}\"},\n{\"tool\":\"create_scenario\",\"arguments\":\"{\\\"name\\\":\\\"Begin application\\\",\\\"text\\\":\\\"Scenario: Begin application Given start application is available When start application is executed Then submit information is pending AND reject application is not available AND grant allowance is not available AND summarize case is not available AND issue assessment justification is not available AND view justification is not available AND find similar cases is not available AND find relevant law is not available AND review similar cases is not available AND review relevant law is not available .\\\"}\"},\n{\"tool\":\"create_scenario\",\"arguments\":\"{\\\"name\\\":\\\"Submit application data\\\",\\\"text\\\":\\\"Scenario: Submit application data Given submit information is enabled When submit information is executed with inputs age, certificate, caregivers Then the Application's child age is set to age AND the Application's medical certificate is set to certificate AND the Application's caregiver count is set to caregivers AND determine minority is pending AND verify certificate is pending AND check insurance membership is pending .\\\"}\"},\n{\"tool\":\"create_scenario\",\"arguments\":\"{\\\"name\\\":\\\"Single caregiver\\\",\\\"text\\\":\\\"Scenario: Single caregiver Given submit information is enabled When submit information is executed with inputs age, certificate, caregivers AND caregivers not larger than 1 Then assess second caregiver is not available .\\\"}\"},\n{\"tool\":\"create_scenario\",\"arguments\":\"{\\\"name\\\":\\\"Minor route\\\",\\\"text\\\":\\\"Scenario: Minor route Given determine minority is enabled When determine minority is executed with outputs minor = true Then assess developmental disability is not available AND assess adult supervision is not available AND open case is pending .\\\"}\"},\n{\"tool\":\"create_scenario\",\"arguments\":\"{\\\"name\\\":\\\"Adult route\\\",\\\"text\\\":\\\"Scenario: Adult route Given determine minority is enabled When determine minority is executed with outputs minor = false Then assess illness disability is not available AND assess minor supervision is not available AND open case is pending .\\\"}\"},\n{\"tool\":\"create_scenario\",\"arguments\":\"{\\\"name\\\":\\\"Fake certificate\\\",\\\"text\\\":\\\"Scenario: Fake certificate Given verify certificate is enabled When verify certificate is executed with outputs passed = false Then reject application is available AND reject application is pending AND grant allowance is not available AND open case is not available AND assess developmental disability is not available AND assess adult supervision is not available AND assess illness disability is not available AND assess minor supervision is not available AND assess work absence is not available AND assess second caregiver is not available AND request similar cases is not available AND request relevant law is not available .\\\"}\"},\n{\"tool\":\"create_scenario\",\"arguments\":\"{\\\"name\\\":\\\"Missing insurance membership\\\",\\\"text\\\":\\\"Scenario: Missing insurance membership Given check insurance membership is enabled When check insurance membership is executed with outputs passed = false Then reject application is available AND reject application is pending AND grant allowance is not available AND open case is not available AND assess developmental disability is not available AND assess adult supervision is not available AND assess illness disability is not available AND assess minor supervision is not available AND assess work absence is not available AND assess second caregiver is not available AND request similar cases is not available AND request relevant law is not available .\\\"}\"},\n{\"tool\":\"create_scenario\",\"arguments\":\"{\\\"name\\\":\\\"Open assessment\\\",\\\"text\\\":\\\"Scenario: Open assessment Given open case is enabled When open case is executed Then grant allowance is available AND grant allowance is pending AND assess developmental disability is pending AND assess adult supervision is pending AND assess illness disability is pending AND assess minor supervision is pending AND assess work absence is pending AND assess second caregiver is pending .\\\"}\"},\n{\"tool\":\"create_scenario\",\"arguments\":\"{\\\"name\\\":\\\"Developmental criterion failure\\\",\\\"text\\\":\\\"Scenario: Developmental criterion failure Given assess developmental disability is enabled When assess developmental disability is executed with outputs passed = false Then grant allowance is not available AND reject application is available AND reject application is pending .\\\"}\"},\n{\"tool\":\"create_scenario\",\"arguments\":\"{\\\"name\\\":\\\"Adult supervision criterion failure\\\",\\\"text\\\":\\\"Scenario: Adult supervision criterion failure Given assess adult supervision is enabled When assess adult supervision is executed with outputs passed = false Then grant allowance is not available AND reject application is available AND reject application is pending .\\\"}\"},\n{\"tool\":\"create_scenario\",\"arguments\":\"{\\\"name\\\":\\\"Illness criterion failure\\\",\\\"text\\\":\\\"Scenario: Illness criterion failure Given assess illness disability is enabled When assess illness disability is executed with outputs passed = false Then grant allowance is not available AND reject application is available AND reject application is pending .\\\"}\"},\n{\"tool\":\"create_scenario\",\"arguments\":\"{\\\"name\\\":\\\"Minor supervision criterion failure\\\",\\\"text\\\":\\\"Scenario: Minor supervision criterion failure Given assess minor supervision is enabled When assess minor supervision is executed with outputs passed = false Then grant allowance is not available AND reject application is available AND reject application is pending .\\\"}\"},\n{\"tool\":\"create_scenario\",\"arguments\":\"{\\\"name\\\":\\\"Work absence criterion failure\\\",\\\"text\\\":\\\"Scenario: Work absence criterion failure Given assess work absence is enabled When assess work absence is executed with outputs passed = false Then grant allowance is not available AND reject application is available AND reject application is pending .\\\"}\"},\n{\"tool\":\"create_scenario\",\"arguments\":\"{\\\"name\\\":\\\"Second caregiver criterion failure\\\",\\\"text\\\":\\\"Scenario: Second caregiver criterion failure Given assess second caregiver is enabled When assess second caregiver is executed with outputs passed = false Then grant allowance is not available AND reject application is available AND reject application is pending .\\\"}\"},\n{\"tool\":\"create_scenario\",\"arguments\":\"{\\\"name\\\":\\\"Request case research\\\",\\\"text\\\":\\\"Scenario: Request case research Given request similar cases is enabled When request similar cases is executed Then find similar cases is available AND find similar cases is pending AND review similar cases is available AND review similar cases is pending .\\\"}\"},\n{\"tool\":\"create_scenario\",\"arguments\":\"{\\\"name\\\":\\\"Request law research\\\",\\\"text\\\":\\\"Scenario: Request law research Given request relevant law is enabled When request relevant law is executed Then find relevant law is available AND find relevant law is pending AND review relevant law is available AND review relevant law is pending .\\\"}\"},\n{\"tool\":\"create_scenario\",\"arguments\":\"{\\\"name\\\":\\\"Case research complete\\\",\\\"text\\\":\\\"Scenario: Case research complete Given find similar cases is enabled When find similar cases is executed Then review similar cases is pending .\\\"}\"},\n{\"tool\":\"create_scenario\",\"arguments\":\"{\\\"name\\\":\\\"Law research complete\\\",\\\"text\\\":\\\"Scenario: Law research complete Given find relevant law is enabled When find relevant law is executed Then review relevant law is pending .\\\"}\"},\n{\"tool\":\"create_scenario\",\"arguments\":\"{\\\"name\\\":\\\"Grant followup\\\",\\\"text\\\":\\\"Scenario: Grant followup Given grant allowance is enabled When grant allowance is executed Then summarize case is available AND summarize case is pending AND reject application is not available AND request similar cases is not available AND request relevant law is not available .\\\"}\"},\n{\"tool\":\"create_scenario\",\"arguments\":\"{\\\"name\\\":\\\"Reject closes decision\\\",\\\"text\\\":\\\"Scenario: Reject closes decision Given reject application is enabled When reject application is executed Then grant allowance is not available AND request similar cases is not available AND request relevant law is not available .\\\"}\"},\n{\"tool\":\"create_scenario\",\"arguments\":\"{\\\"name\\\":\\\"Summary followup\\\",\\\"text\\\":\\\"Scenario: Summary followup Given summarize case is enabled When summarize case is executed Then issue assessment justification is available AND issue assessment justification is pending .\\\"}\"},\n{\"tool\":\"create_scenario\",\"arguments\":\"{\\\"name\\\":\\\"Publish justification\\\",\\\"text\\\":\\\"Scenario: Publish justification Given issue assessment justification is enabled When issue assessment justification is executed Then view justification is available .\\\"}\"}\n]}"
+        }
+      ],
+      "offered": true,
+      "tokens": {
+        "requests": 14,
+        "input": 118051,
+        "output": 5402,
+        "total": 123453
+      },
+      "seconds": 100.657,
+      "decision": "approved"
+    }
+  ],
+  "metrics": {
+    "plans": 1,
+    "firstPassValidity": {
+      "count": 0,
+      "of": 1,
+      "value": 0
+    },
+    "finalValidationSuccess": {
+      "count": 1,
+      "of": 1,
+      "value": 1
+    },
+    "averageIterations": {
+      "sum": 2,
+      "of": 1,
+      "value": 2
+    },
+    "planApprovalRate": {
+      "count": 1,
+      "of": 1,
+      "value": 1
+    },
+    "undecided": 0
+  },
+  "chatEntries": 9
+}

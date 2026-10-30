@@ -25,6 +25,8 @@ import {
 } from './import/Importer';
 
 import { setSetting } from './features/settings/DCRSettings';
+import saveDCRXML from './DCRXML';
+import saveDcrJsXML from './DcrJsXML';
 
 
 
@@ -367,6 +369,31 @@ BaseViewer.prototype.saveXML = function (options) {
       return reject(err);
     });
   });
+};
+
+/**
+ * Export the currently displayed dcr diagram as DCR Solutions XML (DCRXML.js), as `{ xml }`.
+ *
+ * @param {Object} [options] export options (none yet)
+ *
+ * returns {Promise<SaveXMLResult, Error>}
+ */
+BaseViewer.prototype.saveDCRXML = function (options) {
+  return saveDCRXML(options, this._definitions);
+};
+
+/**
+ * Export the currently displayed dcr diagram as dcr-js's XML for its modeler (DcrJsXML.js): saveXML with the data and
+ * the guards named as the modeler reads them, as `{ xml }`.
+ *
+ * @param {Object} [options] export options
+ * @param {Boolean} [options.format=false] output formatted XML
+ * @param {Boolean} [options.preamble=true] output preamble
+ *
+ * returns {Promise<SaveXMLResult, Error>}
+ */
+BaseViewer.prototype.saveDcrJsXML = function (options) {
+  return saveDcrJsXML(options, this._definitions, this._moddle);
 };
 
 /**
