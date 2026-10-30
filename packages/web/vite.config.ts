@@ -1,7 +1,13 @@
 import { defineConfig, type Plugin } from 'vite';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
+
+// The DCR page of legal-dcr-frontend (dcr-pane.ts), as `npm run dcr-page` builds it
+const DCR_PAGE = path.resolve(import.meta.dirname, '../../legal-dcr-frontend/app/dist-component');
+if (!existsSync(path.join(DCR_PAGE, 'dcr-page.js'))) {
+    throw new Error(`The DCR page is not built (${DCR_PAGE}): run npm run dcr-page in the root folder first.`);
+}
 
 // Z3's threads share memory (SharedArrayBuffer), which browsers only allow on a cross-origin isolated page. On a web
 // server that does not send these headers, the page's service worker adds them (src/cross-origin-isolation.ts).
@@ -18,13 +24,14 @@ export default defineConfig({
         alias: [
             // y-monaco imports Monaco by its path before Monaco 0.5x (esm/vs/editor/editor.api.js, now editor/editor.api.js);
             // it gets the Monaco the editor uses
-            { find: 'monaco-editor/esm/vs/editor/editor.api.js', replacement: 'monaco-editor' }
+            { find: 'monaco-editor/esm/vs/editor/editor.api.js', replacement: 'monaco-editor' },
+            { find: /^dcr-page\//, replacement: `${DCR_PAGE}/` }
         ]
     },
     build: {
         target: 'es2022',
-        // Monaco and Langium make one large bundle; that is expected
-        chunkSizeWarningLimit: 6000
+        // Monaco, Langium and the DCR page make one large bundle; that is expected
+        chunkSizeWarningLimit: 10000
     },
     worker: {
         format: 'es'

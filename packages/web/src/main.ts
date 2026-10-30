@@ -4,6 +4,7 @@ import { DOCUMENT_URI, registerEasyLanguage, EASY_LANGUAGE_ID, EASY_THEME } from
 import { createChatPane, type ChatEntry } from './chat-pane.js';
 import { createDcrView } from './dcr-pane.js';
 import { createDomainPage } from './domain-page.js';
+import { createExportMenu } from './export-menu.js';
 import { createProblemsPanel } from './problems.js';
 import { createReadView } from './read-view.js';
 import { createViewBar } from './views.js';
@@ -43,6 +44,8 @@ const views = createViewBar(document.getElementById('view-bar')!, [
     { name: 'Read', element: document.getElementById('read')! },
     { name: 'DCR graph', element: document.getElementById('dcr')!, shown: createDcrView(document.getElementById('dcr')!) }
 ]);
+// or as files, from the menu bar at the top
+createExportMenu(document.getElementById('menu-bar')!);
 
 createProblemsPanel(document.getElementById('panel')!, editor);
 const agents = shared.getMap<string>('agent');

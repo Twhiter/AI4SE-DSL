@@ -11,8 +11,9 @@
         "preview": "vite preview"
     },
     "dependencies": {
-        "dcr-view": "0.0.1",
         "deep-chat": "~2.5.1",
+        "easy-dcr-js-adapter": "0.0.1",
+        "easy-dcr-solution-adapter": "0.0.1",
         "easy-language": "0.0.1",
         "langium": "~4.4.0",
         "monaco-editor": "^0.56.0",

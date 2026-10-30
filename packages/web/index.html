@@ -7,8 +7,27 @@
     <style>
         /* VS Code "Dark Modern" */
         html, body { margin: 0; height: 100%; background: #1F1F1F; overflow: hidden; }
-        #main { width: 100%; height: 100%; display: flex; }
+        body { display: flex; flex-direction: column; }
+        #main { flex: 1; min-height: 0; width: 100%; display: flex; }
         #left { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+        /* the menu bar at the top, as an IDE's (File, Edit, …): Export */
+        #menu-bar {
+            flex: none; display: flex; align-items: center; gap: 2px; height: 30px; padding: 0 6px;
+            background: #181818; border-bottom: 1px solid #2B2B2B; font: 13px -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+        }
+        #menu-bar .menu { position: relative; }
+        #menu-bar .menu-title { height: 22px; padding: 0 8px; border: none; border-radius: 4px; background: transparent; color: #CCCCCC; font: inherit; cursor: pointer; }
+        #menu-bar .menu-title:hover, #menu-bar .menu-title[aria-expanded='true'] { background: #2B2B2B; color: #FFFFFF; }
+        #menu-bar .menu-items {
+            position: absolute; top: calc(100% + 4px); left: 0; z-index: 90; min-width: 240px; padding: 4px 0;
+            background: #1F1F1F; border: 1px solid #454545; border-radius: 4px; box-shadow: 0 2px 8px rgba(0, 0, 0, .5);
+        }
+        #menu-bar .menu-items[hidden], #menu-bar .menu-note[hidden] { display: none; }
+        #menu-bar .menu-item { display: block; width: 100%; padding: 5px 16px; border: none; background: transparent; color: #CCCCCC; font: inherit; text-align: left; white-space: nowrap; cursor: pointer; }
+        #menu-bar .menu-item:hover:not(:disabled) { background: #0078D4; color: #FFFFFF; }
+        #menu-bar .menu-item:disabled { color: #6E7681; cursor: default; }
+        #menu-bar .menu-note { padding: 5px 16px 3px; font-size: 12px; color: #CCA700; }
 
         /* the views of the document, one at a time, chosen in the bar above them */
         #view-bar {
@@ -54,7 +73,7 @@
         #dcr .dcr-status { flex: 1; font-size: 12px; color: #9D9D9D; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         #dcr button { font: inherit; font-size: 12px; color: #CCCCCC; background: #313131; border: 1px solid #3C3C3C; border-radius: 3px; padding: 2px 10px; cursor: pointer; }
         #dcr button:hover { background: #3C3C3C; }
-        #dcr .canvas { flex: 1; min-height: 0; background: #FFFFFF; }
+        #dcr .canvas { position: relative; flex: 1; min-height: 0; overflow: hidden; background: #FFFFFF; }
 
         /* the Problems panel below the editor */
         #panel {
@@ -135,6 +154,7 @@
     </style>
 </head>
 <body>
+    <div id="menu-bar" role="menubar"></div>
     <div id="main">
         <div id="left">
             <div id="view-bar"></div>

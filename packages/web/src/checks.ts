@@ -1,7 +1,7 @@
 // Checks the editor's document with Z3, in the page: the Declarative and enabled specifications together, each
 // scenario on its own, and the scenarios with the same When against each other. All the problems become markers
 // together, like the language's own errors, so the editor underlines them and the Problems panel lists them; then
-// the document becomes a DCR graph, for the pane right of the editor (dcr-pane.ts).
+// the document becomes DCR.js editor XML (easy-dcr-js-adapter), for the DCR graph view (dcr-pane.ts).
 // Z3 is WebAssembly: z3/z3-built.js, a classic script served by vite.config.ts, defines initZ3 and loads
 // z3/z3-built.wasm; its threads need SharedArrayBuffer, so the page is cross-origin isolated (by the headers in
 // vite.config.ts, or on another web server by the service worker of cross-origin-isolation.ts).
@@ -11,9 +11,10 @@ import { GrammarUtils, type LangiumDocument } from 'langium';
 import { createApi } from 'z3-solver/build/high-level';
 import { init as initLowLevel } from 'z3-solver/build/low-level';
 import {
-    checkConsistency, checkCrossScenarios, checkScenarios, isDeclarativeSpec, isEnabledSpec, isScenario, toDcrGraph,
-    type ConsistencyResult, type CrossScenarioResult, type DcrGraph, type EasyModel, type Model as ModelNode, type ScenarioResult, type Z3Context
+    checkConsistency, checkCrossScenarios, checkScenarios, isDeclarativeSpec, isEnabledSpec, isScenario,
+    type ConsistencyResult, type CrossScenarioResult, type EasyModel, type Model as ModelNode, type ScenarioResult, type Z3Context
 } from 'easy-language';
+import { toDcrJsXml } from 'easy-dcr-js-adapter';
 import { crossOriginIsolation } from './cross-origin-isolation.js';
 import { toMonacoRange } from './ranges.js';
 
@@ -41,11 +42,11 @@ function report(status: CheckStatus): void {
     statusListeners.forEach(listener => listener(status));
 }
 
-const graphListeners: Array<(graph: DcrGraph) => void> = [];
+const xmlListeners: Array<(xml: string) => void> = [];
 
-/** Called with the DCR graph of every document that was checked. */
-export function onDcrGraph(listener: (graph: DcrGraph) => void): void {
-    graphListeners.push(listener);
+/** Called with the DCR graph of every document that was checked, as DCR.js editor XML. */
+export function onDcrXml(listener: (xml: string) => void): void {
+    xmlListeners.push(listener);
 }
 
 // ---------------- Running the checks, one at a time ----------------
@@ -74,7 +75,7 @@ export function checkWithZ3(editorModel: monaco.editor.ITextModel, text: string,
             if (result && !stale()) {
                 monaco.editor.setModelMarkers(editorModel, OWNER, result.markers);
                 report({ state: 'done', text: result.summary });
-                graphListeners.forEach(listener => listener(result.graph));
+                xmlListeners.forEach(listener => listener(result.xml));
             }
         } catch (error) {
             report({ state: 'failed', text: `Z3 failed: ${error instanceof Error ? error.message : String(error)}` });
@@ -157,7 +158,7 @@ function loadScript(src: string): Promise<void> {
 interface CheckResult {
     markers: monaco.editor.IMarkerData[];
     summary: string;
-    graph: DcrGraph;
+    xml: string;
 }
 
 /**
@@ -166,7 +167,7 @@ interface CheckResult {
  *    with its When action executed, is an error;
  * 3. the scenarios with the same When, of those that hold on their own: a group that can apply together (at some
  *    input) but whose Thens cannot hold together is an error;
- * 4. the DCR graph, for the pane right of the editor (built as if there were no problems).
+ * 4. the DCR graph, as DCR.js editor XML, for the DCR graph view (built as if there were no problems).
  * Stops early, without a result, once `stale` says a newer text is waiting.
  */
 async function runChecks(z3: Z3Context, model: EasyModel.Model, locations: Locations, uri: monaco.Uri, stale: () => boolean): Promise<CheckResult | undefined> {
@@ -194,10 +195,10 @@ async function runChecks(z3: Z3Context, model: EasyModel.Model, locations: Locat
     if (stale()) {
         return undefined;
     }
-    const graph = await toDcrGraph(z3, model);   // not a check: its time is not in the summary
+    const xml = await toDcrJsXml(model);   // not a check: its time is not in the summary
     return {
         markers,
-        graph,
+        xml,
         // the scenarios' time: each scenario on its own, and the scenarios with the same When against each other
         summary: `Checked in ${consistency + scenarioTime + crossTime} ms · consistency ${consistency} ms · scenarios ${scenarioTime + crossTime} ms`
     };

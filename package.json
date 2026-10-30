@@ -11,8 +11,12 @@
         "build:clean": "npm run clean && npm run build",
         "langium:generate": "npm run --workspace packages/language langium:generate",
         "langium:watch": "npm run --workspace packages/language langium:watch",
-        "test": "npm run --workspace packages/language --workspace packages/dsl-controller --workspace packages/dsl-mcp --workspace packages/chatbot test",
+        "test": "npm run --workspace packages/language --workspace packages/dsl-controller --workspace packages/dcr-js-adapter --workspace packages/dcr-solution-adapter --workspace packages/dsl-mcp --workspace packages/chatbot test",
+        "dcr-page": "node scripts/dcr-page.mjs --force",
+        "predev": "node scripts/dcr-page.mjs",
+        "preweb:dev": "node scripts/dcr-page.mjs",
         "web:dev": "npm run dev --workspace packages/web",
+        "preweb:build": "node scripts/dcr-page.mjs",
         "web:build": "npm run build --workspace packages/web",
         "dev": "concurrently --names documents,web --prefix-colors blue,magenta --kill-others \"npm run documents --workspace packages/chatbot\" \"npm run dev --workspace packages/web\""
     },
@@ -28,6 +32,8 @@
         "packages/extension",
         "packages/web",
         "packages/dsl-controller",
+        "packages/dcr-js-adapter",
+        "packages/dcr-solution-adapter",
         "packages/dsl-mcp",
         "packages/chatbot"
     ],

@@ -1,0 +1,24 @@
+{
+    "name": "easy-dcr-js-adapter",
+    "description": "A DSL easy model (easy-language's) as DCR.js editor XML, laid out, for the DCR page of legal-dcr-frontend",
+    "version": "0.0.1",
+    "type": "module",
+    "private": true,
+    "exports": {
+        ".": "./src/index.ts"
+    },
+    "scripts": {
+        "build": "echo nothing to build",
+        "clean": "echo nothing to clean",
+        "test": "vitest run"
+    },
+    "dependencies": {
+        "easy-language": "0.0.1",
+        "elkjs": "^0.10.2"
+    },
+    "devDependencies": {
+        "langium": "~4.4.0",
+        "moddle": "^6.2.3",
+        "moddle-xml": "^10.1.0"
+    }
+}

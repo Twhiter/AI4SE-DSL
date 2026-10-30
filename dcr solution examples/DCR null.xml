@@ -1,0 +1,149 @@
+<dcrgraph title="DCR" dataTypesStatus="hide" filterLevel="-1" insightFilter="false" zoomLevel="0" formGroupStyle="Normal" formLayoutStyle="Horizontal" formShowPendingCount="true" graphBG="#f1f6fe" graphType="0" exercise="false" version="1.1">
+    <meta>
+        <graph id="2015905" hash="6c0bc01ac8af53fdbde829d194fff56bd765f113e12f5bb90186b34f4fd77f90" guid="76792120-0E46-48C7-9287-AB2A4B60D3C4" OwnerName="Xinyuan Tu" OwnerId="176159" categoryId="19081" categoryTitle="Default" Keywords="" processDefinitionId="76792120-0E46-48C7-9287-AB2A4B60D3C4"/>
+        <revision id="5870504" type="minor" date="2026-10-30T20:06:22.0000000+01:00" title="" comment="" RevisionId="0.1+"/>
+        <organization id="1156" name="XHAILe"/>
+    </meta>
+    <specification>
+        <resources>
+            <events>
+                <event id="A1">
+                    <precondition message=""/>
+                    <custom>
+                        <visualization>
+                            <location xLoc="400" yLoc="220"/>
+                            <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                        </visualization>
+                        <roles/>
+                        <readRoles/>
+                        <groups>
+                            <group/>
+                        </groups>
+                        <phases>
+                            <phase/>
+                        </phases>
+                        <eventType/>
+                        <eventScope>private</eventScope>
+                        <eventTypeData/>
+                        <eventDescription/>
+                        <purpose/>
+                        <guide/>
+                        <insight use="false"/>
+                        <level>100</level>
+                        <sequence>1</sequence>
+                        <costs>0</costs>
+                        <eventData>
+                            <dataType sequence="1" width="small" min="NaN" max="NaN" placeholder="" hinttext="">text</dataType>
+                            <validationRules/>
+                            <styles/>
+                        </eventData>
+                        <interfaces/>
+                    </custom>
+                </event>
+                <event id="A2">
+                    <precondition message=""/>
+                    <custom>
+                        <visualization>
+                            <location xLoc="600" yLoc="220"/>
+                            <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                        </visualization>
+                        <roles/>
+                        <readRoles/>
+                        <groups>
+                            <group/>
+                        </groups>
+                        <phases>
+                            <phase/>
+                        </phases>
+                        <eventType/>
+                        <eventScope>private</eventScope>
+                        <eventTypeData/>
+                        <eventDescription/>
+                        <purpose/>
+                        <guide/>
+                        <insight use="false"/>
+                        <level>100</level>
+                        <sequence>2</sequence>
+                        <costs>0</costs>
+                        <eventData>
+                            <styles/>
+                        </eventData>
+                        <interfaces/>
+                    </custom>
+                </event>
+            </events>
+            <subProcesses/>
+            <labels>
+                <label id="A1"/>
+                <label id="A2"/>
+            </labels>
+            <labelMappings>
+                <labelMapping eventId="A1" labelId="A1"/>
+                <labelMapping eventId="A2" labelId="A2"/>
+            </labelMappings>
+            <expressions>
+                <expression id="A1-path-A2--condition" value="A1 != null"/>
+            </expressions>
+            <variables/>
+            <variableAccesses>
+                <writeAccesses/>
+            </variableAccesses>
+            <custom>
+                <keywords/>
+                <roles/>
+                <groups/>
+                <phases/>
+                <eventTypes/>
+                <eventParameters/>
+                <graphDetails>DCR Process</graphDetails>
+                <graphDocumentation/>
+                <graphLanguage>en-US</graphLanguage>
+                <graphDomain>process</graphDomain>
+                <graphFilters>
+                    <filteredGroups/>
+                    <filteredRoles/>
+                    <filteredPhases/>
+                </graphFilters>
+                <highlighterMarkup>
+                    <highlightLayers/>
+                    <highlights/>
+                </highlighterMarkup>
+            </custom>
+        </resources>
+        <constraints>
+            <conditions>
+                <condition sourceId="A1" targetId="A2" filterLevel="100" description="" time="" groups="" expressionId="A1-path-A2--condition"/>
+            </conditions>
+            <responses/>
+            <coresponses/>
+            <includes/>
+            <excludes/>
+            <milestones/>
+            <spawns/>
+            <templateSpawns/>
+            <updates/>
+        </constraints>
+    </specification>
+    <runtime accepting="false">
+        <custom>
+            <globalMarking>
+                <enabled/>
+                <enabledSubprocesses/>
+                <executed/>
+                <pending/>
+                <included/>
+            </globalMarking>
+        </custom>
+        <marking>
+            <globalStore>
+                <variable id="A1" value="null" isNull="false" type="expr"/>
+            </globalStore>
+            <executed/>
+            <included>
+                <event id="A1"/>
+                <event id="A2"/>
+            </included>
+            <pendingResponses/>
+        </marking>
+    </runtime>
+</dcrgraph>

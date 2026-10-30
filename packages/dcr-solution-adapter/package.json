@@ -1,0 +1,23 @@
+{
+    "name": "easy-dcr-solution-adapter",
+    "description": "A DSL easy model (easy-language's) as DCR Solutions XML, as dcrgraphs.net exports a graph, laid out",
+    "version": "0.0.1",
+    "type": "module",
+    "private": true,
+    "exports": {
+        ".": "./src/index.ts"
+    },
+    "scripts": {
+        "build": "echo nothing to build",
+        "clean": "echo nothing to clean",
+        "test": "vitest run"
+    },
+    "dependencies": {
+        "easy-dcr-js-adapter": "0.0.1",
+        "easy-language": "0.0.1"
+    },
+    "devDependencies": {
+        "langium": "~4.4.0",
+        "saxen": "^8.1.2"
+    }
+}
