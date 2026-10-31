@@ -4,10 +4,13 @@
 //                   plans with metrics.ts
 //   <session>.md    the same to read: the metrics, then the entries, each document in a code block
 // The log takes what happens from outside the workflow: from the chat list of the session's shared document (the
-// user's messages and decisions, the agents' replies and plans, the options offered, chosen or closed) and from the
-// experiment's events (events.ts: the tool calls, the planning agent's simulations, the runs' token usage; the options
-// agent's runs are not among them). A plan is one call of plan_changes: it opens at the call and closes at its end, and
-// the tool calls and the run in between are the planning agent's.
+// user's messages and decisions, the agents' replies and plans, the proposals and the options chosen, the choices
+// offered, chosen or closed) and from the experiment's events (events.ts: the tool calls, the planning runs and their
+// simulations, the runs' token usage). A plan is one planning run: one call of plan_changes, or one option of a call of
+// propose_changes, whose options are planned at the same time; the tool calls, simulations and run of a planning run
+// carry it. An option's plan is offered when its option is among the proposals; it is decided on once the user has
+// chosen it, and when the proposals close (an option approved, new proposals, a plan), the options not decided on are
+// not chosen.
 // A server restarted while a tab stays open continues the session's files: the tab sends its chat list again, and the
 // entries already logged are skipped. The agents start over then (their memory is gone), and a plan that was waiting
 // for a decision counts as undecided.
@@ -41,6 +44,8 @@ export interface SessionRecord {
     chatEntries: number;
     /** The plan waiting for the user's decision, by its number. */
     waiting?: number;
+    /** The open proposals: their id, and the plan of each option, by its number. */
+    proposals?: { id: number, plans: number[] };
 }
 
 /** What happened, in order. */
@@ -49,14 +54,18 @@ export type Entry =
     | { type: 'user', time: string, text: string, chosen?: boolean }      // chosen: an option's message, clicked
     | { type: 'options', time: string, options: Option[] }
     | { type: 'dismissal', time: string }
-    | { type: 'plan', time: string, plan: number }               // plan_changes was called: plans[plan - 1]
-    | { type: 'decision', time: string, plan?: number, approved: boolean, reason?: string }
+    | { type: 'plan', time: string, plan: number }               // a planning run started: plans[plan - 1]
+    | { type: 'proposals', time: string, plans: number[] }       // the options offered, by their plans' numbers
+    | { type: 'choice', time: string, plan: number }             // the option whose plan waits for the decision
+    | { type: 'decision', time: string, plan?: number, approved: boolean, reason?: string, kept?: string[] }   // kept: the changes kept, when only some
     | { type: 'reply', time: string, text: string, tools: ToolCall[], tokens?: Tokens, effort?: string, document: string }
     | { type: 'error', time: string, text: string };
 
-/** One call of plan_changes: the planning agent's attempts and tool calls, and what became of its plan. */
+/** One planning run: the planning agent's attempts and tool calls, and what became of its plan. */
 export interface PlanRecord extends PlanOutcome {
     number: number;
+    /** The label of the option of propose_changes it plans; none for plan_changes. */
+    option?: string;
     started: string;
     seconds?: number;
     attempts: AttemptRecord[];
@@ -64,9 +73,11 @@ export interface PlanRecord extends PlanOutcome {
     tools: ToolCall[];
     /** The planning agent's token usage; missing when its run did not end (it ran out of turns). */
     tokens?: Tokens;
-    /** Whether the user was offered the plan: its last attempt ran, and it was the turn's plan. */
+    /** Whether the user was offered the plan: its last attempt ran, and it was the turn's plan or among its options. */
     offered: boolean;
-    decision?: 'approved' | 'rejected' | 'undecided';
+    decision?: 'approved' | 'partly approved' | 'rejected' | 'undecided' | 'not chosen';
+    /** The keys of the changes the user kept, when they approved only some. */
+    kept?: string[];
     reason?: string;
 }
 
@@ -101,13 +112,16 @@ export function startSessionLog(session: string, doc: Y.Doc): void {
     const domain = doc.getText('domain');
     const now = () => new Date().toISOString();
 
-    if (record.waiting !== undefined) {   // a restart: the plan waiting for a decision is lost
-        record.plans[record.waiting - 1].decision = 'undecided';
+    if (record.waiting !== undefined) {   // a restart: the plan waiting for a decision is lost, and so are the options
+        record.plans[record.waiting - 1].decision ??= 'undecided';
         record.waiting = undefined;
     }
+    closeProposals(record);
     record.entries.push({ type: 'start', time: now(), skills: skillsOn(), options: optionsOn() });
 
-    let open: PlanRecord | undefined;              // the plan whose plan_changes call is under way
+    const running = new Map<string, PlanRecord>();   // the planning runs under way, by their ids
+    let planned: PlanRecord | undefined;             // the last run of plan_changes, for the turn's plan
+    let options: PlanRecord[] = [];                  // the runs of the last call of propose_changes, for its options
     let turn: { tools: ToolCall[], tokens?: Tokens, effort?: string } = { tools: [] };   // the chat agent's, for its next reply
 
     const save = () => {
@@ -118,15 +132,28 @@ export function startSessionLog(session: string, doc: Y.Doc): void {
     };
 
     const onEvent = (event: SessionEvent) => {
-        if (event.kind === 'tool_start' && event.tool === 'plan_changes') {
-            open = { number: record.plans.length + 1, started: now(), attempts: [], tools: [], offered: false };
-            record.plans.push(open);
-            record.entries.push({ type: 'plan', time: open.started, plan: open.number });
-        } else if (event.kind === 'tool_end' && event.tool === 'plan_changes') {
+        const open = event.planning !== undefined ? running.get(event.planning) : undefined;
+        if (event.kind === 'planning_start' && event.planning !== undefined) {
+            const plan: PlanRecord = {
+                number: record.plans.length + 1, ...(event.option !== undefined ? { option: event.option } : {}),
+                started: now(), attempts: [], tools: [], offered: false
+            };
+            record.plans.push(plan);
+            running.set(event.planning, plan);
+            if (event.option === undefined) {
+                planned = plan;
+            } else {
+                options.push(plan);
+            }
+            record.entries.push({ type: 'plan', time: plan.started, plan: plan.number });
+        } else if (event.kind === 'planning_end') {
             if (open) {
                 open.seconds = (Date.now() - Date.parse(open.started)) / 1000;
+                running.delete(event.planning!);
             }
-            open = undefined;
+        } else if (event.kind === 'tool_start' && event.tool === 'propose_changes' && !open) {
+            options = [];
+            turn.tools.push({ tool: event.tool, arguments: event.arguments });
         } else if (event.kind === 'tool_start') {
             (open ? open.tools : turn.tools).push({ tool: event.tool, arguments: event.arguments });
         } else if (event.kind === 'run_end') {
@@ -152,21 +179,48 @@ export function startSessionLog(session: string, doc: Y.Doc): void {
             case 'user':
                 record.domain = domain.toString();
                 record.entries.push({ type: 'user', time, text: entry.text, ...(entry.chosen ? { chosen: true } : {}) });
-                if (waiting) {   // a message instead of a decision leaves the plan behind
-                    waiting.decision = 'undecided';
-                    record.waiting = undefined;
-                }
-                break;
-            case 'decision':
-                record.entries.push({ type: 'decision', time, plan: waiting?.number, approved: entry.approved, ...(entry.reason ? { reason: entry.reason } : {}) });
-                if (waiting) {
-                    waiting.decision = entry.approved ? 'approved' : 'rejected';
-                    if (entry.reason) {
-                        waiting.reason = entry.reason;
+                if (waiting) {   // a message instead of a decision leaves the plan behind; an option's, the user may choose again
+                    if (waiting.option === undefined) {
+                        waiting.decision = 'undecided';
                     }
                     record.waiting = undefined;
                 }
                 break;
+            case 'decision':
+                record.entries.push({
+                    type: 'decision', time, plan: waiting?.number, approved: entry.approved,
+                    ...(entry.reason ? { reason: entry.reason } : {}), ...(entry.kept ? { kept: entry.kept } : {})
+                });
+                if (waiting) {
+                    waiting.decision = !entry.approved ? 'rejected' : entry.kept ? 'partly approved' : 'approved';
+                    if (entry.reason) {
+                        waiting.reason = entry.reason;
+                    }
+                    if (entry.kept) {
+                        waiting.kept = entry.kept;
+                    }
+                    record.waiting = undefined;
+                    if (entry.approved && waiting.option !== undefined) {
+                        closeProposals(record);
+                    }
+                }
+                break;
+            case 'proposals': {
+                closeProposals(record);
+                const plans = entry.options.map(({ label }) => options.find(plan => plan.option === label)?.number ?? 0);
+                plans.filter(number => number > 0).forEach(number => record.plans[number - 1].offered = true);
+                record.proposals = { id: entry.id, plans };
+                record.entries.push({ type: 'proposals', time, plans });
+                break;
+            }
+            case 'choice': {
+                const plan = record.proposals?.id === entry.proposals ? record.proposals.plans[entry.option] : undefined;
+                if (plan) {
+                    record.waiting = plan;
+                    record.entries.push({ type: 'choice', time, plan });
+                }
+                break;
+            }
             case 'agent':
                 record.entries.push({ type: 'reply', time, text: entry.text, ...turn, document: dsl.toString() });
                 turn = { tools: [] };
@@ -177,15 +231,14 @@ export function startSessionLog(session: string, doc: Y.Doc): void {
             case 'dismissal':
                 record.entries.push({ type: 'dismissal', time });
                 break;
-            case 'plan': {
-                // the turn's plan: the last one whose last attempt ran
-                const offered = [...record.plans].reverse().find(({ attempts }) => attempts.at(-1)?.ran);
-                if (offered) {
-                    offered.offered = true;
-                    record.waiting = offered.number;
+            case 'plan':
+                // the turn's plan: the last run of plan_changes; it closes the proposals
+                closeProposals(record);
+                if (planned?.attempts.at(-1)?.ran) {
+                    planned.offered = true;
+                    record.waiting = planned.number;
                 }
                 break;
-            }
             case 'error':
                 record.entries.push({ type: 'error', time, text: entry.text });
                 break;
@@ -207,6 +260,17 @@ export function startSessionLog(session: string, doc: Y.Doc): void {
         entries.unobserve(onChat);
     });
     save();
+}
+
+/** Closes the open proposals: their options not decided on were not chosen. */
+function closeProposals(record: SessionRecord): void {
+    for (const number of record.proposals?.plans ?? []) {
+        const plan = record.plans[number - 1];
+        if (plan && plan.decision === undefined) {
+            plan.decision = 'not chosen';
+        }
+    }
+    record.proposals = undefined;
 }
 
 /** The session's log so far, from its .json file, or a new one. */
@@ -264,6 +328,7 @@ export function markdown(record: SessionRecord): string {
         `| Final validation success | ${m.finalValidationSuccess.count} / ${m.finalValidationSuccess.of} plans | ${percent(m.finalValidationSuccess.value)} |`,
         `| Average iterations | ${m.averageIterations.sum} attempts / ${m.averageIterations.of} plans | ${m.averageIterations.value?.toFixed(2) ?? '—'} |`,
         `| Plan approval rate | ${m.planApprovalRate.count} / ${m.planApprovalRate.of} decided | ${percent(m.planApprovalRate.value)} |`,
+        `| Partly approved plans | ${m.partlyApproved} | |`,
         `| Undecided plans | ${m.undecided} | |`,
         '',
         '## Domain',
@@ -291,10 +356,16 @@ function entryLines(entry: Entry, record: SessionRecord): string[] {
             return [`### ${at} Options`, '', ...entry.options.map(({ label, message, recommended }) => `- ${recommended ? '★ ' : ''}**${label}**: ${message}`)];
         case 'dismissal':
             return [`### ${at} Options closed`];
+        case 'proposals':
+            return [`### ${at} Options offered`, '', ...entry.plans.map(number =>
+                `- **${record.plans[number - 1]?.option ?? '?'}**: plan ${number}`)];
+        case 'choice':
+            return [`### ${at} Option shown: ${record.plans[entry.plan - 1]?.option ?? '?'} (plan ${entry.plan})`];
         case 'plan':
             return planLines(record.plans[entry.plan - 1], at);
         case 'decision': {
-            const what = entry.approved ? 'approved' : `rejected${entry.reason ? `: ${entry.reason}` : ''}`;
+            const what = `${!entry.approved ? 'rejected' : entry.kept ? `approved ${entry.kept.length} change(s): ${entry.kept.join(', ')}` : 'approved'}`
+                + (entry.reason ? `; reason: ${entry.reason}` : '');
             return [`### ${at} Decision on plan ${entry.plan ?? '(none waiting)'}: ${what}`];
         }
         case 'reply':
@@ -311,7 +382,7 @@ function entryLines(entry: Entry, record: SessionRecord): string[] {
 function planLines(plan: PlanRecord, at: string): string[] {
     const outcome = plan.offered ? `offered, ${plan.decision ?? 'waiting'}` : 'not offered';
     const lines = [
-        `### ${at} Plan ${plan.number} (${outcome})`, '',
+        `### ${at} Plan ${plan.number}${plan.option !== undefined ? `, option "${plan.option}"` : ''} (${outcome})`, '',
         `${plan.attempts.length} attempt(s), ${plan.seconds?.toFixed(1) ?? '?'} s, tokens: ${tokens(plan.tokens)}.`,
         `Tools: ${plan.tools.map(call).join(', ') || 'none'}.`
     ];

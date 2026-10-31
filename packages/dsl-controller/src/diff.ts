@@ -10,6 +10,11 @@
 // (enabled and state specifications, scenarios) line by line. A document with syntax errors has no model to compare:
 // then the diff is the document's text, line by line. diffText writes it as plain text, for an LLM (the MCP server's
 // simulate_plan), in the form above; a line of a text has its mark before it (+, - or two spaces).
+// Each change the user can keep or leave out of a plan has a key: an element added or deleted (Entities/Customer), a
+// piece added or deleted (Entities/Printer/States/-idle), a text added, deleted or changed (State specifications/
+// Printer is idle). The key does not depend on the rest of the plan, so that the diff of one step has the same keys as
+// the plan's (simulation.ts, selectSteps). A changed element and the lines of a text have none, and neither has the
+// diff of a document with syntax errors.
 
 import type { ActionSpecification, Controller, DataProperty, Entity } from './controller.ts';
 
@@ -17,6 +22,8 @@ import type { ActionSpecification, Controller, DataProperty, Entity } from './co
 export interface DiffPart {
     change: 'added' | 'deleted';
     text: string;
+    /** The change's key. */
+    key: string;
 }
 
 /**
@@ -29,6 +36,14 @@ export interface DiffLine {
     parts?: DiffPart[];
     code?: boolean;
     lines?: DiffLine[];
+    /** The change's key, when the line is one the user can keep or leave out. */
+    key?: string;
+}
+
+/** A change the user can keep or leave out of a plan: its key, and what it is, as text. */
+export interface Change {
+    key: string;
+    text: string;
 }
 
 /** The lines of one kind of element: "Entities", "Roles", … */
@@ -42,12 +57,12 @@ export function diffModels(before: Controller, after: Controller): DiffSection[]
     const sections: DiffSection[] = before.broken || after.broken
         ? [{ title: 'Document', lines: textDiff(before.toDsl(), after.toDsl()) }]
         : [
-            { title: 'Entities', lines: elementDiff(before.entities, after.entities, ({ name }) => name, entityParts) },
-            { title: 'Roles', lines: elementDiff(before.roles, after.roles, ({ name }) => name, () => []) },
-            { title: 'Actions', lines: elementDiff(before.actionSpecifications, after.actionSpecifications, ({ action }) => action, actionParts) },
-            { title: 'Enabled specifications', lines: keyedTextDiff(before.enabledSpecifications, after.enabledSpecifications, ({ action }) => `${action} is enabled`) },
-            { title: 'State specifications', lines: keyedTextDiff(before.stateSpecifications, after.stateSpecifications, ({ entity, state }) => `${entity} is ${state}`) },
-            { title: 'Scenarios', lines: keyedTextDiff(before.scenarios, after.scenarios, ({ name }) => name) }
+            { title: 'Entities', lines: elementDiff('Entities', before.entities, after.entities, ({ name }) => name, entityParts) },
+            { title: 'Roles', lines: elementDiff('Roles', before.roles, after.roles, ({ name }) => name, () => []) },
+            { title: 'Actions', lines: elementDiff('Actions', before.actionSpecifications, after.actionSpecifications, ({ action }) => action, actionParts) },
+            { title: 'Enabled specifications', lines: keyedTextDiff('Enabled specifications', before.enabledSpecifications, after.enabledSpecifications, ({ action }) => `${action} is enabled`) },
+            { title: 'State specifications', lines: keyedTextDiff('State specifications', before.stateSpecifications, after.stateSpecifications, ({ entity, state }) => `${entity} is ${state}`) },
+            { title: 'Scenarios', lines: keyedTextDiff('Scenarios', before.scenarios, after.scenarios, ({ name }) => name) }
         ];
     return sections.filter(({ lines }) => lines.length > 0);
 }
@@ -55,6 +70,19 @@ export function diffModels(before: Controller, after: Controller): DiffSection[]
 /** The diff as text, as the header shows it: each section's title, then its lines, each kind of change marked. */
 export function diffText(sections: DiffSection[]): string {
     return sections.flatMap(({ title, lines }) => [title, ...lines.flatMap(line => lineText(line, ''))]).join('\n');
+}
+
+/**
+ * The changes of a diff the user can keep or leave out, in order, each with its key and as text: "Entities: + Customer",
+ * "Entities: Printer, States: - idle", "State specifications: ~ Printer is idle".
+ */
+export function changesOf(sections: DiffSection[]): Change[] {
+    const ofLine = (section: string, element: string | undefined, { change, text, parts, lines, key }: DiffLine): Change[] => [
+        ...(key ? [{ key, text: `${section}: ${MARK[change]} ${text}` }] : []),
+        ...(parts ?? []).map(part => ({ key: part.key, text: `${section}: ${element}, ${text}: ${MARK[part.change]} ${part.text}` })),
+        ...(lines ?? []).flatMap(line => ofLine(section, text, line))
+    ];
+    return sections.flatMap(({ title, lines }) => lines.flatMap(line => ofLine(title, undefined, line)));
 }
 
 const MARK = { added: '+', deleted: '-', changed: '~', same: ' ' } as const;
@@ -106,19 +134,21 @@ function dataProperty({ name, type, elementType }: DataProperty): string {
  * before it, then the ones it adds. An added or deleted element comes with all its parts, a changed one with the
  * parts that change, and in each only the pieces that change.
  */
-function elementDiff<T>(before: T[], after: T[], key: (element: T) => string, parts: (element: T) => Part[]): DiffLine[] {
+function elementDiff<T>(section: string, before: T[], after: T[], key: (element: T) => string, parts: (element: T) => Part[]): DiffLine[] {
     const lines: DiffLine[] = [];
     for (const old of before) {
         const now = after.find(element => key(element) === key(old));
         if (!now) {
-            lines.push(whole('deleted', key(old), parts(old)));
+            lines.push(whole(section, 'deleted', key(old), parts(old)));
             continue;
         }
         const changed = parts(now).flatMap((part, index) => {
             const oldPieces = parts(old)[index].pieces;
+            const piece = (change: DiffPart['change']) => (text: string): DiffPart =>
+                ({ change, text, key: pieceKey(section, key(old), part.title, change, text) });
             const pieces: DiffPart[] = [
-                ...oldPieces.filter(piece => !part.pieces.includes(piece)).map(text => ({ change: 'deleted' as const, text })),
-                ...part.pieces.filter(piece => !oldPieces.includes(piece)).map(text => ({ change: 'added' as const, text }))
+                ...oldPieces.filter(text => !part.pieces.includes(text)).map(piece('deleted')),
+                ...part.pieces.filter(text => !oldPieces.includes(text)).map(piece('added'))
             ];
             return pieces.length > 0 ? [{ change: 'changed' as const, text: part.title, parts: pieces }] : [];
         });
@@ -128,36 +158,43 @@ function elementDiff<T>(before: T[], after: T[], key: (element: T) => string, pa
     }
     for (const now of after) {
         if (!before.some(element => key(element) === key(now))) {
-            lines.push(whole('added', key(now), parts(now)));
+            lines.push(whole(section, 'added', key(now), parts(now)));
         }
     }
     return lines;
 }
 
 /** An element the plan adds or deletes, with its parts. */
-function whole(change: 'added' | 'deleted', name: string, parts: Part[]): DiffLine {
+function whole(section: string, change: 'added' | 'deleted', name: string, parts: Part[]): DiffLine {
     const lines = parts
         .filter(({ pieces }) => pieces.length > 0)
-        .map(({ title, pieces }) => ({ change, text: title, parts: pieces.map(text => ({ change, text })) }));
-    return lines.length > 0 ? { change, text: name, lines } : { change, text: name };
+        .map(({ title, pieces }) => ({ change, text: title, parts: pieces.map(text => ({ change, text, key: pieceKey(section, name, title, change, text) })) }));
+    const key = `${section}/${name}`;
+    return lines.length > 0 ? { change, text: name, lines, key } : { change, text: name, key };
+}
+
+/** Entities/Printer/States/-idle */
+function pieceKey(section: string, element: string, part: string, change: DiffPart['change'], text: string): string {
+    return `${section}/${element}/${part}/${MARK[change]}${text}`;
 }
 
 // ---------------- Texts ----------------
 
 /** The keyed texts of one kind, matched by `title`, in the order of elementDiff; each with the lines that change. */
-function keyedTextDiff<T extends { text: string }>(before: T[], after: T[], title: (element: T) => string): DiffLine[] {
+function keyedTextDiff<T extends { text: string }>(section: string, before: T[], after: T[], title: (element: T) => string): DiffLine[] {
     const lines: DiffLine[] = [];
+    const key = (element: T) => `${section}/${title(element)}`;
     for (const old of before) {
         const now = after.find(element => title(element) === title(old));
         if (!now) {
-            lines.push({ change: 'deleted', text: title(old), lines: textDiff(old.text, '') });
+            lines.push({ change: 'deleted', text: title(old), lines: textDiff(old.text, ''), key: key(old) });
         } else if (now.text !== old.text) {
-            lines.push({ change: 'changed', text: title(old), lines: textDiff(old.text, now.text) });
+            lines.push({ change: 'changed', text: title(old), lines: textDiff(old.text, now.text), key: key(old) });
         }
     }
     for (const now of after) {
         if (!before.some(element => title(element) === title(now))) {
-            lines.push({ change: 'added', text: title(now), lines: textDiff('', now.text) });
+            lines.push({ change: 'added', text: title(now), lines: textDiff('', now.text), key: key(now) });
         }
     }
     return lines;

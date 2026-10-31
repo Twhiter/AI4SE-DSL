@@ -10,10 +10,14 @@
 // gives the model after the plan, what each step did, and the findings of the check (validation and Z3): the errors
 // the plan brought, the errors the document had before, and the warnings. The LLM decides what to do with them; in
 // the chatbot, the user sees them with the plan.
+// The user may keep only some of a plan's changes (diff.ts: changesOf). selectSteps finds the steps that make just those:
+// it runs each step on its own to see the changes it makes, and leaves out a step whose changes are all left out; a
+// step that makes changes kept and changes left out cannot be split, and then there are no such steps.
 
 import { z } from 'zod';
 import { Refusal, SyntaxRefusal, type Controller } from './controller.ts';
 import { describeProblem, findProblems, type Problem } from './checker.ts';
+import { changesOf, diffModels } from './diff.ts';
 
 /** One step of a plan: a change tool, and its arguments as a JSON object, such as {"name": "Customer"}. */
 export interface PlanStep {
@@ -75,6 +79,40 @@ export async function simulate(model: Controller, steps: PlanStep[]): Promise<Si
     }
 
     return { succeeded: true, controller, changes, findings: await check(model, controller) };
+}
+
+/**
+ * The steps of the plan `steps` on `model` that make only the changes whose keys are in `kept`: a step goes when every
+ * change it makes is left out. Otherwise, why there are no such steps: the plan no longer runs, or a step makes changes
+ * kept and changes left out.
+ */
+export async function selectSteps(model: Controller, steps: PlanStep[], kept: Iterable<string>): Promise<{ steps: PlanStep[] } | { reason: string }> {
+    const keep = new Set(kept);
+    const controller = model.copy();
+    const selected: PlanStep[] = [];
+    for (const [index, step] of steps.entries()) {
+        const before = controller.copy();
+        try {
+            await runStep(controller, step);
+        } catch (error) {
+            if (!(error instanceof PlanMistake)) {
+                throw error;
+            }
+            return { reason: `The plan no longer runs: step ${index + 1} (${step.tool}): ${error.message}` };
+        }
+        const changes = changesOf(diffModels(before, controller));
+        const left = changes.filter(({ key }) => !keep.has(key));
+        if (left.length > 0 && left.length < changes.length) {
+            return {
+                reason: `Step ${index + 1} (${step.tool} ${step.arguments}) makes changes kept and changes left out (`
+                    + `${left.map(({ text }) => text).join('; ')}), so it cannot be left out, nor kept.`
+            };
+        }
+        if (left.length === 0) {
+            selected.push(step);
+        }
+    }
+    return { steps: selected };
 }
 
 /** A mistake of a step: what simulate reports for it. */

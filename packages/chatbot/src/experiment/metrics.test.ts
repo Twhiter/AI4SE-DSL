@@ -66,7 +66,18 @@ describe('edge cases', () => {
             finalValidationSuccess: { count: 0, of: 0, value: undefined },
             averageIterations: { sum: 0, of: 0, value: undefined },
             planApprovalRate: { count: 0, of: 0, value: undefined },
-            undecided: 0
+            undecided: 0,
+            partlyApproved: 0
         });
+    });
+
+    it('a plan approved in part is decided on, not approved; an option not chosen does not count', () => {
+        const plans: PlanOutcome[] = [
+            { attempts: [valid], decision: 'approved' },
+            { attempts: [valid], decision: 'partly approved' },
+            { attempts: [valid], decision: 'not chosen' }
+        ];
+        expect(planApprovalRate(plans)).toEqual({ count: 1, of: 2, value: 0.5 });
+        expect(metrics(plans).partlyApproved).toBe(1);
     });
 });

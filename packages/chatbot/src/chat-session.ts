@@ -1,34 +1,57 @@
 // The agents' side of a session's shared document. The tab and the server share its chat list ('chat'): the tab adds
-// what the user writes and decides, and the server answers each with the agents (agent.ts), one turn at a time, then
-// writes into the shared document what the turn gave: the chat agent's reply, a plan for the user to decide on, and,
-// after an approved plan, the new DSL text ('dsl'). The tab picks the chat agent's reasoning effort ('agent': effort),
-// read at each turn. The status ('agent': state) says whether a turn is under way; the
-// tab's editor is read-only meanwhile. After a reply without a plan, the options agent (options.ts) adds the choice
-// the reply leaves the user, if any, as options, unless the user has written meanwhile.
+// what the user writes, chooses and decides, and the server answers each message and decision with the agents
+// (agent.ts), one turn at a time, then writes into the shared document what the turn gave: the chat agent's reply; the
+// options it proposes, or the one it shows; a plan for the user to decide on; choices; and, after an approved plan, the
+// new DSL text ('dsl'). An option the user clicks needs no turn: its plan waits for their decision at once. The tab picks
+// the chat agent's reasoning effort ('agent': effort), read at each turn. The status ('agent': state) says whether a
+// turn is under way; the tab's editor is read-only meanwhile.
 // The chat list's entries, which the tab's chat pane shows (packages/web/src/chat-pane.ts has the same types):
-//   user      a message of the user, typed or chosen (an option's message, clicked)
+//   user      a message of the user, typed or chosen (a choice's message, clicked)
 //   agent     the chat agent's reply
-//   options   the options of the reply before them, for the user to click, until anything comes after them
-//   dismissal the user closed the options without choosing one
+//   options   choices that are not changes (offer_choices), for the user to click, until anything comes after them
+//   dismissal the user closed the choices without choosing one
+//   proposals options of a change (propose_changes), each with its plan, checked; open until one is approved, or new
+//             proposals or a plan come
+//   choice    the option of the proposals whose plan waits for the user's decision: clicked, or shown by the chat
+//             agent (show_option)
 //   plan      a plan waiting for the user's decision: what it changes (diff), its steps (tool calls) and what each
 //             does, and the check after it
-//   decision  the user's decision on the plan: approved, or rejected, with a reason or without
+//   decision  the user's decision on the plan: approved, wholly or only the changes kept (their keys), or rejected; with a
+//             reason or without
 //   error     a turn that failed, and why
 
 import type * as Y from 'yjs';
 import type { DiffSection, PlanStep } from 'dsl-controller';
-import { chat, CHAT_EFFORTS, Conversation, decide, type ChatEffort, type Plan } from './agent.ts';
+import { chat, CHAT_EFFORTS, choose, Conversation, decide, type ChatEffort, type Decision, type Plan, type Proposal } from './agent.ts';
 import { inSession } from './experiment/events.ts';
 import { startSessionLog } from './experiment/session-log.ts';
-import { findOptions, optionsOn, type Option } from './options.ts';
+import type { Option } from './options.ts';
+
+/** A plan as the chat list holds it, for the user to see. */
+export interface PlanData {
+    diff: DiffSection[];
+    steps: PlanStep[];
+    changes: string[];
+    problems: string;
+    newErrors: number;
+}
+
+/** An option of proposals: its button, whether the chat agent recommends it, and its plan. */
+export interface ProposalOption {
+    label: string;
+    recommended: boolean;
+    plan: PlanData;
+}
 
 export type ChatEntry =
     | { kind: 'user', text: string, chosen?: boolean }
     | { kind: 'agent', text: string }
     | { kind: 'options', options: Option[] }
     | { kind: 'dismissal' }
-    | { kind: 'plan', diff: DiffSection[], steps: PlanStep[], changes: string[], problems: string, newErrors: number }
-    | { kind: 'decision', approved: boolean, reason?: string }
+    | { kind: 'proposals', id: number, options: ProposalOption[] }
+    | { kind: 'choice', proposals: number, option: number }   // proposals: their id
+    | { kind: 'plan' } & PlanData
+    | { kind: 'decision', approved: boolean, reason?: string, kept?: string[] }
     | { kind: 'error', text: string };
 
 /** What the user adds, and the agents answer. */
@@ -72,44 +95,31 @@ export function connectAgents(doc: Y.Doc, session: string): void {
             }
             const turn = request.kind === 'user'
                 ? await chat(conversation, request.text, dsl.toString())
-                : await decide(conversation, request.approved ? { approved: true } : { approved: false, reason: request.reason }, dsl.toString());
+                : await decide(conversation, { approved: request.approved, reason: request.reason, ...(request.approved && request.kept ? { kept: request.kept } : {}) } as Decision, dsl.toString());
             write(() => {
                 if (turn.document !== undefined) {
                     replaceText(dsl, turn.document);
                 }
                 entries.push([{ kind: 'agent', text: turn.reply }]);
+                if (turn.proposal) {
+                    entries.push([proposalsEntry(turn.proposal)]);
+                }
+                if (turn.shown !== undefined && conversation?.proposal) {
+                    entries.push([{ kind: 'choice', proposals: conversation.proposal.id, option: turn.shown }]);
+                }
                 if (turn.plan) {
-                    entries.push([planEntry(turn.plan)]);
+                    entries.push([{ kind: 'plan', ...planData(turn.plan) }]);
+                }
+                if (turn.choices?.length) {
+                    entries.push([{ kind: 'options', options: turn.choices }]);
                 }
             });
-            if (!turn.plan && optionsOn()) {
-                void offerOptions(request, turn.reply);
-            }
         } catch (error) {
             const reason = error instanceof Error ? error.message : String(error);
             write(() => entries.push([{ kind: 'error', text: `The agents could not answer: ${reason}` }]));
         } finally {
             working = false;
             setStatus();
-        }
-    };
-
-    /**
-     * The options of `reply`, the answer to `request`, after it in the list; not when anything came after the reply
-     * meanwhile, such as the user's next message. They are found while the user can already write: the reply's turn is
-     * over.
-     */
-    const offerOptions = async (request: Request, reply: string) => {
-        const after = entries.length;
-        const message = request.kind === 'user' ? request.text
-            : request.approved ? '(approved the plan)' : `(rejected the plan${request.reason ? `: ${request.reason}` : ''})`;
-        try {
-            const options = await findOptions(message, reply);
-            if (options.length > 0 && entries.length === after) {
-                write(() => entries.push([{ kind: 'options', options }]));
-            }
-        } catch (error) {
-            console.error(`The options agent failed: ${error instanceof Error ? error.message : error}`);
         }
     };
 
@@ -121,20 +131,35 @@ export function connectAgents(doc: Y.Doc, session: string): void {
         }
     });
 
-    // a new message or decision from the tab: answered after the turns before it, and once. Only the last entry
-    // counts, so that a tab that sends its whole chat again (after the server restarted) does not have it answered again.
+    // a new message or decision from the tab: answered after the turns before it, and once; a clicked option, after
+    // them too, is chosen without a turn (one of options no longer open is not). Only the last entry counts, so that a
+    // tab that sends its whole chat again (after the server restarted) does not have it answered again.
     let answered: ChatEntry | undefined;
     entries.observe((_event, transaction) => {
         const last = entries.get(entries.length - 1);
-        if (transaction.origin !== AGENTS && last && last !== answered && (last.kind === 'user' || last.kind === 'decision')) {
+        if (transaction.origin === AGENTS || !last || last === answered) {
+            return;
+        }
+        if (last.kind === 'user' || last.kind === 'decision') {
             answered = last;
             turns = turns.then(() => inSession(session, () => answer(last)));
+        } else if (last.kind === 'choice') {
+            answered = last;
+            turns = turns.then(() => {
+                if (conversation) {
+                    choose(conversation, last.proposals, last.option);
+                }
+            });
         }
     });
 }
 
-function planEntry({ diff, steps, changes, problems, newErrors }: Plan): ChatEntry {
-    return { kind: 'plan', diff, steps, changes, problems, newErrors };
+function planData({ diff, steps, changes, problems, newErrors }: Plan): PlanData {
+    return { diff, steps, changes, problems, newErrors };
+}
+
+function proposalsEntry({ id, options }: Proposal): ChatEntry {
+    return { kind: 'proposals', id, options: options.map(({ label, recommended, plan }) => ({ label, recommended, plan: planData(plan) })) };
 }
 
 /**

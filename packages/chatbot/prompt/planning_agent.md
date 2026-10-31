@@ -14,7 +14,7 @@ Each skill holds the modeling rules for one part of the model. Their text is not
 
 # Task
 
-1. Fulfil the user's latest request: you are given the chat history and the request, and your plan makes the change it asks for, no more.
+1. Fulfil the request you are given: the user's latest request in the chat history, or an option the chat agent proposes to the user; your plan makes that change, no more.
 2. Over the conversation, the DSL model is built step by step until it covers the critical process of the domain.
 
 # Read tools

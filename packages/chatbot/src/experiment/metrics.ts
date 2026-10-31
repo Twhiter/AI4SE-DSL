@@ -1,15 +1,18 @@
 // The experiment's metrics over a session's plans, as the session log reports them (session-log.ts). Each is a pure
 // function of the recorded data, with no state and no I/O, and gives its count with its value, so that a number can be
-// checked by hand against the log. The unit is a plan: one call of plan_changes, with the planning agent's attempts
-// (its simulations, in order) and, when it gave a plan, the user's decision on it.
+// checked by hand against the log. The unit is a plan: one planning run (a call of plan_changes, or an option of a
+// call of propose_changes), with the planning agent's attempts (its simulations, in order) and, when it gave a plan, the
+// user's decision on it.
 //
 //   valid attempt              its steps all ran, and the check of the document after it found no new error
 //                              (validation or Z3); errors the document already had do not count
 //   first-pass validity        plans whose first attempt is valid / plans
 //   final validation success   plans whose last attempt is valid / plans
 //   average iterations         attempts / plans
-//   plan approval rate         approved plans / plans the user decided on (approved or rejected); a plan left
-//                              undecided (the user wrote a message instead) is not counted
+//   plan approval rate         approved plans / plans the user decided on (approved, partly approved or rejected); a
+//                              plan left undecided (the user wrote a message instead), or an option not chosen, is
+//                              not counted; a plan approved in part is decided on, not approved
+//   partly approved            plans the user approved only some changes of
 //
 // A plan without any attempt counts as neither first-pass valid nor finally valid, with 0 iterations.
 
@@ -22,7 +25,7 @@ export interface AttemptOutcome {
 /** What the metrics need of a plan: its attempts in order, and the user's decision, if it was offered and decided. */
 export interface PlanOutcome {
     attempts: AttemptOutcome[];
-    decision?: 'approved' | 'rejected' | 'undecided';
+    decision?: 'approved' | 'partly approved' | 'rejected' | 'undecided' | 'not chosen';
 }
 
 /** A rate, with what it counts: `count` of `of`; `value` is undefined when `of` is 0. */
@@ -48,6 +51,8 @@ export interface Metrics {
     planApprovalRate: Rate;
     /** Plans offered to the user and left undecided (not counted in the approval rate). */
     undecided: number;
+    /** Plans the user approved only some changes of (decided on, not approved, in the approval rate). */
+    partlyApproved: number;
 }
 
 /** Whether an attempt is valid: its steps all ran, and it brought no new error. */
@@ -71,11 +76,11 @@ export function averageIterations(plans: PlanOutcome[]): Average {
     return { sum, of: plans.length, value: plans.length > 0 ? sum / plans.length : undefined };
 }
 
-/** Approved plans / plans the user decided on (approved or rejected). */
+/** Approved plans / plans the user decided on (approved, partly approved or rejected). */
 export function planApprovalRate(plans: PlanOutcome[]): Rate {
     const approved = plans.filter(({ decision }) => decision === 'approved').length;
-    const rejected = plans.filter(({ decision }) => decision === 'rejected').length;
-    return rate(approved, approved + rejected);
+    const decided = plans.filter(({ decision }) => decision === 'approved' || decision === 'partly approved' || decision === 'rejected').length;
+    return rate(approved, decided);
 }
 
 /** All the metrics of a session's plans. */
@@ -86,7 +91,8 @@ export function metrics(plans: PlanOutcome[]): Metrics {
         finalValidationSuccess: finalValidationSuccess(plans),
         averageIterations: averageIterations(plans),
         planApprovalRate: planApprovalRate(plans),
-        undecided: plans.filter(({ decision }) => decision === 'undecided').length
+        undecided: plans.filter(({ decision }) => decision === 'undecided').length,
+        partlyApproved: plans.filter(({ decision }) => decision === 'partly approved').length
     };
 }
 
