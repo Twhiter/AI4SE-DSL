@@ -65,6 +65,10 @@ export class Model {
     inputs: Record<string, Parameter[]> = {};
     /** Action name -> its outputs, what it gives back, in order (empty without 'Output:'). */
     outputs: Record<string, Parameter[]> = {};
+    /** The actions available at the start: 'Initially available: true' (without it an action is not). */
+    initiallyAvailable: string[] = [];
+    /** The actions pending at the start: 'Initially pending: true' (without it an action is not). */
+    initiallyPending: string[] = [];
     stateSpecifications: StateSpecification[] = [];
     enabledSpecifications: EnabledSpecification[] = [];
     scenarios: Scenario[] = [];

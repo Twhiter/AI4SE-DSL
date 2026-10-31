@@ -18,6 +18,7 @@ export interface ChangeTool {
 const SCALAR_TYPE = '"int" | "string" | "boolean" | "Any"';
 const PARTICIPANT = 'a role or an entity';
 const PARAMETERS = `[{"name": a name, "type": ${SCALAR_TYPE}}, …] | null`;
+const START = 'true | false | null';
 
 export const CHANGE_TOOLS: ChangeTool[] = [
     {
@@ -84,12 +85,15 @@ export const CHANGE_TOOLS: ChangeTool[] = [
             initiators: `[${PARTICIPANT}, …], at least one`,
             observers: `[${PARTICIPANT}, …] | null`,
             inputs: PARAMETERS,
-            outputs: PARAMETERS
+            outputs: PARAMETERS,
+            initially_available: START,
+            initially_pending: START
         },
         description: 'Say who initiates an action, who observes it (null for no one), its inputs (the values it takes from outside '
             + 'when executed) and its outputs (the values an external procedure gives back), each with a name and a type (null for '
-            + 'none; no two with the same name); a When names them to give their values. For an action of an entity\'s lifecycle, '
-            + 'or a new action that relies on no entity.'
+            + 'none; no two with the same name); a When names them to give their values. And whether it is available at the start '
+            + '(initially_available) and pending (initially_pending), null to leave it out, which is neither. For an action of an '
+            + 'entity\'s lifecycle, or a new action that relies on no entity.'
     },
     {
         name: 'replace_action_specification',
@@ -98,9 +102,12 @@ export const CHANGE_TOOLS: ChangeTool[] = [
             initiators: `[${PARTICIPANT}, …], at least one`,
             observers: `[${PARTICIPANT}, …] | null`,
             inputs: PARAMETERS,
-            outputs: PARAMETERS
+            outputs: PARAMETERS,
+            initially_available: START,
+            initially_pending: START
         },
-        description: 'Replace the initiators, observers, inputs and outputs of an action specification.'
+        description: 'Replace the initiators, observers, inputs and outputs of an action specification, and how it starts '
+            + '(initially_available, initially_pending).'
     },
     {
         name: 'delete_action_specification',

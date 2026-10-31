@@ -28,6 +28,17 @@ describe('buildModel', () => {
         expect(model?.outputs).toEqual({ start: [], print: [], reboot: [] });
     });
 
+    it('builds the actions available and the actions pending at the start', async () => {
+        const { model } = await build(`
+            Role User.
+            Action login { Initiators: User, Initially available: true, Initially pending: true }
+            Action logout { Initiators: User, Initially available: false }
+            Action reset { Initiators: User, Initially pending: true }
+            Action help { Initiators: User }`);
+        expect(model?.actions).toEqual(['login', 'logout', 'reset', 'help']);
+        expect([model?.initiallyAvailable, model?.initiallyPending]).toEqual([['login'], ['login', 'reset']]);
+    });
+
     it('builds specifications, with the implicit entity filled in', async () => {
         const { model } = await build(readFileSync('../../examples/sample.easy', 'utf8'));
         expect(model?.stateSpecifications[0]).toEqual({

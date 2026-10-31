@@ -10,7 +10,10 @@ import {
 } from 'easy-language';
 import { onDocument } from './easy-language.js';
 
-/** An action: the entity whose lifecycle it is in, who initiates and observes it, its inputs and outputs, when it is enabled. */
+/**
+ * An action: the entity whose lifecycle it is in, who initiates and observes it, its inputs and outputs, how it starts
+ * (available, pending), when it is enabled.
+ */
 interface ActionRow {
     name: string;
     entity?: string;
@@ -18,8 +21,11 @@ interface ActionRow {
     observers: string[];
     inputs: string[];
     outputs: string[];
+    start: string[];
     enabled: string[];
 }
+
+const ACTION_COLUMNS = ['Action', 'Entity', 'Initiators', 'Observers', 'Input', 'Output', 'At the start', 'Enabled when'];
 
 export function createReadView(view: HTMLElement): void {
     view.innerHTML = '<div class="read-note" hidden>The text has syntax errors: the tables show it as it was before them.</div><div class="read-tables"></div>';
@@ -49,16 +55,17 @@ function tablesOf({ elements }: Model): string {
     const actions = new Map<string, ActionRow>();
     const action = (name: string) => {
         if (!actions.has(name)) {
-            actions.set(name, { name, initiators: [], observers: [], inputs: [], outputs: [], enabled: [] });
+            actions.set(name, { name, initiators: [], observers: [], inputs: [], outputs: [], start: [], enabled: [] });
         }
         return actions.get(name)!;
     };
     entities.forEach(entity => entity.actions.forEach(({ name }) => action(name).entity = entity.name));
-    participants.forEach(({ name, initiators, observers, inputs, outputs }) => Object.assign(action(name), {
+    participants.forEach(({ name, initiators, observers, inputs, outputs, initiallyAvailable, initiallyPending }) => Object.assign(action(name), {
         initiators: initiators.map(({ $refText }) => $refText),
         observers: observers.map(({ $refText }) => $refText),
         inputs: inputs.map(({ name, type }) => `${name}: ${type}`),
-        outputs: outputs.map(({ name, type }) => `${name}: ${type}`)
+        outputs: outputs.map(({ name, type }) => `${name}: ${type}`),
+        start: [initiallyAvailable === 'true' ? ['available'] : [], initiallyPending === 'true' ? ['pending'] : []].flat()
     }));
     elements.filter(isEnabledSpec).forEach(({ action: { $refText }, conditions }) => action($refText).enabled = conditions.map(written));
     const roleActions = (role: string, part: 'initiators' | 'observers') =>
@@ -72,9 +79,9 @@ function tablesOf({ elements }: Model): string {
         table('Roles', ['Role', 'Initiates', 'Observes'], roles.map(role => [
             name(role.name), chips(roleActions(role.name, 'initiators')), chips(roleActions(role.name, 'observers'))
         ])),
-        table('Actions', ['Action', 'Entity', 'Initiators', 'Observers', 'Input', 'Output', 'Enabled when'], [...actions.values()].map(row => [
+        table('Actions', ACTION_COLUMNS, [...actions.values()].map(row => [
             name(row.name), row.entity ? escape(row.entity) : none(), chips(row.initiators), chips(row.observers), chips(row.inputs),
-            chips(row.outputs), conditions(row.enabled)
+            chips(row.outputs), chips(row.start), conditions(row.enabled)
         ])),
         table('Declarative specifications', ['Entity', 'State', 'Means'], specifications.map(specification => [
             name(specification.entity.$refText), name(specification.state.$refText), conditions(specification.conditions.map(written))

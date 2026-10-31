@@ -72,6 +72,19 @@ describe('toDcrGraph', () => {
         expect(graph.relations.map(({ relation, from, to, guard }) => [relation, from, to, guard])).toEqual([['condition', 'Data', 'Data', undefined]]);
     });
 
+    it("starts an action included and pending as its Action … { … } says; one without the lines, or without one, neither", async () => {
+        const declarations = DECLARATIONS
+            .replace('Observers: Viewer }', 'Observers: Viewer, Initially available: true }')
+            .replace('Output: pages: int }', 'Output: pages: int, Initially available: false, Initially pending: true }');
+        const graph = await graphOf('', declarations);
+        expect(graph.events.map(({ name, defaultIncluded, defaultPending }) => [name, defaultIncluded, defaultPending]).slice(4)).toEqual([
+            ['start', true, false],
+            ['print', false, true],
+            ['refill', false, false],
+            ['reboot', false, false]
+        ]);
+    });
+
     it('turns an enabled specification into a condition from each of its conditions and a milestone from each of its milestones', async () => {
         expect(await relationsOf(`
             Action print is enabled means { start was executed or is not available AND reboot is not pending or is not available }

@@ -34,6 +34,8 @@ Role:
 // outputs), if anything, each with a name and a type:
 //   Action print { Initiators: Operator, Observers: Printer, Input: file: string, copies: int, Output: printed: boolean }
 // A When names them: When print is executed with inputs file = "a.pdf", copies = 2, outputs printed = true
+// And optionally how it starts, available and pending or not (without them: neither):
+//   Action login { Initiators: User, Initially available: true, Initially pending: true }
 // For an action an entity lists under 'Actions:' this only adds its initiators and observers (without it,
 // the entity's action gets a warning). Any other name declares an action that relies on no entity.
 // Action print { … } or Action print is enabled means { … } (below): 'Action' is read once, and what follows the name
@@ -47,6 +49,8 @@ ActionParticipants:
         (','? 'Observers' ':' observers+=[Participant:Name] (',' observers+=[Participant:Name])*)?
         (','? 'Input' ':' inputs+=ActionInput (',' inputs+=ActionInput)*)?
         (','? 'Output' ':' outputs+=ActionOutput (',' outputs+=ActionOutput)*)?
+        (','? 'Initially' 'available' ':' initiallyAvailable=('true' | 'false'))?
+        (','? 'Initially' 'pending' ':' initiallyPending=('true' | 'false'))?
     '}';
 
 // file: string - the name says what the input is; a When gives its value by this name
@@ -126,7 +130,7 @@ Scenario:
 // written yet does not take in the element after it.
 ScenarioName returns string:
     ( ID | 'Actions' | 'Data' | 'properties' | 'States' | 'a' | 'list' | 'queue' | 'of' | 'int' | 'string' | 'boolean'
-    | 'Any' | 'Initiators' | 'Observers' | 'Input' | 'Output' | 'specification' | 'is' | 'means' | 'enabled' | 'was' | 'executed'
+    | 'Any' | 'Initiators' | 'Observers' | 'Input' | 'Output' | 'Initially' | 'specification' | 'is' | 'means' | 'enabled' | 'was' | 'executed'
     | 'not' | 'pending' | 'or' | 'available' | 'it' | 'its' | 'the' | 'AND' | 'When' | 'with' | 'inputs' | 'outputs' | 'as'
     | 'Then' | 'equal' | 'to' | 'larger' | 'than' | 'smaller' | 'included' | 'in' | 'empty' | 'full' | 'set' | 'added'
     | 'removed' | 'enqueued' | 'from' | 'dequeued' | 'true' | 'false' | 'undefined' )+;

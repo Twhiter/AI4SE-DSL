@@ -59,6 +59,12 @@ function toModel(root: ModelNode): Model {
             model.observers[name] = element.observers.map(participant => resolved(participant).name);
             model.inputs[name] = element.inputs.map(parameter);
             model.outputs[name] = element.outputs.map(parameter);
+            if (element.initiallyAvailable === 'true') {
+                model.initiallyAvailable.push(name);
+            }
+            if (element.initiallyPending === 'true') {
+                model.initiallyPending.push(name);
+            }
         } else if (isDeclarativeSpec(element)) {
             model.stateSpecifications.push(stateSpecification(element));
         } else if (isEnabledSpec(element)) {

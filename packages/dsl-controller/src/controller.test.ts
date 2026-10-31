@@ -25,7 +25,7 @@ Role Operator.
 
 Action print { Initiators: Operator, Observers: Printer, Input: file: string, copies: int, Output: printed: boolean }
 
-Action reset { Initiators: Operator, Printer }
+Action reset { Initiators: Operator, Printer, Initially available: true, Initially pending: false }
 
 Action report { Initiators: Operator, Output: count: int }
 
@@ -110,7 +110,7 @@ describe('outputs', () => {
         const controller = Controller.fromText('Role Operator.\n');
         await tool(controller, 'create_action_specification').run({
             action: 'check', initiators: ['Operator'], observers: null,
-            inputs: [{ name: 'age', type: 'int' }], outputs: [{ name: 'adult', type: 'boolean' }]
+            inputs: [{ name: 'age', type: 'int' }], outputs: [{ name: 'adult', type: 'boolean' }], initially_available: null, initially_pending: null
         });
         expect(controller.toDsl()).toContain('Action check { Initiators: Operator, Input: age: int, Output: adult: boolean }');
     });
@@ -119,8 +119,34 @@ describe('outputs', () => {
         const controller = Controller.fromText('Role Operator.\n');
         await expect(tool(controller, 'create_action_specification').run({
             action: 'check', initiators: ['Operator'], observers: null,
-            inputs: [{ name: 'age', type: 'int' }], outputs: [{ name: 'age', type: 'int' }]
+            inputs: [{ name: 'age', type: 'int' }], outputs: [{ name: 'age', type: 'int' }], initially_available: null, initially_pending: null
         })).rejects.toThrow("cannot have two inputs or outputs named 'age'");
+    });
+});
+
+describe('how an action starts', () => {
+    const START = 'Role User.\n\nAction login { Initiators: User, Initially available: true }\n';
+
+    it('create_action_specification writes what is given, and leaves out what is null', async () => {
+        const controller = Controller.fromText('Role User.\n');
+        await tool(controller, 'create_action_specification').run({
+            action: 'login', initiators: ['User'], observers: null, inputs: null, outputs: null, initially_available: true, initially_pending: null
+        });
+        expect(controller.toDsl()).toBe(START);
+    });
+
+    it('replace_action_specification replaces it, false too', async () => {
+        const controller = Controller.fromText(START);
+        await tool(controller, 'replace_action_specification').run({
+            action: 'login', initiators: ['User'], observers: null, inputs: null, outputs: null, initially_available: false, initially_pending: true
+        });
+        expect(controller.toDsl()).toContain('Action login { Initiators: User, Initially available: false, Initially pending: true }');
+        expect(diffText(diffModels(Controller.fromText(START), controller))).toBe([
+            'Actions',
+            '~ login',
+            '    Initially available: - true, + false',
+            '    Initially pending: + true'
+        ].join('\n'));
     });
 });
 

@@ -111,13 +111,18 @@ function entityParts({ actions, dataProperties, states }: Entity): Part[] {
     ];
 }
 
-/** Each input and output is a piece: a When names them, so their order does not count. */
-function actionParts({ initiators, observers, inputs, outputs }: ActionSpecification): Part[] {
+/**
+ * Each input and output is a piece: a When names them, so their order does not count. How it starts is a piece, true or
+ * false, when it is written: Initially available: - false, + true
+ */
+function actionParts({ initiators, observers, inputs, outputs, initiallyAvailable, initiallyPending }: ActionSpecification): Part[] {
     return [
         { title: 'Initiators', pieces: initiators },
         { title: 'Observers', pieces: observers },
         { title: 'Input', pieces: inputs.map(({ name, type }) => `${name}: ${type}`) },
-        { title: 'Output', pieces: outputs.map(({ name, type }) => `${name}: ${type}`) }
+        { title: 'Output', pieces: outputs.map(({ name, type }) => `${name}: ${type}`) },
+        { title: 'Initially available', pieces: initiallyAvailable === undefined ? [] : [String(initiallyAvailable)] },
+        { title: 'Initially pending', pieces: initiallyPending === undefined ? [] : [String(initiallyPending)] }
     ];
 }
 

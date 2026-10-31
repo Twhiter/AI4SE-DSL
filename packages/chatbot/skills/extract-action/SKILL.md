@@ -1,6 +1,6 @@
 ---
 name: extract-action
-description: Rules for actions, their names, initiators and observers, the entity lifecycle they belong to, and their inputs and outputs. Use when adding or reviewing actions or an Action specification.
+description: Rules for actions, their names, initiators and observers, the entity lifecycle they belong to, their inputs and outputs, and whether they are available or pending at the start. Use when adding or reviewing actions or an Action specification.
 ---
 # Actions
 An action is something a role or entity does at a specific moment that affects or is observed by another role or entity (e.g. Customer inserts Card to ATM)
@@ -12,6 +12,7 @@ Each action consists of:
 - If the action is dependent on the lifecycle of an entity, place it on the entity as well. (e.g. pay money depends on the card's lifecycle)
 - **Inputs**: Optional. Each input has a name and a type, e.g. Login takes `username: string, password: string`; a When gives each value by name: `username = "ann"`. It denotes the action is an input action that takes inputs from the external environment (e.g., the user input). Instead if the required input is from the entity's data properties, this should not be an input.
 - **Outputs**: Optional. Each output has a name and a type, e.g. Login outputs `status: boolean`. Output means the action is a computation activity, which will call an external procedure to return a value. If the output value is not from the external environment (e.g., the entity's properties), it should not be modelled as an output.
+- **Initially available / Initially pending**: Optional, `true` or `false`: whether the action is available (in the marking set *In*) and pending (in *Re*: it must happen eventually) when the process starts, e.g. `Initially available: true` for the action that starts the process. Left out, the action is neither: it is available only once an executed action makes it available (a Then: `<action> is available`).
 
 ## Modelling requirement
 * The action should be a specific process or event. If there are more specific actions, model the more specific ones. (e.g., the end user made a decision, either to approve it or not), here made a decision should be replaced by approve and disapprove.
@@ -21,6 +22,7 @@ Each action consists of:
 * Ensure there is no duplicate action depicting the same process
 * Ensure to place it in the entity, if the action depends on lifecycle of entity's instance.
 * Ensure the entities and roles are already defined.
+* Make the actions that start the process available at the start (`Initially available: true`): an action that is not, and that no Then makes available, can never happen.
 
 ## Example
 - see [example 1](references/example1-extract-action.md)

@@ -288,6 +288,22 @@ describe('toDcrSolutionXml', () => {
         expect(asked).toEqual(['Data', 'open', 'start', 'submit', 'check_insurance', 'approve']);
     });
 
+    it('starts an action, as an event or a form, as its Action … { … } says', async () => {
+        const { outline } = await dcrSolution(`
+            Role Clerk.
+            Action start { Initiators: Clerk, Initially available: true, Initially pending: true }
+            Action stop { Initiators: Clerk, Initially available: false }
+            Action submit { Initiators: Clerk, Input: text: string, age: int, Initially available: true }
+            Action check { Initiators: Clerk, Output: result: int, Initially pending: true }`);
+
+        expect(outline).toEqual([
+            'start "start" [Clerk] pending',
+            'stop "stop" [Clerk] excluded',
+            { 'form submit "submit" [Clerk]': ['text "text": text', 'age "age": int'] },
+            { 'form check "check" [Clerk] excluded pending': [{ 'nesting check_output "Output"': ['result "result": int'] }] }
+        ]);
+    });
+
     it('puts Data above the actions, its data properties a row for each entity', async () => {
         const { locations } = await dcrSolution(`
             Entity Printer {

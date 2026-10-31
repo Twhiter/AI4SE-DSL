@@ -30,9 +30,9 @@ const parser = createEasyServices(EmptyFileSystem).Easy.parser.LangiumParser;
 
 /**
  * The model of `text`, or its syntax errors. Declarations become structured: entities with their data properties,
- * states and actions; roles; action specifications with their initiators, observers, inputs and outputs. Enabled
- * specifications, state specifications and scenarios are kept as written, under their keys: the action, the entity
- * and state, the name. Every element keeps the comments around it.
+ * states and actions; roles; action specifications with their initiators, observers, inputs and outputs, and how they
+ * start. Enabled specifications, state specifications and scenarios are kept as written, under their keys: the action,
+ * the entity and state, the name. Every element keeps the comments around it.
  */
 export function extract(text: string): Extraction {
     const { value: root, lexerErrors, parserErrors } = parser.parse<Model>(text);
@@ -66,6 +66,8 @@ export function extract(text: string): Extraction {
             specification.observers = element.observers.map(ref => ref.$refText);
             specification.inputs = element.inputs.map(({ name, type }) => ({ name, type }));
             specification.outputs = element.outputs.map(({ name, type }) => ({ name, type }));
+            specification.initiallyAvailable = flag(element.initiallyAvailable);
+            specification.initiallyPending = flag(element.initiallyPending);
             specification.written = { text: textOf(element), generated: actionSpecificationDsl(specification) };
             controller.actionSpecifications.push(read = specification);
         } else if (isEnabledSpec(element)) {
@@ -91,6 +93,11 @@ export function extract(text: string): Extraction {
     }
     controller.trailing = before;
     return { controller };
+}
+
+/** Initially available: true / false, as written; undefined when it is not. */
+function flag(value: 'true' | 'false' | undefined): boolean | undefined {
+    return value === undefined ? undefined : value === 'true';
 }
 
 /**

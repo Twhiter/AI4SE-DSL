@@ -22,12 +22,14 @@ scalar_type:             "int" | "string" | "boolean" | "Any"                   
 // ---- role ----
 role_declaration:        "Role" role "."
 
-// ---- action specification: who initiates and observes an action, its inputs and outputs ----
+// ---- action specification: who initiates and observes an action, its inputs and outputs, how it starts ----
 action_specification:    "Action" action "{"
                          "Initiators" ":" participant ("," participant)*
                          (","? "Observers" ":" participant ("," participant)*)?
                          (","? "Input" ":" parameter ("," parameter)*)?
                          (","? "Output" ":" parameter ("," parameter)*)?
+                         (","? "Initially" "available" ":" ("true" | "false"))?   // without it: not available at the start
+                         (","? "Initially" "pending" ":" ("true" | "false"))?     // without it: not pending at the start
                          "}"
 
 participant:             role | entity

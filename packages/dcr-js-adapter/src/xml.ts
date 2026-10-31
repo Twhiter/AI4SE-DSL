@@ -143,9 +143,9 @@ async function place(graph: DcrJsGraph): Promise<{ bounds: Map<string, Bounds>, 
 
 function elementXml(element: Element, indent: string): string[] {
     if (element.kind === 'activity') {
-        const { id, label, role, observers, included, variable } = element;
+        const { id, label, role, observers, included, pending, variable } = element;
         const start = `${indent}<dcr:event${attributes({
-            id, label, role: role.join(', ') || undefined, observers: observers.join(', ') || undefined, included, executed: false, pending: false, enabled: false,
+            id, label, role: role.join(', ') || undefined, observers: observers.join(', ') || undefined, included, executed: false, pending, enabled: false,
             takesInput: variable ? true : undefined
         })}`;
         return [variable ? `${start}><dcr:eventData${attributes({ ...variable })}/></dcr:event>` : `${start}/>`];

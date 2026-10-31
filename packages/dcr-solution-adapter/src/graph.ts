@@ -8,6 +8,8 @@
 //   an action with outputs                  a form with its initiators and observers, holding a nesting Input (an
 //                                           event per input) and Output (an event per output)
 //   (an event in a form has no roles or read roles: the form's are its)
+// Each event starts as in the DCR.js graph: Data and the data properties' events included, an action's event or form
+// as its Action … { … } says (Initially available, Initially pending).
 // Expressions name an event by its id: a data property's, input's or output's is its variable's name (speed, or
 // Printer_speed when two have the same); an action's or a form's is its name; a nesting's in a form the form's with
 // _input or _output after it; each with a number after it should another event have it already.
@@ -41,6 +43,9 @@ export interface SolutionEvent {
     readRoles: string[];
     /** The type of its value, should it have one. */
     dataType?: Variable['type'];
+    /** How the model starts it: whether it is included, and pending. */
+    included: boolean;
+    pending: boolean;
     children: SolutionEvent[];
 }
 
@@ -79,14 +84,15 @@ export function toDcrSolutionGraph(model: EasyModel.Model): DcrSolutionGraph {
     const event = (activity: Activity, kind: SolutionEvent['kind'], roles: string[], readRoles: string[]): SolutionEvent => {
         const id = activity.variable?.name ?? unique(identifier(activity.label));
         ids.set(activity.id, id);
-        return { id, label: activity.label, kind, roles, readRoles, dataType: activity.variable?.type, children: [] };
+        const { included, pending } = activity;
+        return { id, label: activity.label, kind, roles, readRoles, dataType: activity.variable?.type, included, pending, children: [] };
     };
 
     const data = graph.elements.slice(0, first).map((nesting): SolutionEvent => {   // Data, should there be data properties
         const id = unique(identifier(nesting.label));
         ids.set(nesting.id, id);
         return {
-            id, label: nesting.label, type: 'nesting', kind: 'data', roles: [], readRoles: [],
+            id, label: nesting.label, type: 'nesting', kind: 'data', roles: [], readRoles: [], included: true, pending: false,
             children: activities(nesting).map(activity => event(activity, 'data', activity.role, []))
         };
     });
@@ -97,15 +103,19 @@ export function toDcrSolutionGraph(model: EasyModel.Model): DcrSolutionGraph {
         }
         const id = unique(identifier(action));
         ids.set(element.id, id);
+        const [included, pending] = [model.initiallyAvailable.includes(action), model.initiallyPending.includes(action)];
         const parts = element.children.filter((child): child is Box => child.kind === 'nesting');
         const inside = (part: Box) => part.children.flatMap(activities).map(activity => event(activity, 'part', [], []));
         const children = parts.length === 1 && parts[0].label === INPUT
             ? inside(parts[0])   // only inputs: in the form itself
             : parts.map((part): SolutionEvent => ({
                 id: unique(`${id}_${part.label.toLowerCase()}`), label: part.label, type: 'nesting', kind: 'part', roles: [], readRoles: [],
-                children: inside(part)
+                included, pending, children: inside(part)
             }));
-        return { id, label: action, type: 'form', kind: 'action', roles: model.initiators[action] ?? [], readRoles: model.observers[action] ?? [], children };
+        return {
+            id, label: action, type: 'form', kind: 'action', roles: model.initiators[action] ?? [], readRoles: model.observers[action] ?? [],
+            included, pending, children
+        };
     });
 
     /** The relations of each type from an event to another, each guard (and an update's value) as the DCR.js graph's. */

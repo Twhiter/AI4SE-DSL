@@ -13,13 +13,17 @@ export interface Options {
     title?: string;
     /**
      * How the event of a data property, Data (their nesting) or an action (an activity or a form) starts; what it leaves
-     * out is false. An event in a form always starts included, neither executed nor pending.
+     * out is false. An event in a form always starts included, neither executed nor pending. By default as the model
+     * says (DEFAULT_MARKING).
      */
     marking?: (event: SolutionEvent) => Partial<Marking>;
 }
 
-/** Only Data and the data properties' events start included. */
-export const DEFAULT_MARKING = ({ kind }: SolutionEvent): Partial<Marking> => ({ included: kind === 'data' });
+/**
+ * As the model says: Data and the data properties' events start included, an action's as its Action … { … } says
+ * (Initially available, Initially pending); none starts executed.
+ */
+export const DEFAULT_MARKING = ({ included, pending }: SolutionEvent): Partial<Marking> => ({ included, pending });
 
 /** The model of a document without errors (easy-language's buildModel) as DCR Solutions XML, laid out. */
 export async function toDcrSolutionXml(model: EasyModel.Model, { title = 'DCR graph', marking = DEFAULT_MARKING }: Options = {}): Promise<string> {

@@ -6,8 +6,8 @@
 //   an action with more inputs, or with outputs    a nesting, holding a nesting Input (with inputs) and one Output
 //                                                  (with outputs): an activity per input and output, with a variable
 //                                                  of its type and the action's initiators and observers
-//   (only the data properties' activities are included at the start, not an action's or its inputs' and outputs';
-//   nothing is pending)
+//   (the data properties' activities are included at the start, and an action's, or its inputs' and outputs', when its
+//   Action … { … } says 'Initially available: true'; they are pending at the start with 'Initially pending: true')
 //   Action print is enabled means { start was executed or is not available }     condition start → print
 //                                 { reboot is not pending or is not available }  milestone reboot → print
 //   (Data has a condition to itself: its activities are never executed, their values change by setValues only, so a
@@ -43,7 +43,9 @@ export interface Activity {
     /** Its initiators: DCR.js's role. */
     role: string[];
     observers: string[];
+    /** Whether it is included at the start, and pending. */
     included: boolean;
+    pending: boolean;
     variable?: Variable;
 }
 
@@ -108,7 +110,7 @@ export function toDcrJsGraph(model: Model, options: Options = {}): DcrJsGraph {
     const data = model.entities.flatMap(entity => entity.dataProperties.filter(isPrimitive).map((property): Activity => {
         const key = propertyKey(entity.name, property.name);
         const activity: Activity = {
-            kind: 'activity', id: id('Event'), label: property.name, role: [entity.name], observers: [], included: true,
+            kind: 'activity', id: id('Event'), label: property.name, role: [entity.name], observers: [], included: true, pending: false,
             variable: { name: names.get(key)!, type: TYPES[property.type] }
         };
         elementOf.set(key, activity.id);
@@ -122,12 +124,14 @@ export function toDcrJsGraph(model: Model, options: Options = {}): DcrJsGraph {
         const observers = model.observers[action] ?? [];
         const inputs = model.inputs[action] ?? [];
         const outputs = model.outputs[action] ?? [];
+        const included = model.initiallyAvailable.includes(action);
+        const pending = model.initiallyPending.includes(action);
         const variable = (parameter: EasyModel.Parameter, i: number): Variable =>
             ({ name: names.get(parameterKey(action, i))!, type: TYPES[parameter.type] });
         let element: Element;
         if (inputs.length + outputs.length === 0 || (inputs.length === 1 && outputs.length === 0)) {
             element = {
-                kind: 'activity', id: id('Event'), label: action, role, observers, included: false,
+                kind: 'activity', id: id('Event'), label: action, role, observers, included, pending,
                 variable: inputs.length === 1 ? variable(inputs[0], 0) : undefined
             };
         } else {
@@ -135,7 +139,7 @@ export function toDcrJsGraph(model: Model, options: Options = {}): DcrJsGraph {
             const part = (label: string, parameters: EasyModel.Parameter[], first: number): Box => ({
                 kind: 'nesting', id: id('Nesting'), label,
                 children: parameters.map((parameter, i): Activity => ({
-                    kind: 'activity', id: id('Event'), label: parameter.name, role, observers, included: false, variable: variable(parameter, first + i)
+                    kind: 'activity', id: id('Event'), label: parameter.name, role, observers, included, pending, variable: variable(parameter, first + i)
                 }))
             });
             element.children = [part(INPUT, inputs, 0), part(OUTPUT, outputs, inputs.length)].filter(part => part.children.length > 0);

@@ -45,6 +45,20 @@ The external bank authentication service returns a computed verification result,
 
 ---
 
+## Example: Valid Action Available at the Start
+
+### Correct Extraction
+- **Action name:** insert Card
+- **Initiators:** Customer
+- **Observers:** ATM
+- **Entity lifecycle:** Card
+- **Initially available:** true
+
+### Explanation
+Inserting the card starts the withdrawal, so it is available from the start. The actions after it are not: each becomes available when the action before it is executed (a Then: `enter PIN is available`).
+
+---
+
 ## Anti-Example: Broad or Hat Action
 
 ### Incorrect Extraction

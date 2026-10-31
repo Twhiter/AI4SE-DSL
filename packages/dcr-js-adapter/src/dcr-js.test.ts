@@ -39,6 +39,7 @@ interface DcrElement {
     role?: string;
     observers?: string;
     included?: boolean;
+    pending?: boolean;
     takesInput?: boolean;
     eventData?: { name: string, type: string };
     boardElements?: DcrElement[];
@@ -88,13 +89,15 @@ async function dcrJs(text: string) {
 }
 
 /**
- *   speed [Printer] speed: Int                                  an activity: its role, observers, variable (or excluded)
+ *   speed [Printer] speed: Int                                  an activity: its role, observers, variable (or excluded),
+ *                                                               pending or not
  *   { 'nesting print': [ … ] }                                   a nesting (or a sub-process), and what it holds
  */
 function outline(element: DcrElement): string | Record<string, unknown[]> {
     const role = element.role ? ` [${element.role}${element.observers ? `; observers ${element.observers}` : ''}]` : '';
     if (element.$type === 'dcr:Event') {
-        return `${element.label}${role}${element.eventData ? ` ${element.eventData.name}: ${element.eventData.type}` : ''}${element.included ? '' : ' excluded'}`;
+        return `${element.label}${role}${element.eventData ? ` ${element.eventData.name}: ${element.eventData.type}` : ''}${element.included ? '' : ' excluded'}`
+            + (element.pending ? ' pending' : '');
     }
     const name = element.$type === 'dcr:Nesting' ? `nesting ${element.label}${role}` : `sub-process ${element.label}${role}${element.included ? '' : ' excluded'}`;
     return { [name]: (element.boardElements ?? []).map(outline) };
@@ -261,6 +264,22 @@ describe('toDcrJsXml', () => {
             { 'nesting move': [{ 'nesting Input': ['x [Operator] x: Int excluded', 'y [Operator] y: Int excluded'] }] }
         ]);
         expect(relations).toEqual(['include start → stop']);
+    });
+
+    it('starts an action, or the inputs and outputs in its nesting, as its Action … { … } says', async () => {
+        const { outline } = await dcrJs(`
+            Role Operator.
+            Action start { Initiators: Operator, Initially available: true, Initially pending: true }
+            Action stop { Initiators: Operator, Initially available: false }
+            Action move { Initiators: Operator, Input: x: int, y: int, Initially available: true }
+            Action check { Initiators: Operator, Output: ok: boolean, Initially pending: true }`);
+
+        expect(outline).toEqual([
+            'start [Operator] pending',
+            'stop [Operator] excluded',
+            { 'nesting move': [{ 'nesting Input': ['x [Operator] x: Int', 'y [Operator] y: Int'] }] },
+            { 'nesting check': [{ 'nesting Output': ['ok [Operator] ok: Bool excluded pending'] }] }
+        ]);
     });
 
     it('puts the parts of a graph that no relation connects in rows, wider than high, not in one column', async () => {

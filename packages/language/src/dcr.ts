@@ -1,7 +1,8 @@
 // The model as a DCR graph, built from its When rules. An activity for every data property, in a group called Data, and
-// for every action; Data has a condition to itself; relations from the enabled specifications, and from each When rule:
-// a condition from Data to its action, guarded by not what its Givens say about data (saturated: Given.saturated), and
-// what its Thens do, each guarded by what its When says. Guards are written as DCR Solutions writes them: speed > 2 and count(jobs) > 0.
+// for every action, included and pending at the start as its Action … { … } says; Data has a condition to itself;
+// relations from the enabled specifications, and from each When rule: a condition from Data to its action, guarded by
+// not what its Givens say about data (saturated: Given.saturated), and what its Thens do, each guarded by what its When
+// says. Guards are written as DCR Solutions writes them: speed > 2 and count(jobs) > 0.
 // Assumes that the specifications and the scenarios are consistent (consistency.ts, scenario-consistency.ts).
 
 import type { Bool } from 'z3-solver';
@@ -24,18 +25,20 @@ export class DcrEvent {
     /** An action's inputs and outputs, by their names, as a guard names them, and types; none for a data property. */
     inputs: Parameter[];
     outputs: Parameter[];
-    /** Whether it is included at the start: true for a data property, false for an action. */
+    /** Whether it is included at the start: a data property is; an action is with 'Initially available: true'. */
     defaultIncluded: boolean;
-    /** Whether it is pending at the start: false for every activity. */
-    defaultPending = false;
+    /** Whether it is pending at the start: a data property is not; an action is with 'Initially pending: true'. */
+    defaultPending: boolean;
 
-    constructor(name: string, initiators: string[], observers: string[], inputs: Parameter[], outputs: Parameter[], defaultIncluded = false) {
+    constructor(name: string, initiators: string[], observers: string[], inputs: Parameter[], outputs: Parameter[], defaultIncluded = false,
+        defaultPending = false) {
         this.name = name;
         this.initiators = initiators;
         this.observers = observers;
         this.inputs = inputs;
         this.outputs = outputs;
         this.defaultIncluded = defaultIncluded;
+        this.defaultPending = defaultPending;
     }
 }
 
@@ -76,7 +79,8 @@ export class DcrGraph {
  * The model as a DCR graph:
  *   every data property of an entity      an activity named after it, initiated by the entity, in the group Data
  *   every action                          an activity, with its initiators, observers, inputs and outputs
- *   (only the data properties' activities are included at the start; none is pending)
+ *   (the data properties' activities are included at the start, and an action's when its Action … { … } says
+ *   'Initially available: true'; it is pending at the start with 'Initially pending: true')
  *   Data                                  condition  Data → Data: its activities are never executed, their values change
  *                                         by the actions only, so a condition from Data holds whenever its guard does
  *   Action print is enabled means { start was executed or is not available }     condition  start → print
@@ -98,7 +102,7 @@ export async function toDcrGraph(z3: Z3Context, model: Model, options?: Z3Vocabu
     graph.events = [
         ...model.entities.flatMap(entity => entity.dataProperties.map(property => new DcrEvent(activities.get(propertyKey(entity.name, property.name))!, [entity.name], [], [], [], true))),
         ...model.actions.map(action => new DcrEvent(action, model.initiators[action] ?? [], model.observers[action] ?? [], model.inputs[action] ?? [],
-            model.outputs[action] ?? []))
+            model.outputs[action] ?? [], model.initiallyAvailable.includes(action), model.initiallyPending.includes(action)))
     ];
     graph.groups = activities.size > 0 ? [new DcrGroup(DATA_GROUP, [...activities.values()])] : [];
     const relations: DcrRelation[] = graph.groups.map(() => new DcrRelation(DATA_GROUP, DATA_GROUP, undefined, 'condition'));

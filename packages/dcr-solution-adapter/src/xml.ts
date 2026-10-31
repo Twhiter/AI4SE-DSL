@@ -127,7 +127,7 @@ export async function toXml(graph: DcrSolutionGraph, title: string, marking: (ev
 async function place(graph: DcrSolutionGraph): Promise<Map<string, Point>> {
     const element = (event: SolutionEvent): Element => event.type
         ? { kind: 'nesting', id: event.id, label: event.label, children: event.children.map(element) }
-        : { kind: 'activity', id: event.id, label: event.label, role: event.roles, observers: event.readRoles, included: true };
+        : { kind: 'activity', id: event.id, label: event.label, role: event.roles, observers: event.readRoles, included: true, pending: false };
     const ids = (event: SolutionEvent): string[] => [event.id, ...event.children.flatMap(ids)];
     const data = graph.events.find(({ kind }) => kind === 'data');
     const actions = graph.events.filter(({ kind }) => kind !== 'data');

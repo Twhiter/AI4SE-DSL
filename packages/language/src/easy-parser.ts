@@ -14,6 +14,10 @@ const VALUE = 'where <value> is a number, "text", true or false';
 const SCENARIO_NAME = "(A scenario's name can have keywords, but not Given, Entity, Role, Action, Declarative or Scenario.)";
 const SCALAR_TYPES = ['int', 'string', 'boolean', 'Any'];
 const NAME_BEFORE_TYPE = 'An input, like a data property, has a name before its type: Input: file: string, copies: int.';
+/** The parts of an action specification that can come after its inputs: the parser expects one after 'Input: string,'. */
+const AFTER_INPUTS = ['Output', 'Initially'];
+const ACTION_PARTS = 'An action specification has these parts, in this order, each at most once: Initiators, Observers, Input, Output, '
+    + 'Initially available: true or false, Initially pending: true or false.';
 const NO_NOT_STATE = "A state has no 'not': only the <Entity> is <state> (it is <state> in a specification).";
 const NO_NOT_ENABLED = "There is no 'not enabled': only <action> is enabled, in a Declarative specification or a Given.";
 const ENABLING_CONDITIONS = [
@@ -86,7 +90,7 @@ export class EasyParserErrorMessageProvider extends LangiumParserErrorMessagePro
         if (ruleNameOf(ruleName) === 'EnabledSpec' && ['enabled', 'means'].includes(expected.name)) {
             return SENTENCES.EnabledSpec;   // e.g. 'Action print is available means { … }' or 'Action print is not enabled means { … }'
         }
-        if (expected.name === 'Output' && SCALAR_TYPES.includes(actual.image)) {
+        if (AFTER_INPUTS.includes(expected.name) && SCALAR_TYPES.includes(actual.image)) {
             return `Expected a name but found the type ${this.describe(actual)}. ${NAME_BEFORE_TYPE}`;   // Input: string, int
         }
         if (expected.name === 'EOF') {
@@ -97,7 +101,10 @@ export class EasyParserErrorMessageProvider extends LangiumParserErrorMessagePro
             return `Expected 'Given' but found ${this.describe(actual)}. ${SCENARIO_NAME}`;
         }
         const keywordInName = previous?.tokenType.name === 'ID' ? this.keywordInName(actual) : '';
-        return `Expected ${this.describeType(expected)} but found ${this.describe(actual)}.${keywordInName}`;
+        // e.g. 'Initially pending: true, Initially available: true': a part after the one that comes after it
+        const outOfOrder = ruleNameOf(ruleName) === 'ActionParticipants' && ['}', 'available', 'pending'].includes(expected.name);
+        const order = outOfOrder ? ` ${ACTION_PARTS}` : '';
+        return `Expected ${this.describeType(expected)} but found ${this.describe(actual)}.${keywordInName}${order}`;
     }
 
     override buildNoViableAltMessage(options: NoViableAltOptions): string {

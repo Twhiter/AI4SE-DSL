@@ -84,7 +84,7 @@ export interface ActionParameter {
     type: ScalarType;
 }
 
-/** Action <action> { Initiators: …, Observers: …, Input: …, Output: … } */
+/** Action <action> { Initiators: …, Observers: …, Input: …, Output: …, Initially available: …, Initially pending: … } */
 export class ActionSpecification extends Element {
     action: string;
     /** Roles or entities, at least one. */
@@ -92,6 +92,9 @@ export class ActionSpecification extends Element {
     observers: string[] = [];
     inputs: ActionParameter[] = [];
     outputs: ActionParameter[] = [];
+    /** Whether it is available at the start, and pending: as written, undefined when it is not (then it is neither). */
+    initiallyAvailable?: boolean;
+    initiallyPending?: boolean;
     written?: Written;
 
     constructor(action: string, initiators: string[]) {
@@ -529,19 +532,22 @@ export class Controller {
         }
         const parameters = this.actionSpecificationParameters(z.string());
 
-        const createActionSpecification = ({ action, initiators, observers, inputs, outputs }: z.infer<typeof parameters>) => {
+        const createActionSpecification = (written: z.infer<typeof parameters>) => {
+            const { action } = written;
             checkName(action, 'an action');
             if (this.actionSpecifications.some(specification => specification.action === action)) {
                 throw new Refusal(`'${action}' already has an action specification: use replace_action_specification.`);
             }
-            this.actionSpecifications.push(actionSpecification(action, initiators, observers, inputs, outputs));
+            this.actionSpecifications.push(actionSpecification(written));
             return `Added the action specification of '${action}'.`;
         };
 
         return changeTool(createActionSpecification, 'Say who initiates an action (at least one role or entity), who observes it '
             + '(null for no one), its inputs (the values it takes from outside when executed) and its outputs (the values an '
             + 'external procedure gives back), each with a name and a type (null for none); a When names them to give their '
-            + "values. For an action of an entity's lifecycle, or a new action that relies on no entity; at most one per action.", parameters);
+            + 'values. And whether it is available at the start (initially_available) and pending (initially_pending): true or '
+            + "false, or null to leave it out, which is neither. For an action of an entity's lifecycle, or a new action that "
+            + 'relies on no entity; at most one per action.', parameters);
     }
 
     private replaceActionSpecificationTool(): ControllerTool | undefined {
@@ -551,14 +557,16 @@ export class Controller {
         }
         const parameters = this.actionSpecificationParameters(this.oneOf(actions));
 
-        const replaceActionSpecification = ({ action, initiators, observers, inputs, outputs }: z.infer<typeof parameters>) => {
-            const replaced = actionSpecification(action, initiators, observers, inputs, outputs);
+        const replaceActionSpecification = (written: z.infer<typeof parameters>) => {
+            const { action } = written;
+            const replaced = actionSpecification(written);
             this.actionSpecifications = this.actionSpecifications.map(specification =>
                 specification.action === action ? keepComments(specification, replaced) : specification);
             return `Replaced the action specification of '${action}'.`;
         };
 
-        return changeTool(replaceActionSpecification, 'Replace the initiators, observers, inputs and outputs of an action specification.', parameters);
+        return changeTool(replaceActionSpecification, 'Replace the initiators, observers, inputs and outputs of an action specification, '
+            + 'and how it starts (initially_available, initially_pending).', parameters);
     }
 
     private deleteActionSpecificationTool(): ControllerTool | undefined {
@@ -585,7 +593,9 @@ export class Controller {
             initiators: z.array(participant).min(1),
             observers: z.array(participant).nullable(),
             inputs: z.array(z.object({ name: z.string(), type: z.enum(SCALAR_TYPES) })).nullable(),
-            outputs: z.array(z.object({ name: z.string(), type: z.enum(SCALAR_TYPES) })).nullable()
+            outputs: z.array(z.object({ name: z.string(), type: z.enum(SCALAR_TYPES) })).nullable(),
+            initially_available: z.boolean().nullable(),
+            initially_pending: z.boolean().nullable()
         });
     }
 
@@ -876,8 +886,12 @@ export function roleDsl({ name }: Role): string {
     return `Role ${name}.`;
 }
 
-/** Action <action> { Initiators: …, Observers: …, Input: …, Output: … }, without the parts it does not have. */
-export function actionSpecificationDsl({ action, initiators, observers, inputs, outputs }: ActionSpecification): string {
+/**
+ * Action <action> { Initiators: …, Observers: …, Input: …, Output: …, Initially available: …, Initially pending: … },
+ * without the parts it does not have.
+ */
+export function actionSpecificationDsl(specification: ActionSpecification): string {
+    const { action, initiators, observers, inputs, outputs, initiallyAvailable, initiallyPending } = specification;
     const parts = [`Initiators: ${initiators.join(', ')}`];
     if (observers.length > 0) {
         parts.push(`Observers: ${observers.join(', ')}`);
@@ -887,6 +901,12 @@ export function actionSpecificationDsl({ action, initiators, observers, inputs, 
     }
     if (outputs.length > 0) {
         parts.push(`Output: ${outputs.map(({ name, type }) => `${name}: ${type}`).join(', ')}`);
+    }
+    if (initiallyAvailable !== undefined) {
+        parts.push(`Initially available: ${initiallyAvailable}`);
+    }
+    if (initiallyPending !== undefined) {
+        parts.push(`Initially pending: ${initiallyPending}`);
     }
     return `Action ${action} { ${parts.join(', ')} }`;
 }
@@ -1002,13 +1022,26 @@ function keyedText(text: string, kind: 'enabled' | 'state' | 'scenario', key: st
     return text.trim();
 }
 
+/** The arguments of create_action_specification and replace_action_specification (null: none, or left out). */
+interface WrittenActionSpecification {
+    action: string;
+    initiators: string[];
+    observers: string[] | null;
+    inputs: ActionParameter[] | null;
+    outputs: ActionParameter[] | null;
+    initially_available: boolean | null;
+    initially_pending: boolean | null;
+}
+
 /** An action specification; each of its inputs and outputs has a name of its own, among them all. */
-function actionSpecification(action: string, initiators: string[], observers: string[] | null, inputs: ActionParameter[] | null,
-    outputs: ActionParameter[] | null): ActionSpecification {
+function actionSpecification(written: WrittenActionSpecification): ActionSpecification {
+    const { action, initiators, observers, inputs, outputs, initially_available, initially_pending } = written;
     const specification = new ActionSpecification(action, initiators);
     specification.observers = observers ?? [];
     specification.inputs = inputs ?? [];
     specification.outputs = outputs ?? [];
+    specification.initiallyAvailable = initially_available ?? undefined;
+    specification.initiallyPending = initially_pending ?? undefined;
     const parameters = [...specification.inputs, ...specification.outputs];
     parameters.forEach(({ name }, index) => {
         checkName(name, index < specification.inputs.length ? 'an input' : 'an output');

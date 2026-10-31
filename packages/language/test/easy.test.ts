@@ -408,6 +408,27 @@ describe('Inputs and outputs', () => {
     });
 });
 
+describe('How an action starts', () => {
+    const withStart = (start: string) => DECLARATIONS.replace('Action print { Initiators: Operator }', `Action print { Initiators: Operator, ${start} }`);
+    const ORDER = 'An action specification has these parts, in this order, each at most once: Initiators, Observers, Input, Output, '
+        + 'Initially available: true or false, Initially pending: true or false.';
+
+    it('says whether an action is available and pending at the start, after its other parts, each line optional', async () => {
+        const document = await parse(withStart('Input: file: string, Initially available: true, Initially pending: false'));
+        const print = document.parseResult.value.elements.filter(isActionParticipants).find(block => block.name === 'print');
+        expect(document.diagnostics).toEqual([]);
+        expect([print?.initiallyAvailable, print?.initiallyPending]).toEqual(['true', 'false']);
+        expect(await messages(withStart('Output: done: boolean Initially pending: true'))).toEqual([]);
+        expect(await messages(withStart('Initially available: false'))).toEqual([]);
+    });
+
+    it('takes true or false, in the order of the parts', async () => {
+        expect(await messages(withStart('Initially available: yes'))).toEqual(["Expected 'true' or 'false' but found 'yes'."]);
+        expect(await messages(withStart('Initially pending: true, Initially available: true'))).toEqual([`Expected '}' but found ','. ${ORDER}`]);
+        expect(await messages(withStart('Initially pending: true, Output: done: boolean'))).toEqual([`Expected '}' but found ','. ${ORDER}`]);
+    });
+});
+
 describe('Undefined', () => {
 
     it('says an int, string, boolean or Any property has no value, or has one', async () => {
