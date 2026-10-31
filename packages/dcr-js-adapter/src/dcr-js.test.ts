@@ -55,7 +55,7 @@ interface Box { x: number, y: number, width: number, height: number }
 /**
  * The XML of a document read as the DCR page reads it, without a warning, with a shape for every element and a route
  * for every relation, no two shapes of the graph itself overlapping (boxes); its elements outlined (outline) and its
- * relations written out (condition Data → print [speed > 2]).
+ * relations written out (condition Data → print [not(speed > 2)]).
  */
 async function dcrJs(text: string) {
     const result = await build(text);
@@ -141,13 +141,14 @@ describe('toDcrJsXml', () => {
             }
         ]);
         expect(relations).toEqual([
+            'condition Data → Data',
             'condition start → stop',
             'milestone adjust → stop',
-            'condition Data → start [running = false]',
+            'condition Data → start [not(running = false)]',
             'include start → stop',
             'response start → adjust',
             'setValue start → running := true',
-            'condition Data → adjust [running = true]',
+            'condition Data → adjust [not(running = true)]',
             'setValue adjust → target := degrees',
             'setValue adjust → mode [level = "eco"] := "eco"'
         ]);
@@ -177,7 +178,8 @@ describe('toDcrJsXml', () => {
             Then the Printer's speed is set to copies.`);
 
         expect(relations).toEqual([
-            'condition Data → print [speed > 5 or speed < 2 or speed = 3]',
+            'condition Data → Data',
+            'condition Data → print [not(speed > 5 or speed < 2 or speed = 3)]',
             'setValue print → speed [copies = 1] := 10',
             'setValue print → quality [copies = 1] := "draft"',
             'setValue print → speed [copies = 100] := 1',
@@ -206,7 +208,8 @@ describe('toDcrJsXml', () => {
             'tune [Operator] tune_speed: Int excluded'
         ]);
         expect(relations).toEqual([
-            'condition Data → tune [max_speed > 3 and Scanner_speed = 1]',
+            'condition Data → Data',
+            'condition Data → tune [not(max_speed > 3 and Scanner_speed = 1)]',
             'setValue tune → speed [tune_speed = 5] := tune_speed'
         ]);
         expect(elements.find(({ type }) => type === 'setValue')?.targetRef?.eventData?.name).toBe('Printer_speed');
@@ -235,7 +238,8 @@ describe('toDcrJsXml', () => {
             'print [Operator] file: String excluded'
         ]);
         expect(relations).toEqual([
-            'condition Data → print [speed > 2]',
+            'condition Data → Data',
+            'condition Data → print [not(speed > 2)]',
             'setValue print → speed := 1'
         ]);
     });

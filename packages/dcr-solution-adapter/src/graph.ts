@@ -11,7 +11,8 @@
 // Expressions name an event by its id: a data property's, input's or output's is its variable's name (speed, or
 // Printer_speed when two have the same); an action's or a form's is its name; a nesting's in a form the form's with
 // _input or _output after it; each with a number after it should another event have it already.
-// The relations are the DCR.js graph's (the Givens' conditions from Data), their guards and values as they are, with
+// The relations are the DCR.js graph's (Data's condition to itself, and the Givens' conditions from Data, guarded by
+// not(…)), their guards and values as they are, with
 // 'is undefined' too, as DCR Solutions has null (DCR null.xml): label = null ('is not undefined': label != null); but
 // with strings in single quotes, as dcrgraphs.net writes them ('eco'), and
 //   setValue a → p, value v, guarded by w       an update a → p, guarded by w, with value v

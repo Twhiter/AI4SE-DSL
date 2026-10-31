@@ -168,9 +168,10 @@ describe('toDcrSolutionXml', () => {
             }
         ]);
         expect(relations).toEqual([
+            'condition Data → Data',
             'condition start → stop',
-            'condition Data → start [running = false]',
-            'condition Data → adjust [running = true]',
+            'condition Data → start [not(running = false)]',
+            'condition Data → adjust [not(running = true)]',
             'response start → adjust',
             'include start → stop',
             'milestone adjust → stop',
@@ -209,7 +210,8 @@ describe('toDcrSolutionXml', () => {
         });
         const given = '(speed > 5 and ready = true) or speed < 2 or speed = 3';
         expect(relations).toEqual([
-            `condition Data → print [${given}]`,
+            'condition Data → Data',
+            `condition Data → print [not(${given})]`,
             'update print → speed := if copies = 1 then 10 else if copies = 100 then 1 else copies',
             "update print → quality [(copies = 1) or (copies = 100)] := if copies = 1 then 'draft' else 'fine'"
         ]);
@@ -237,7 +239,8 @@ describe('toDcrSolutionXml', () => {
             'max_speed_2 "max speed" [Operator] excluded'
         ]);
         expect(relations).toEqual([
-            'condition Data → tune_speed [max_speed > 3 and Scanner_speed = 1]',
+            'condition Data → Data',
+            'condition Data → tune_speed [not(max_speed > 3 and Scanner_speed = 1)]',
             'include tune_speed → max_speed_2 [tune_speed = 5]',
             'update tune_speed → Printer_speed [tune_speed = 5] := tune_speed'
         ]);
@@ -268,7 +271,7 @@ describe('toDcrSolutionXml', () => {
             { 'form check_insurance "check insurance" [Clerk] excluded': check },
             'approve "approve" [Clerk] excluded'
         ]);
-        expect(byDefault.relations).toEqual(['condition Data → check_insurance [open = true]', 'include check_insurance → approve [id = 3]']);
+        expect(byDefault.relations).toEqual(['condition Data → Data', 'condition Data → check_insurance [not(open = true)]', 'include check_insurance → approve [id = 3]']);
 
         const asked: string[] = [];
         const marking = (event: SolutionEvent) => {
@@ -353,7 +356,7 @@ describe('toDcrSolutionXml', () => {
             When write is executed with inputs text = "1"
             Then the Case's note is set to text.`);
 
-        expect(relations).toEqual(["update text → note [text = '1'] := text"]);
+        expect(relations).toEqual(['condition Data → Data', "update text → note [text = '1'] := text"]);
         /** Each update, and its expressions, with its source and target as A1 and A2, as the example's. */
         const update = (graph: Node) => {
             const [relation] = find(graph, 'specification', 'constraints', 'updates').children;
@@ -380,7 +383,7 @@ describe('toDcrSolutionXml', () => {
             When print is executed with inputs file
             Then the Printer's speed is set to 1.`);
 
-        expect(relations).toEqual(['condition Data → file [label != null and speed = null and ready != true]', 'update file → speed := 1']);
+        expect(relations).toEqual(['condition Data → Data', 'condition Data → file [not(label != null and speed = null and ready != true)]', 'update file → speed := 1']);
         const store = (graph: Node) => find(graph, 'runtime', 'marking', 'globalStore').children;
         expect(store(root).map(({ attributes }) => attributes)).toEqual(['label', 'speed', 'ready'].map(id => ({ ...store(example)[0].attributes, id })));
     });

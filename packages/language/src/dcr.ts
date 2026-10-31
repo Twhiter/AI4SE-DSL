@@ -1,7 +1,7 @@
 // The model as a DCR graph, built from its When rules. An activity for every data property, in a group called Data, and
-// for every action; relations from the enabled specifications, and from each When rule: a condition from Data to its
-// action, guarded by what its Givens say about data (saturated: Given.saturated), and what its Thens do, each guarded by
-// what its When says. Guards are written as DCR Solutions writes them: speed > 2 and count(jobs) > 0.
+// for every action; Data has a condition to itself; relations from the enabled specifications, and from each When rule:
+// a condition from Data to its action, guarded by not what its Givens say about data (saturated: Given.saturated), and
+// what its Thens do, each guarded by what its When says. Guards are written as DCR Solutions writes them: speed > 2 and count(jobs) > 0.
 // Assumes that the specifications and the scenarios are consistent (consistency.ts, scenario-consistency.ts).
 
 import type { Bool } from 'z3-solver';
@@ -50,7 +50,7 @@ export class DcrGroup {
     }
 }
 
-/** A relation from an activity or a group to an activity, which only holds while its guard does. */
+/** A relation from an activity or a group to an activity, or Data's to itself, which only holds while its guard does. */
 export class DcrRelation {
     from: string;
     to: string;
@@ -77,11 +77,14 @@ export class DcrGraph {
  *   every data property of an entity      an activity named after it, initiated by the entity, in the group Data
  *   every action                          an activity, with its initiators, observers, inputs and outputs
  *   (only the data properties' activities are included at the start; none is pending)
+ *   Data                                  condition  Data → Data: its activities are never executed, their values change
+ *                                         by the actions only, so a condition from Data holds whenever its guard does
  *   Action print is enabled means { start was executed or is not available }     condition  start → print
  *                                 { reboot is not pending or is not available }  milestone  reboot → print
  * and from each When rule, with action a and its scenarios' Givens g₁, g₂, … (saturated) and Whens w₁, w₂, …:
- *   the Givens      condition Data → a: guarded by what g₁ says about data (one scenario), or g₁ or g₂ or … (several);
- *                   none when that always holds, as without any property assertion
+ *   the Givens      condition Data → a: guarded by not what g₁ says about data (one scenario), not(g₁ or g₂ or …)
+ *                   (several): a waits while none of them holds; none when one always holds, as without any property
+ *                   assertion
  *   each Then       x is available      include   a → x
  *                   x is not available  exclude   a → x
  *                   x is pending        response  a → x
@@ -98,7 +101,7 @@ export async function toDcrGraph(z3: Z3Context, model: Model, options?: Z3Vocabu
             model.outputs[action] ?? []))
     ];
     graph.groups = activities.size > 0 ? [new DcrGroup(DATA_GROUP, [...activities.values()])] : [];
-    const relations: DcrRelation[] = [];
+    const relations: DcrRelation[] = graph.groups.map(() => new DcrRelation(DATA_GROUP, DATA_GROUP, undefined, 'condition'));
     for (const spec of model.enabledSpecifications) {
         relations.push(
             ...spec.conditions.map(action => new DcrRelation(action, spec.action, undefined, 'condition')),
@@ -153,8 +156,10 @@ async function ruleRelations(z3: Z3Context, model: Model, rule: WhenRule, activi
     const relations: DcrRelation[] = [];
     for (const { from, to, relation, alternatives } of merged.values()) {
         const guard = await guardOf(z3, v, instances, alternatives);
-        if (from !== DATA_GROUP || guard !== undefined) {   // a condition from Data that always holds says nothing
+        if (from !== DATA_GROUP) {
             relations.push(new DcrRelation(from, to, guard, relation));
+        } else if (guard !== undefined) {   // a condition from Data whose Givens always hold says nothing
+            relations.push(new DcrRelation(from, to, `not(${guard})`, relation));
         }
     }
     return relations;

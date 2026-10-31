@@ -10,10 +10,12 @@
 //   nothing is pending)
 //   Action print is enabled means { start was executed or is not available }     condition start → print
 //                                 { reboot is not pending or is not available }  milestone reboot → print
+//   (Data has a condition to itself: its activities are never executed, their values change by setValues only, so a
+//   condition from it holds whenever its guard does)
 // and from the scenarios of each When rule, with action a, Givens g₁, g₂, … (each state replaced by what its
 // specification says) and Whens w₁, w₂, …:
-//   the Givens     condition Data → a, guarded by g₁ (one scenario), or g₁ or g₂ or … (several); none when one of them
-//                  always holds
+//   the Givens     condition Data → a, guarded by not(g₁) (one scenario), or not(g₁ or g₂ or …) (several): a waits
+//                  while none of them holds; none when one of them always holds
 //   each Then      x is available       include a → x
 //                  x is not available   exclude a → x
 //                  x is pending         response a → x
@@ -145,6 +147,7 @@ export function toDcrJsGraph(model: Model, options: Options = {}): DcrJsGraph {
     const relations: Array<Omit<Relation, 'id'>> = [];
     const relate = (type: Relation['type'], from: string, to: string, guard?: string, value?: string) =>
         relations.push({ type, source: elementOf.get(from)!, target: elementOf.get(to)!, guard, value });
+    nesting.forEach(() => relate('condition', DATA, DATA));
     for (const spec of model.enabledSpecifications) {
         spec.conditions.forEach(action => relate('condition', action, spec.action));
         spec.milestones.forEach(action => relate('milestone', action, spec.action));
@@ -176,8 +179,10 @@ export function toDcrJsGraph(model: Model, options: Options = {}): DcrJsGraph {
         });
         for (const { type, from, to, alternatives } of merged.values()) {
             const guard = guardOf(alternatives);
-            if (from !== DATA || guard !== undefined) {   // a condition from Data that always holds says nothing
+            if (from !== DATA) {
                 relate(type, from, to, guard);
+            } else if (guard !== undefined) {   // a condition from Data whose Givens always hold says nothing
+                relate(type, from, to, `not(${guard})`);
             }
         }
         setValues.forEach(([to, guard, value]) => relate('setValue', rule.action, to, guard, value));

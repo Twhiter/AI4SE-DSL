@@ -46,14 +46,15 @@ async function graphOf(text: string, declarations = DECLARATIONS): Promise<DcrGr
     return toDcrGraph(z3, model!);
 }
 
-/** The relations of the graph of `text`, as [relation, from, to, guard]. */
+/** The relations of the graph of `text`, as [relation, from, to, guard], but Data's condition to itself. */
 async function relationsOf(text: string): Promise<Array<[string, string, string, string | undefined]>> {
-    return (await graphOf(text)).relations.map(({ relation, from, to, guard }) => [relation, from, to, guard]);
+    return (await graphOf(text)).relations.filter(({ from, to }) => from !== 'Data' || to !== 'Data')
+        .map(({ relation, from, to, guard }) => [relation, from, to, guard]);
 }
 
 describe('toDcrGraph', () => {
 
-    it('makes an activity of every data property, initiated by its entity, in the group Data, and of every action, with its inputs and outputs; only the data included', async () => {
+    it('makes an activity of every data property, initiated by its entity, in the group Data, which has a condition to itself, and of every action, with its inputs and outputs; only the data included', async () => {
         const none = { observers: [], inputs: [], outputs: [], defaultIncluded: false, defaultPending: false };
         const data = { ...none, defaultIncluded: true };
         const graph = await graphOf('');
@@ -68,7 +69,7 @@ describe('toDcrGraph', () => {
             { ...none, name: 'reboot', initiators: ['Operator', 'Viewer'] }
         ]);
         expect(graph.groups).toEqual([{ name: 'Data', events: ['speed', 'ready', 'jobs', 'level'] }]);
-        expect(graph.relations).toEqual([]);
+        expect(graph.relations.map(({ relation, from, to, guard }) => [relation, from, to, guard])).toEqual([['condition', 'Data', 'Data', undefined]]);
     });
 
     it('turns an enabled specification into a condition from each of its conditions and a milestone from each of its milestones', async () => {
@@ -80,7 +81,7 @@ describe('toDcrGraph', () => {
         ]);
     });
 
-    it('one scenario: a condition from Data guarded by its saturated Given, and its Then from the When, guarded by what its When says', async () => {
+    it('one scenario: a condition from Data guarded by not its saturated Given, and its Then from the When, guarded by what its When says', async () => {
         // busy -> online (ready) and the speed, not 'print is pending'; 'print is available' and 'start was executed' are left out
         const inputs = 'file = "report.pdf"';
         expect(await relationsOf(`
@@ -90,7 +91,7 @@ describe('toDcrGraph', () => {
             Then the Printer's jobs is removed with "report.pdf" AND reboot is pending AND print is not available AND start is available
                 AND the Printer's speed is set to copies.
         `)).toEqual([
-            ['condition', 'Data', 'print', 'ready = true and speed > 5 and list contains(jobs, "report.pdf")'],
+            ['condition', 'Data', 'print', 'not(ready = true and speed > 5 and list contains(jobs, "report.pdf"))'],
             ['include', 'print', 'start', inputs],
             ['exclude', 'print', 'print', inputs],
             ['response', 'print', 'reboot', inputs],
@@ -99,7 +100,7 @@ describe('toDcrGraph', () => {
         ]);
     });
 
-    it('several scenarios: the condition from Data guarded by any of their Givens, each Then only by its own When, the same relation merged', async () => {
+    it('several scenarios: the condition from Data guarded by none of their Givens, each Then only by its own When, the same relation merged', async () => {
         expect(await relationsOf(`
             Scenario: Rush
             Given the Printer is busy
@@ -110,7 +111,7 @@ describe('toDcrGraph', () => {
             When start is executed
             Then the Printer's speed is set to 1 AND reboot is pending AND print is available.
         `)).toEqual([
-            ['condition', 'Data', 'start', '(ready = true and speed > 5) or (speed < 3 and ready = true)'],
+            ['condition', 'Data', 'start', 'not((ready = true and speed > 5) or (speed < 3 and ready = true))'],
             ['response', 'start', 'reboot', undefined],   // the Whens say nothing
             ['include', 'start', 'speed', undefined],
             ['include', 'start', 'print', undefined]
@@ -126,7 +127,7 @@ describe('toDcrGraph', () => {
             When print is executed with inputs file, copies
             Then file is added to the Printer's jobs.
         `)).toEqual([
-            ['condition', 'Data', 'print', 'speed < 2 or speed > 2'],
+            ['condition', 'Data', 'print', 'not(speed < 2 or speed > 2)'],
             ['include', 'print', 'jobs', undefined]
         ]);
     });
@@ -193,7 +194,8 @@ describe('toDcrGraph', () => {
         expect(graph.groups).toEqual([{ name: 'Data', events: ['Person.age', 'Person.name', 'blocked', 'members'] }]);
         const guard = 'age = Person.age and is_adult = true and blocked = false';
         expect(graph.relations.map(({ relation, from, to, guard }) => [relation, from, to, guard])).toEqual([
-            ['condition', 'Data', 'register', 'Person.age > 0'],
+            ['condition', 'Data', 'Data', undefined],
+            ['condition', 'Data', 'register', 'not(Person.age > 0)'],
             ['include', 'register', 'borrow', guard],
             ['include', 'register', 'members', guard]
         ]);
@@ -237,7 +239,8 @@ describe('toDcrGraph', () => {
         `);
         expect(graph.groups).toEqual([{ name: 'Data', events: ['Printer.level', 'speed', 'Tray.level'] }]);
         expect(graph.relations.map(({ relation, from, to, guard }) => [relation, from, to, guard])).toEqual([
-            ['condition', 'Data', 'start', 'Printer.level < 2'],
+            ['condition', 'Data', 'Data', undefined],
+            ['condition', 'Data', 'start', 'not(Printer.level < 2)'],
             ['include', 'start', 'Tray.level', undefined]
         ]);
     });

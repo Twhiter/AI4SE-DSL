@@ -3,13 +3,16 @@
 // relations, those from or to the same element together; but close, with no room for the relations' guards and values
 // (DCR.js and dcrgraphs.net draw them on the relation, over what is next to it: a long one, as the merged values of the
 // DCR Solutions adapter, would spread the graph far), and each part of the graph that relations connect on its own,
-// the parts then in rows (layout).
+// the parts then in rows (layout). A relation from an element to itself (Data's condition) is a small loop over the
+// element's top right corner, elkjs's way round the element being far.
 
 import ELK, { type ElkExtendedEdge, type ElkNode } from 'elkjs/lib/elk.bundled.js';
 import type { DcrJsGraph, Element, Relation } from './graph.ts';
 
 /** An activity's box, as DCR.js draws it; one with observers has a strip for them at the bottom, 30 high. */
 const ACTIVITY = { width: 130, height: 150 };
+/** How far a loop from an element to itself reaches out of it, and into it, at its top right corner. */
+const LOOP = { out: 24, in: 36 };
 /** The room around a nesting's elements: its name is below a strip 30 high at its top. */
 const PADDING = '[top=60,left=20,bottom=20,right=20]';
 
@@ -104,14 +107,24 @@ async function place(graph: DcrJsGraph): Promise<{ bounds: Map<string, Bounds>, 
             'elk.spacing.edgeEdge': '8'
         },
         children: graph.elements.map(node),
-        edges: graph.relations.map(relation => ({ id: relation.id, sources: [relation.source], targets: [relation.target] }))
+        edges: graph.relations.filter(({ source, target }) => source !== target)
+            .map(relation => ({ id: relation.id, sources: [relation.source], targets: [relation.target] }))
     });
     const nodes = (node: ElkNode): ElkNode[] => [node, ...(node.children ?? []).flatMap(nodes)];
     const bounds = new Map<string, Bounds>((placed.children ?? []).flatMap(nodes)
         .map(({ id, x = 0, y = 0, width = 0, height = 0 }) => [id, { x, y, width, height }]));
     const edges = new Map<string, ElkExtendedEdge>((placed.edges ?? []).map(edge => [edge.id, edge]));
-    /** Where elkjs routed the relation; from the middle of its source to the middle of its target, should it not have. */
+    /**
+     * Where elkjs routed the relation; from the middle of its source to the middle of its target, should it not have;
+     * from an element to itself, a loop over its top right corner.
+     */
     const route = ({ id, source, target }: Relation): Point[] => {
+        if (source === target) {
+            const { x, y, width } = bounds.get(source)!;
+            const right = x + width;
+            return [{ x: right - LOOP.in, y }, { x: right - LOOP.in, y: y - LOOP.out }, { x: right + LOOP.out, y: y - LOOP.out },
+                { x: right + LOOP.out, y: y + LOOP.in }, { x: right, y: y + LOOP.in }];
+        }
         const section = edges.get(id)?.sections?.[0];
         const middle = ({ x, y, width, height }: Bounds) => ({ x: x + width / 2, y: y + height / 2 });
         return section ? [section.startPoint, ...(section.bendPoints ?? []), section.endPoint] : [middle(bounds.get(source)!), middle(bounds.get(target)!)];

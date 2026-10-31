@@ -13,6 +13,8 @@ import { DraggableViewer } from '../lib/index.js';
 /** The size of an event's box, as in dcr-js; one with observers has a strip for them at the bottom, 30 high. */
 const EVENT = { width: 130, height: 150 };
 const sizeOf = (event: DcrEvent) => ({ width: EVENT.width, height: EVENT.height + (event.observers.length > 0 ? 30 : 0) });
+/** How far a group's loop to itself reaches out of its box, and into it, at its top right corner. */
+const LOOP = { out: 24, in: 36 };
 /** The room around a group's activities: its name is drawn below a strip 30 high at its top (a dcr-js nesting). */
 const GROUP_PADDING = { top: 60, left: 20, bottom: 20, right: 20 };
 
@@ -150,7 +152,8 @@ function layoutOf(elements: Element[]): DraggedLayout {
 /**
  * The graph as dcr-js XML: its activities, groups and relations, and where they are drawn. elkjs places the
  * activities, each group's inside its box, and routes the relations, with room for their guards (a relation from an
- * activity to itself loops over its top). A group's box is drawn around where its activities are. What the user dragged stays where it is: a dragged activity, and a
+ * activity to itself loops over its top; Data's condition to itself is a small loop over its box's top right corner).
+ * A group's box is drawn around where its activities are. What the user dragged stays where it is: a dragged activity, and a
  * relation between dragged activities (or groups with one) as it was drawn; another relation to or from one is left
  * 'unrouted', for dcr-js to route once it is drawn.
  */
@@ -164,6 +167,7 @@ export async function toDcrXml(graph: DcrGraph, dragged?: DraggedLayout): Promis
     const grouped = new Set(graph.groups.flatMap(group => group.events));
     const relations = graph.relations.map((relation, i) => ({ ...relation, id: `Relation_${i + 1}`, source: ids.get(relation.from)!, target: ids.get(relation.to)! }));
     const node = (event: DcrEvent): ElkNode => ({ id: ids.get(event.name)!, ...sizeOf(event) });
+    const groupLoop = ({ from, to }: { from: string, to: string }) => from === to && groups.has(from);
     const layout: ElkNode = await new ELK().layout({
         id: 'root',
         layoutOptions: {
@@ -185,7 +189,8 @@ export async function toDcrXml(graph: DcrGraph, dragged?: DraggedLayout): Promis
             })),
             ...graph.events.filter(event => !grouped.has(event.name)).map(node)
         ],
-        edges: relations.map(relation => ({ id: relation.id, sources: [relation.source], targets: [relation.target], labels: guardLabel(relation.guard) }))
+        edges: relations.filter(relation => !groupLoop(relation))
+            .map(relation => ({ id: relation.id, sources: [relation.source], targets: [relation.target], labels: guardLabel(relation.guard) }))
     });
     const bounds = new Map([...(layout.children ?? []), ...(layout.children ?? []).flatMap(child => child.children ?? [])]
         .map(node => [node.id, { x: node.x ?? 0, y: node.y ?? 0 }]));
@@ -208,6 +213,12 @@ export async function toDcrXml(graph: DcrGraph, dragged?: DraggedLayout): Promis
         && (dragged.events.has(name) || (groups.get(name)?.events.some(event => dragged.events.has(event)) ?? false));
     const unrouted: string[] = [];
     const pointsOf = (relation: typeof relations[number]): Point[] => {
+        if (groupLoop(relation)) {
+            const { x, y, width } = boxOf(groups.get(relation.from)!);
+            const right = x + width;
+            return [{ x: right - LOOP.in, y }, { x: right - LOOP.in, y: y - LOOP.out }, { x: right + LOOP.out, y: y - LOOP.out },
+                { x: right + LOOP.out, y: y + LOOP.in }, { x: right, y: y + LOOP.in }];
+        }
         const ends = [relation.from, relation.to].filter(moved).length;
         if (ends === 0) {
             return routes.get(relation.id) ?? [];   // both ends where elkjs put them
