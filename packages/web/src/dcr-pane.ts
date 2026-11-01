@@ -20,6 +20,7 @@ export function createDcrView(view: HTMLElement): () => void {
         <div class="canvas"></div>`;
     const status = view.querySelector<HTMLElement>('.dcr-status')!;
     const page = mountDcrPage(view.querySelector<HTMLElement>('.canvas')!, { hiddenOptions: HIDDEN_OPTIONS });
+    keepKeys(view);
     /** The XML shown last. */
     let shown: string | undefined;
 
@@ -43,6 +44,26 @@ export function createDcrView(view: HTMLElement): () => void {
     view.querySelector<HTMLElement>('.layout')!.onclick = () => shown && show(shown);
     view.querySelector<HTMLElement>('.fit')!.onclick = () => page.fit();
     return () => page.resized();
+}
+
+/**
+ * The DCR page's modeler (diagram-js) takes its keys on the window: Backspace and Delete, Space, s, l, h, e, the arrows,
+ * and with Cmd: a, f, z, y, c, v, +, -, 0. It leaves alone the keys typed in an input it can see, but not one inside a
+ * shadow DOM (the chat's), nor one typed with nothing focused, wherever the user is. So a key goes on to the window
+ * only while the user works in `view`: typed in it, or with nothing focused while it shows and was clicked last.
+ */
+function keepKeys(view: HTMLElement): void {
+    let clickedLast = false;
+    document.addEventListener('pointerdown', event => clickedLast = event.composedPath().includes(view), true);
+    const inView = (event: KeyboardEvent) => event.composedPath().includes(view)
+        || (event.target === document.body && clickedLast && view.checkVisibility());
+    for (const type of ['keydown', 'keyup'] as const) {
+        document.addEventListener(type, event => {
+            if (!inView(event)) {
+                event.stopPropagation();
+            }
+        });
+    }
 }
 
 function count(xml: string, tag: string, noun: string, plural = `${noun}s`): string {
