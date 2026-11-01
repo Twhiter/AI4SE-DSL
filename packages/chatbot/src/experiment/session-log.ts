@@ -6,7 +6,7 @@
 // The log takes what happens from outside the workflow: from the chat list of the session's shared document (the
 // user's messages and decisions, the agents' replies and plans, the proposals and the options chosen, the choices
 // offered, chosen or closed) and from the experiment's events (events.ts: the tool calls, the planning runs and their
-// simulations, the runs' token usage). A plan is one planning run: one call of plan_changes, or one option of a call of
+// simulations, the runs' token usage, the compactions of the chat's memory by Claude). A plan is one planning run: one call of plan_changes, or one option of a call of
 // propose_changes, whose options are planned at the same time; the tool calls, simulations and run of a planning run
 // carry it. An option's plan is offered when its option is among the proposals; it is decided on once the user has
 // chosen it, and when the proposals close (an option approved, new proposals, a plan), the options not decided on are
@@ -20,6 +20,7 @@ import { fileURLToPath } from 'node:url';
 import type * as Y from 'yjs';
 import type { PlanStep, Problem } from 'dsl-controller';
 import type { ChatEntry } from '../chat-session.ts';
+import type { Compaction } from '../compaction.ts';
 import { optionsOn, type Option } from '../options.ts';
 import { listen, type SessionEvent, type Tokens } from './events.ts';
 import { metrics, type Metrics, type PlanOutcome } from './metrics.ts';
@@ -59,7 +60,8 @@ export type Entry =
     | { type: 'choice', time: string, plan: number }             // the option whose plan waits for the decision
     | { type: 'decision', time: string, plan?: number, approved: boolean, reason?: string, kept?: string[] }   // kept: the changes kept, when only some
     | { type: 'reply', time: string, text: string, tools: ToolCall[], tokens?: Tokens, effort?: string, document: string }
-    | { type: 'error', time: string, text: string };
+    | { type: 'error', time: string, text: string }
+    | { type: 'compaction', time: string, compaction: Compaction | { error: string } };   // the chat's memory, by Claude
 
 /** One planning run: the planning agent's attempts and tool calls, and what became of its plan. */
 export interface PlanRecord extends PlanOutcome {
@@ -166,6 +168,8 @@ export function startSessionLog(session: string, doc: Y.Doc): void {
             }
         } else if (event.kind === 'simulation' && open) {
             open.attempts.push(attempt(open.attempts.length + 1, event.steps, event.simulation));
+        } else if (event.kind === 'compaction') {
+            record.entries.push({ type: 'compaction', time: now(), compaction: event.compaction });
         } else {
             return;
         }
@@ -376,6 +380,13 @@ function entryLines(entry: Entry, record: SessionRecord): string[] {
             ];
         case 'error':
             return [`### ${at} Error`, '', quote(entry.text)];
+        case 'compaction': {
+            const { compaction } = entry;
+            return 'error' in compaction
+                ? [`### ${at} Chat memory not compacted`, '', quote(compaction.error)]
+                : [`### ${at} Chat memory compacted`, '', `${compaction.summarized} item(s) summarized, ${compaction.kept} kept word for word.`, '',
+                    ...details('The summary', compaction.summary)];
+        }
     }
 }
 

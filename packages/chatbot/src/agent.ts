@@ -21,9 +21,10 @@
 // the agents get its tools as Agents SDK tools (agentTool).
 // Both agents work with the same context: the domain the user described, the document, and the conversation.
 // Both are sandbox agents, in the conversation's sandbox (sandbox.ts), where they load and read the skills.
-// The conversation is the chat's memory, an SDK session: the OpenAI API compacts it once it grows past COMPACT_AT
-// tokens, into a compaction item (encrypted) and the items it keeps, with a GPT model and with Claude alike. The
-// planning agent is a fork of the chat agent: its memory starts as a copy of the chat's, with the user's latest
+// The conversation is the chat's memory, an SDK session, compacted once it grows past COMPACT_AT tokens: for a GPT
+// model by the OpenAI API, into a compaction item (encrypted) and the items it keeps; for Claude, which cannot read
+// that item, by Claude, into a summary in text and the latest turns (compaction.ts). The planning agent is a fork of
+// the chat agent: its memory starts as a copy of the chat's, with the user's latest
 // message, and is thrown away after its plan.
 // Their instructions are prompt/system_prompt.md and prompt/planning_agent.md, with placeholders (prompts.ts); the
 // short prompts, what the program tells them besides, are in this file (Short prompts).
@@ -34,7 +35,7 @@ import { fileURLToPath } from 'node:url';
 import OpenAI from 'openai';
 import {
     MaxTurnsExceededError, MemorySession, OpenAIResponsesCompactionSession, setDefaultOpenAIClient, setTracingDisabled,
-    system, tool, user, type AgentInputItem, type FunctionTool, type ModelSettings
+    system, tool, user, type AgentInputItem, type FunctionTool, type ModelSettings, type Session
 } from '@openai/agents';
 import { SandboxAgent, type SandboxSessionLike } from '@openai/agents/sandbox';
 import { z } from 'zod';
@@ -42,7 +43,8 @@ import {
     CHANGE_TOOLS, changeToolList, changesOf, Controller, describeFindings, diffModels, numbered, Refusal, selectSteps, simulate, type ControllerTool,
     type DiffSection, type Failed, type Mistake, type PlanStep, type Simulation, type Succeeded
 } from 'dsl-controller';
-import { inPlanning, runner, simulated } from './experiment/events.ts';
+import { compactWithClaude, tokensOf } from './compaction.ts';
+import { compacted, inPlanning, runner, simulated } from './experiment/events.ts';
 import { forTheAgents } from './experiment/no-skills.ts';
 import { offerChoicesTool, optionsOn, type Option } from './options.ts';
 import { chatInstructions, planningInstructions } from './prompts.ts';
@@ -169,9 +171,9 @@ export class Conversation {
     domain: string;
     /**
      * The chat's memory: the messages, the chat agent's tool calls and their results, in memory only. After a turn,
-     * once it holds about COMPACT_AT tokens, the API compacts it.
+     * once it holds about COMPACT_AT tokens, it is compacted: by the OpenAI API for a GPT model, by Claude for Claude.
      */
-    memory = compactingMemory();
+    memory: Session = CLAUDE ? new MemorySession() : compactingMemory();
     /** The plan waiting for the user's decision: plan_changes's, or the shown option's. */
     plan: Plan | undefined = undefined;
     /** The options open for the user to choose from. */
@@ -200,25 +202,37 @@ export class Conversation {
 }
 
 /**
- * The chat's memory: the SDK's compaction session on ChatMemory, which the API compacts with the agents' model once it
- * holds about COMPACT_AT tokens. The SDK compacts only for a model it takes for OpenAI's by its name (gpt-…, o…); the
- * API compacts for Claude as well, so a Claude model is given to the session after that check, in the field its
- * compaction requests read (an SDK that renamed it fails here, not in a compaction).
+ * The chat's memory with a GPT model: the SDK's compaction session on ChatMemory, which the OpenAI API compacts with
+ * the model once it holds about COMPACT_AT tokens. (With Claude the API compacts too, but Claude cannot read what it
+ * gives: see compactClaudeMemory.)
  */
 function compactingMemory(): OpenAIResponsesCompactionSession {
-    const memory = new OpenAIResponsesCompactionSession({
+    return new OpenAIResponsesCompactionSession({
         underlyingSession: new ChatMemory(),
-        model: CLAUDE ? 'gpt-5.4' : MODEL,
-        shouldTriggerCompaction: ({ sessionItems }) => JSON.stringify(sessionItems).length / 4 >= COMPACT_AT
+        model: MODEL,
+        shouldTriggerCompaction: ({ sessionItems }) => tokensOf(sessionItems) >= COMPACT_AT
     });
-    if (CLAUDE) {
-        const session = memory as unknown as { model?: string };
-        if (session.model !== 'gpt-5.4') {
-            throw new Error('The SDK\'s compaction session no longer keeps its model in the field model: Claude cannot be set.');
-        }
-        session.model = MODEL;
+}
+
+/**
+ * The chat's memory with Claude, after a turn, once it holds about COMPACT_AT tokens: compacted by Claude, into a summary
+ * and the latest turns, which keep at most half as many (compaction.ts). When that fails, the memory stays as it is,
+ * the turn goes on, and the next turn tries again; either way the session log says so.
+ */
+async function compactClaudeMemory(memory: Session): Promise<void> {
+    if (!CLAUDE || tokensOf(await memory.getItems()) < COMPACT_AT) {
+        return;
     }
-    return memory;
+    try {
+        const compaction = await compactWithClaude(memory, MODEL, COMPACT_AT / 2);
+        if (compaction) {
+            compacted(compaction);
+        }
+    } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        console.warn(`The chat's memory was not compacted: ${reason}`);
+        compacted({ error: reason });
+    }
 }
 
 /**
@@ -386,6 +400,7 @@ async function chatTurn(conversation: Conversation, input: AgentInputItem, docum
     const context = await turnContext(conversation, input, document);
     const offered: Offered = {};
     const result = await runner.run(chatAgent(conversation, context, offered), [input], { session: conversation.memory, sandbox: inSandbox(context.sandbox) });
+    await compactClaudeMemory(conversation.memory);
     return { reply: result.finalOutput ?? '', ...offered };
 }
 

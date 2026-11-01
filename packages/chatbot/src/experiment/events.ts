@@ -1,10 +1,12 @@
 // The experiment's events: what happens in a session, announced by the workflow for the session log (session-log.ts)
-// to record. The workflow only announces; it records and writes nothing. Three kinds of announcements:
+// to record. The workflow only announces; it records and writes nothing. Four kinds of announcements:
 //   - the agents' runs, through `runner`, which agent.ts runs them with: each tool call (its start and end, with its
 //     arguments) and each run's end, with the agent's model, reasoning effort and token usage;
 //   - each planning run, its start and its end, which agent.ts announces by running it inPlanning: for plan_changes, or
 //     for an option of propose_changes;
-//   - each simulation of a plan, which agent.ts announces itself (simulated).
+//   - each simulation of a plan, which agent.ts announces itself (simulated);
+//   - each compaction of the chat's memory by Claude, or its failure, which agent.ts announces too (compacted); the
+//     OpenAI API's compaction, for a GPT model, happens inside the SDK, unannounced.
 // An event belongs to the session it happens in: chat-session.ts runs each turn inSession(<its session>), and the
 // events of the turn carry that session, whichever agent or tool they come from. An event of a planning run carries
 // that run too, so that the runs of propose_changes, which plan at the same time, stay apart.
@@ -14,6 +16,7 @@ import { randomUUID } from 'node:crypto';
 import { EventEmitter } from 'node:events';
 import { Runner, type Agent } from '@openai/agents';
 import type { PlanStep, Simulation } from 'dsl-controller';
+import type { Compaction } from '../compaction.ts';
 
 /** What the experiment records. */
 export type ExperimentEvent =
@@ -22,7 +25,8 @@ export type ExperimentEvent =
     | { kind: 'run_end', agent: string, model: string, effort: string | undefined, tokens: Tokens }
     | { kind: 'simulation', steps: PlanStep[], simulation: Simulation }
     | { kind: 'planning_start', option?: string }   // option: the label of the option of propose_changes it plans
-    | { kind: 'planning_end' };
+    | { kind: 'planning_end' }
+    | { kind: 'compaction', compaction: Compaction | { error: string } };
 
 /** A run's token usage, as the API reports it. */
 export interface Tokens {
@@ -82,6 +86,11 @@ function announce(event: ExperimentEvent): void {
 /** Announces a simulation of a plan: its steps, and what the simulation found. */
 export function simulated(steps: PlanStep[], simulation: Simulation): void {
     announce({ kind: 'simulation', steps, simulation });
+}
+
+/** Announces a compaction of the chat's memory by Claude, or why it failed. */
+export function compacted(compaction: Compaction | { error: string }): void {
+    announce({ kind: 'compaction', compaction });
 }
 
 /**
