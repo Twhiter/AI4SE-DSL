@@ -6,19 +6,23 @@
 //
 //   valid attempt              its steps all ran, and the check of the document after it found no new error
 //                              (validation or Z3); errors the document already had do not count
-//   first-pass validity        plans whose first attempt is valid / plans
-//   final validation success   plans whose last attempt is valid / plans
-//   average iterations         attempts / plans
+//   counted attempt            one with steps, or a call whose input was rejected (a failed attempt); a simulation
+//                              of an empty plan is not an attempt at a plan
+//   first-pass validity        plans whose first counted attempt is valid / plans
+//   final validation success   plans whose last counted attempt is valid / plans
+//   average iterations         counted attempts / plans
 //   plan approval rate         approved plans / plans the user decided on (approved, partly approved or rejected); a
 //                              plan left undecided (the user wrote a message instead), or an option not chosen, is
 //                              not counted; a plan approved in part is decided on, not approved
 //   partly approved            plans the user approved only some changes of
 //
-// A plan without any attempt counts as neither first-pass valid nor finally valid, with 0 iterations.
+// A plan without any counted attempt counts as neither first-pass valid nor finally valid, with 0 iterations.
 
-/** What the metrics need of an attempt: whether its steps ran, and the errors it brought. */
+/** What the metrics need of an attempt: its steps, whether they ran (if not, why), and the errors it brought. */
 export interface AttemptOutcome {
+    steps: unknown[];
     ran: boolean;
+    mistake?: string;
     newErrors: unknown[];
 }
 
@@ -60,19 +64,24 @@ export function isValid(attempt: AttemptOutcome): boolean {
     return attempt.ran && attempt.newErrors.length === 0;
 }
 
-/** Plans whose first attempt is valid / plans. */
+/** A plan's counted attempts: those with steps, and the calls whose input was rejected. */
+export function counted({ attempts }: PlanOutcome): AttemptOutcome[] {
+    return attempts.filter(({ steps, mistake }) => steps.length > 0 || mistake === 'input');
+}
+
+/** Plans whose first counted attempt is valid / plans. */
 export function firstPassValidity(plans: PlanOutcome[]): Rate {
-    return rate(plans.filter(({ attempts }) => attempts.length > 0 && isValid(attempts[0])).length, plans.length);
+    return rate(plans.filter(plan => { const first = counted(plan).at(0); return first !== undefined && isValid(first); }).length, plans.length);
 }
 
-/** Plans whose last attempt is valid / plans. */
+/** Plans whose last counted attempt is valid / plans. */
 export function finalValidationSuccess(plans: PlanOutcome[]): Rate {
-    return rate(plans.filter(({ attempts }) => attempts.length > 0 && isValid(attempts[attempts.length - 1])).length, plans.length);
+    return rate(plans.filter(plan => { const last = counted(plan).at(-1); return last !== undefined && isValid(last); }).length, plans.length);
 }
 
-/** Attempts / plans. */
+/** Counted attempts / plans. */
 export function averageIterations(plans: PlanOutcome[]): Average {
-    const sum = plans.reduce((total, { attempts }) => total + attempts.length, 0);
+    const sum = plans.reduce((total, plan) => total + counted(plan).length, 0);
     return { sum, of: plans.length, value: plans.length > 0 ? sum / plans.length : undefined };
 }
 

@@ -87,9 +87,9 @@ export interface PlanRecord extends PlanOutcome {
 export interface AttemptRecord {
     number: number;
     steps: PlanStep[];
-    /** Whether its steps all ran; otherwise the mistake it stopped at, and why. */
+    /** Whether its steps all ran; otherwise the mistake it stopped at ('input': the call's input was rejected), and why. */
     ran: boolean;
-    mistake?: 'tool' | 'syntax';
+    mistake?: 'tool' | 'syntax' | 'input';
     reason?: string;
     /** The errors the plan brought into the document, by kind; none when it did not run (nothing was checked). */
     newErrors: { kind: Problem['kind'], message: string }[];

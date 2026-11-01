@@ -6,9 +6,12 @@ import {
     type AttemptOutcome, type PlanOutcome
 } from './metrics.ts';
 
-const valid: AttemptOutcome = { ran: true, newErrors: [] };
-const stopped: AttemptOutcome = { ran: false, newErrors: [] };            // a wrong tool call or a syntax mistake
-const withErrors: AttemptOutcome = { ran: true, newErrors: ['an error'] };  // ran, but brought an error
+const steps = ['a step'];
+const valid: AttemptOutcome = { steps, ran: true, newErrors: [] };
+const stopped: AttemptOutcome = { steps, ran: false, newErrors: [] };            // a wrong tool call or a syntax mistake
+const withErrors: AttemptOutcome = { steps, ran: true, newErrors: ['an error'] };  // ran, but brought an error
+const empty: AttemptOutcome = { steps: [], ran: false, newErrors: [] };          // a plan without steps: not counted
+const rejected: AttemptOutcome = { steps: [], ran: false, mistake: 'input', newErrors: [] };   // its input was rejected
 
 describe('isValid', () => {
     it('needs the steps to run and no new error', () => {
@@ -57,6 +60,20 @@ describe('edge cases', () => {
         const plans: PlanOutcome[] = [{ attempts: [] }, { attempts: [valid] }];
         expect(firstPassValidity(plans)).toEqual({ count: 1, of: 2, value: 0.5 });
         expect(averageIterations(plans)).toEqual({ sum: 1, of: 2, value: 0.5 });
+    });
+
+    it('a simulation of an empty plan is not counted: the attempt after it is the first', () => {
+        const plans: PlanOutcome[] = [{ attempts: [empty, valid] }, { attempts: [empty, stopped, valid] }, { attempts: [empty] }];
+        expect(firstPassValidity(plans)).toEqual({ count: 1, of: 3, value: 1 / 3 });
+        expect(finalValidationSuccess(plans)).toEqual({ count: 2, of: 3, value: 2 / 3 });
+        expect(averageIterations(plans)).toEqual({ sum: 3, of: 3, value: 1 });
+    });
+
+    it('a call whose input was rejected is a failed attempt', () => {
+        const plans: PlanOutcome[] = [{ attempts: [rejected] }, { attempts: [rejected, valid] }];
+        expect(firstPassValidity(plans)).toEqual({ count: 0, of: 2, value: 0 });
+        expect(finalValidationSuccess(plans)).toEqual({ count: 1, of: 2, value: 0.5 });
+        expect(averageIterations(plans)).toEqual({ sum: 3, of: 2, value: 1.5 });
     });
 
     it('no plans: no values', () => {

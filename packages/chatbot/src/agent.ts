@@ -83,13 +83,10 @@ function chatSettings(effort: ChatEffort): ModelSettings {
     return { ...NOT_STORED, ...(effort === 'none' ? NO_REASONING : { reasoning: { effort } }) };
 }
 /**
- * The planning agent reasons a little and simulates one plan at a time. Its first move is a simulation, so that it
- * proposes a plan before anything else; after that it chooses (the SDK resets the tool choice after a tool call).
- * Claude, through the Responses API, takes no tool choice but auto: there its prompt alone has it simulate first.
+ * The planning agent reasons a little and simulates one plan at a time. It chooses its moves itself: a simulation
+ * forced first came before it read anything, and was an empty plan.
  */
-const PLANNING_SETTINGS: ModelSettings = {
-    ...NOT_STORED, reasoning: { effort: 'low' }, parallelToolCalls: false, ...(!CLAUDE && { toolChoice: 'simulate_plan' })
-};
+const PLANNING_SETTINGS: ModelSettings = { ...NOT_STORED, reasoning: { effort: 'low' }, parallelToolCalls: false };
 
 /** How many turns the planning agent has for a plan; each reading and each simulation takes one. */
 const PLANNING_TURNS = 20;
