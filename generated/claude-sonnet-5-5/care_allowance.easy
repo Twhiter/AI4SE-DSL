@@ -1,0 +1,261 @@
+Entity Application {
+    Actions: start_application, submit_information, determine_minor, verify_certificate, check_insurance_membership, reject_application, open_case, assess_developmental_disability, assess_life_threatening_supervision, assess_illness_or_disability, assess_continuous_supervision, assess_caregiver_absence, assess_second_caregiver, request_similar_cases, request_relevant_law, find_similar_cases, find_relevant_law, review_similar_cases, review_relevant_law, grant_care_allowance, summarize_case, issue_assessment_and_justification
+    Data properties: child_age: int, number_of_caregivers: int, medical_certificate: string, is_minor: boolean, certificate_valid: boolean, has_insurance_membership: boolean, has_developmental_disability: boolean, needs_life_threatening_supervision: boolean, has_illness_or_disability: boolean, needs_continuous_supervision: boolean, caregiver_absence_required: boolean, second_caregiver_justified: boolean
+    States: Submitted, Prechecked, Case_opened, Rejected, Granted
+}
+
+Role Citizen.
+
+Role Caseworker.
+
+Role Robot.
+
+Role Verification_System.
+
+Action start_application { Initiators: Citizen, Initially available: true }
+
+Action submit_information { Initiators: Citizen, Input: child_age: int, medical_certificate: string, number_of_caregivers: int }
+
+Action determine_minor { Initiators: Robot, Output: is_minor: boolean }
+
+Action verify_certificate { Initiators: Robot, Observers: Verification_System, Output: certificate_valid: boolean }
+
+Action check_insurance_membership { Initiators: Robot, Output: has_insurance_membership: boolean }
+
+Action open_case { Initiators: Caseworker }
+
+Action assess_developmental_disability { Initiators: Caseworker, Input: decision: boolean }
+
+Action assess_life_threatening_supervision { Initiators: Caseworker, Input: decision: boolean }
+
+Action assess_illness_or_disability { Initiators: Caseworker, Input: decision: boolean }
+
+Action assess_continuous_supervision { Initiators: Caseworker, Input: decision: boolean }
+
+Action assess_caregiver_absence { Initiators: Caseworker, Input: decision: boolean }
+
+Action assess_second_caregiver { Initiators: Caseworker, Input: decision: boolean }
+
+Action reject_application { Initiators: Caseworker }
+
+Action request_similar_cases { Initiators: Caseworker }
+
+Action request_relevant_law { Initiators: Caseworker }
+
+Action find_similar_cases { Initiators: Robot }
+
+Action find_relevant_law { Initiators: Robot }
+
+Action review_similar_cases { Initiators: Caseworker }
+
+Action review_relevant_law { Initiators: Caseworker }
+
+Action grant_care_allowance { Initiators: Caseworker }
+
+Action summarize_case { Initiators: Robot }
+
+Action issue_assessment_and_justification { Initiators: Caseworker, Observers: Citizen }
+
+Declarative specification Application is Submitted means { submit_information was executed AND its child_age is not undefined AND its medical_certificate is not undefined AND its number_of_caregivers is not undefined }
+
+Declarative specification Application is Prechecked means { it is Submitted AND determine_minor was executed AND verify_certificate was executed AND check_insurance_membership was executed AND its is_minor is not undefined AND its certificate_valid is not undefined AND its has_insurance_membership is not undefined }
+
+Declarative specification Application is Case_opened means { it is Prechecked AND open_case was executed }
+
+Declarative specification Application is Rejected means { it is Submitted AND reject_application was executed }
+
+Declarative specification Application is Granted means { it is Case_opened AND grant_care_allowance was executed }
+
+Action submit_information is enabled means { start_application was executed or is not available }
+
+Action determine_minor is enabled means { submit_information was executed or is not available }
+
+Action verify_certificate is enabled means { submit_information was executed or is not available }
+
+Action check_insurance_membership is enabled means { submit_information was executed or is not available }
+
+Action assess_developmental_disability is enabled means { open_case was executed or is not available AND review_similar_cases is not pending or is not available AND review_relevant_law is not pending or is not available }
+
+Action assess_life_threatening_supervision is enabled means { open_case was executed or is not available AND review_similar_cases is not pending or is not available AND review_relevant_law is not pending or is not available }
+
+Action assess_illness_or_disability is enabled means { open_case was executed or is not available AND review_similar_cases is not pending or is not available AND review_relevant_law is not pending or is not available }
+
+Action assess_continuous_supervision is enabled means { open_case was executed or is not available AND review_similar_cases is not pending or is not available AND review_relevant_law is not pending or is not available }
+
+Action assess_caregiver_absence is enabled means { open_case was executed or is not available AND review_similar_cases is not pending or is not available AND review_relevant_law is not pending or is not available }
+
+Action assess_second_caregiver is enabled means { open_case was executed or is not available AND review_similar_cases is not pending or is not available AND review_relevant_law is not pending or is not available }
+
+Action reject_application is enabled means { verify_certificate was executed or is not available AND check_insurance_membership was executed or is not available }
+
+Action request_similar_cases is enabled means { open_case was executed or is not available }
+
+Action request_relevant_law is enabled means { open_case was executed or is not available }
+
+Action find_similar_cases is enabled means { request_similar_cases was executed or is not available }
+
+Action find_relevant_law is enabled means { request_relevant_law was executed or is not available }
+
+Action review_similar_cases is enabled means { find_similar_cases was executed or is not available }
+
+Action review_relevant_law is enabled means { find_relevant_law was executed or is not available }
+
+Action grant_care_allowance is enabled means { open_case was executed or is not available AND assess_caregiver_absence was executed or is not available AND review_similar_cases is not pending or is not available AND review_relevant_law is not pending or is not available }
+
+Action summarize_case is enabled means { grant_care_allowance was executed or is not available }
+
+Action issue_assessment_and_justification is enabled means { summarize_case was executed or is not available }
+
+Action open_case is enabled means { determine_minor was executed or is not available AND verify_certificate was executed or is not available AND check_insurance_membership was executed or is not available }
+
+Scenario: Submit information
+Given start_application was executed
+When submit_information is executed with inputs child_age, medical_certificate, number_of_caregivers
+Then the Application's child_age is set to child_age
+    AND the Application's medical_certificate is set to medical_certificate
+    AND the Application's number_of_caregivers is set to number_of_caregivers
+    AND determine_minor is available
+    AND verify_certificate is available
+    AND check_insurance_membership is available
+    AND submit_information is not available.
+
+Scenario: Start application
+Given start_application is enabled
+When start_application is executed
+Then submit_information is available.
+
+Scenario: Determine minor
+Given submit_information was executed
+When determine_minor is executed with outputs is_minor
+Then the Application's is_minor is set to is_minor
+    AND determine_minor is not available.
+
+Scenario: Verify certificate fake
+Given submit_information was executed
+When verify_certificate is executed with outputs certificate_valid = false
+Then the Application's certificate_valid is set to certificate_valid
+    AND reject_application is available
+    AND grant_care_allowance is not available
+    AND verify_certificate is not available.
+
+Scenario: Check insurance no membership
+Given submit_information was executed
+When check_insurance_membership is executed with outputs has_insurance_membership = false
+Then the Application's has_insurance_membership is set to has_insurance_membership
+    AND reject_application is available
+    AND grant_care_allowance is not available
+    AND check_insurance_membership is not available.
+
+Scenario: Open case after precheck
+  Given determine_minor was executed
+    AND verify_certificate was executed
+    AND check_insurance_membership was executed
+  When open_case is executed
+  Then request_similar_cases is available
+    AND request_relevant_law is available
+    AND assess_developmental_disability is available
+    AND assess_life_threatening_supervision is available
+    AND assess_illness_or_disability is available
+    AND assess_continuous_supervision is available
+    AND assess_caregiver_absence is available
+    AND assess_second_caregiver is available
+    AND open_case is not available.
+
+Scenario: Assess developmental disability fails
+Given open_case was executed
+    AND the Application's is_minor equal to false
+When assess_developmental_disability is executed with inputs decision = false
+Then the Application's has_developmental_disability is set to decision
+    AND reject_application is available
+    AND grant_care_allowance is not available.
+
+Scenario: Assess life threatening supervision fails
+Given open_case was executed
+    AND the Application's is_minor equal to false
+When assess_life_threatening_supervision is executed with inputs decision = false
+Then the Application's needs_life_threatening_supervision is set to decision
+    AND reject_application is available
+    AND grant_care_allowance is not available.
+
+Scenario: Assess illness or disability fails
+Given open_case was executed
+    AND the Application's is_minor equal to true
+When assess_illness_or_disability is executed with inputs decision = false
+Then the Application's has_illness_or_disability is set to decision
+    AND reject_application is available
+    AND grant_care_allowance is not available.
+
+Scenario: Assess continuous supervision fails
+Given open_case was executed
+    AND the Application's is_minor equal to true
+When assess_continuous_supervision is executed with inputs decision = false
+Then the Application's needs_continuous_supervision is set to decision
+    AND reject_application is available
+    AND grant_care_allowance is not available.
+
+Scenario: Assess caregiver absence fails
+Given open_case was executed
+When assess_caregiver_absence is executed with inputs decision = false
+Then the Application's caregiver_absence_required is set to decision
+    AND reject_application is available
+    AND grant_care_allowance is not available.
+
+Scenario: Assess second caregiver fails
+Given open_case was executed
+    AND the Application's number_of_caregivers larger than 1
+When assess_second_caregiver is executed with inputs decision = false
+Then the Application's second_caregiver_justified is set to decision
+    AND reject_application is available
+    AND grant_care_allowance is not available.
+
+Scenario: Grant for adult
+Given open_case was executed
+    AND the Application's is_minor equal to false
+    AND the Application's has_developmental_disability equal to true
+    AND the Application's needs_life_threatening_supervision equal to true
+    AND the Application's caregiver_absence_required equal to true
+When grant_care_allowance is executed
+Then summarize_case is available
+    AND grant_care_allowance is not available.
+
+Scenario: Grant for minor
+Given open_case was executed
+    AND the Application's is_minor equal to true
+    AND the Application's has_illness_or_disability equal to true
+    AND the Application's needs_continuous_supervision equal to true
+    AND the Application's caregiver_absence_required equal to true
+When grant_care_allowance is executed
+Then summarize_case is available
+    AND grant_care_allowance is not available.
+
+Scenario: Request similar cases
+Given open_case was executed
+When request_similar_cases is executed
+Then find_similar_cases is available.
+
+Scenario: Find similar cases
+Given request_similar_cases was executed
+When find_similar_cases is executed
+Then review_similar_cases is available
+    AND find_similar_cases is not available.
+
+Scenario: Review similar cases
+Given find_similar_cases was executed
+When review_similar_cases is executed
+Then review_similar_cases is not available.
+
+Scenario: Request relevant law
+Given open_case was executed
+When request_relevant_law is executed
+Then find_relevant_law is available.
+
+Scenario: Find relevant law
+Given request_relevant_law was executed
+When find_relevant_law is executed
+Then review_relevant_law is available
+    AND find_relevant_law is not available.
+
+Scenario: Review relevant law
+Given find_relevant_law was executed
+When review_relevant_law is executed
+Then review_relevant_law is not available.
