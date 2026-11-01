@@ -1,0 +1,462 @@
+Entity Care allowance application {
+    Actions: start application, submit information, determine minor status, verify medical certificate, check national insurance membership, open case, assess developmental disability, assess life threatening continuous supervision and care, assess_illness_or_disability, assess continuous supervision, determine_caregiver_absence_from_work_requirement, assess second caregiver justification, request similar cases, request relevant laws, find similar cases, find relevant laws, review similar cases, review relevant laws, reject application, grant care allowance, summarize case, issue_assessment_and_justification, view justification
+    Data properties: child_age: int, medical_certificate: string, number_of_caregivers: int, child_is_minor: boolean, certificate_is_genuine: boolean, child_has_national_insurance_membership: boolean, has_developmental_disability: boolean, needs_life_threatening_continuous_supervision_and_care: boolean, has_illness_or_disability: boolean, needs_continuous_supervision: boolean, care_requires_absence_from_work: boolean, second_caregiver_is_justified: boolean, assessment: string, justification: string
+    States: submitted, prechecked, granted, rejected
+}
+
+Role Citizen.
+
+Role Caseworker.
+
+Role System robot.
+
+Role Verification system.
+
+Action start application { Initiators: Citizen, Initially available: true }
+
+Action submit information { Initiators: Citizen, Observers: System robot, Input: child_age: int, medical_certificate: string, number_of_caregivers: int }
+
+Action determine minor status { Initiators: System robot, Observers: Caseworker, Output: child_is_minor: boolean }
+
+Action verify medical certificate { Initiators: System robot, Observers: Verification system, Caseworker, Output: certificate_is_genuine: boolean }
+
+Action check national insurance membership { Initiators: System robot, Observers: Caseworker, Output: child_has_national_insurance_membership: boolean }
+
+Action open case { Initiators: Caseworker }
+
+Action assess developmental disability { Initiators: Caseworker, Input: has_developmental_disability: boolean }
+
+Action assess life threatening continuous supervision and care { Initiators: Caseworker, Input: needs_life_threatening_continuous_supervision_and_care: boolean }
+
+Action assess_illness_or_disability { Initiators: Caseworker, Input: has_illness_or_disability: boolean }
+
+Action assess continuous supervision { Initiators: Caseworker, Input: needs_continuous_supervision: boolean }
+
+Action determine_caregiver_absence_from_work_requirement { Initiators: Caseworker, Input: care_requires_absence_from_work: boolean }
+
+Action assess second caregiver justification { Initiators: Caseworker, Input: second_caregiver_is_justified: boolean }
+
+Action request similar cases { Initiators: Caseworker, Observers: System robot }
+
+Action request relevant laws { Initiators: Caseworker, Observers: System robot }
+
+Action find similar cases { Initiators: System robot, Observers: Caseworker }
+
+Action find relevant laws { Initiators: System robot, Observers: Caseworker }
+
+Action review similar cases { Initiators: Caseworker }
+
+Action review relevant laws { Initiators: Caseworker }
+
+Action reject application { Initiators: Caseworker }
+
+Action grant care allowance { Initiators: Caseworker }
+
+Action summarize case { Initiators: System robot, Observers: Caseworker }
+
+Action issue_assessment_and_justification { Initiators: Caseworker, Observers: Citizen, Input: assessment: string, justification: string }
+
+Action view justification { Initiators: Citizen }
+
+Declarative specification Care allowance application is submitted means { start application was executed AND submit information was executed AND its child_age is not undefined AND its medical_certificate is not undefined AND its number_of_caregivers is not undefined }
+
+Declarative specification Care allowance application is prechecked means { it is submitted AND determine minor status was executed AND verify medical certificate was executed AND check national insurance membership was executed AND its child_is_minor is not undefined AND its certificate_is_genuine is not undefined AND its child_has_national_insurance_membership is not undefined }
+
+Declarative specification Care allowance application is granted means { it is prechecked AND grant care allowance was executed AND reject application was not executed AND its certificate_is_genuine equal to true AND its child_has_national_insurance_membership equal to true AND its care_requires_absence_from_work equal to true }
+
+Declarative specification Care allowance application is rejected means { it is prechecked AND reject application was executed AND grant care allowance was not executed }
+
+Action submit information is enabled means { start application was executed or is not available }
+
+Action determine minor status is enabled means { submit information was executed or is not available }
+
+Action verify medical certificate is enabled means { submit information was executed or is not available }
+
+Action check national insurance membership is enabled means { submit information was executed or is not available }
+
+Action open case is enabled means { determine minor status was executed or is not available AND verify medical certificate was executed or is not available AND check national insurance membership was executed or is not available }
+
+Action assess developmental disability is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant laws is not pending or is not available }
+
+Action assess life threatening continuous supervision and care is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant laws is not pending or is not available }
+
+Action assess_illness_or_disability is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant laws is not pending or is not available }
+
+Action assess continuous supervision is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant laws is not pending or is not available }
+
+Action determine_caregiver_absence_from_work_requirement is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant laws is not pending or is not available }
+
+Action assess second caregiver justification is enabled means { open case was executed or is not available AND review similar cases is not pending or is not available AND review relevant laws is not pending or is not available }
+
+Action request similar cases is enabled means { open case was executed or is not available }
+
+Action request relevant laws is enabled means { open case was executed or is not available }
+
+Action find similar cases is enabled means { request similar cases was executed or is not available }
+
+Action find relevant laws is enabled means { request relevant laws was executed or is not available }
+
+Action review similar cases is enabled means { find similar cases was executed or is not available }
+
+Action review relevant laws is enabled means { find relevant laws was executed or is not available }
+
+Scenario: Start application enables submission
+Given
+  start application is available
+  AND start application was not executed
+When start application is executed
+Then
+  start application is not available
+  AND submit information is available
+  AND submit information is pending.
+
+Scenario: Submit information initiates robot prechecks
+Given
+  start application was executed
+  AND submit information is available
+  AND submit information was not executed
+When submit information is executed with inputs child_age, medical_certificate, number_of_caregivers
+Then
+  the Care allowance application's child_age is set to child_age
+  AND the Care allowance application's medical_certificate is set to medical_certificate
+  AND the Care allowance application's number_of_caregivers is set to number_of_caregivers
+  AND submit information is not available
+  AND determine minor status is available
+  AND determine minor status is pending
+  AND verify medical certificate is available
+  AND verify medical certificate is pending
+  AND check national insurance membership is available
+  AND check national insurance membership is pending.
+
+Scenario: Determine minor status records robot finding
+Given
+  submit information was executed
+  AND determine minor status is available
+  AND determine minor status was not executed
+When determine minor status is executed with outputs child_is_minor
+Then
+  the Care allowance application's child_is_minor is set to child_is_minor
+  AND determine minor status is not available.
+
+Scenario: Verify medical certificate records robot finding
+Given
+  submit information was executed
+  AND verify medical certificate is available
+  AND verify medical certificate was not executed
+When verify medical certificate is executed with outputs certificate_is_genuine
+Then
+  the Care allowance application's certificate_is_genuine is set to certificate_is_genuine
+  AND verify medical certificate is not available.
+
+Scenario: Check national insurance membership records robot finding
+Given
+  submit information was executed
+  AND check national insurance membership is available
+  AND check national insurance membership was not executed
+When check national insurance membership is executed with outputs child_has_national_insurance_membership
+Then
+  the Care allowance application's child_has_national_insurance_membership is set to child_has_national_insurance_membership
+  AND check national insurance membership is not available.
+
+Scenario: Minor status completes successful prechecks
+Given
+  determine minor status is available
+  AND determine minor status was not executed
+  AND verify medical certificate was executed
+  AND check national insurance membership was executed
+  AND the Care allowance application's certificate_is_genuine equal to true
+  AND the Care allowance application's child_has_national_insurance_membership equal to true
+When determine minor status is executed with outputs child_is_minor
+Then
+  open case is available
+  AND open case is pending.
+
+Scenario: Certificate verification completes successful prechecks
+Given
+  verify medical certificate is available
+  AND verify medical certificate was not executed
+  AND determine minor status was executed
+  AND check national insurance membership was executed
+  AND the Care allowance application's child_has_national_insurance_membership equal to true
+When verify medical certificate is executed with outputs certificate_is_genuine = true
+Then
+  open case is available
+  AND open case is pending.
+
+Scenario: Membership check completes successful prechecks
+Given
+  check national insurance membership is available
+  AND check national insurance membership was not executed
+  AND determine minor status was executed
+  AND verify medical certificate was executed
+  AND the Care allowance application's certificate_is_genuine equal to true
+When check national insurance membership is executed with outputs child_has_national_insurance_membership = true
+Then
+  open case is available
+  AND open case is pending.
+
+Scenario: Fake certificate requires rejection
+Given
+  verify medical certificate is available
+  AND verify medical certificate was not executed
+When verify medical certificate is executed with outputs certificate_is_genuine = false
+Then
+  reject application is available
+  AND reject application is pending
+  AND grant care allowance is not available
+  AND open case is not available.
+
+Scenario: Missing insurance membership requires rejection
+Given
+  check national insurance membership is available
+  AND check national insurance membership was not executed
+When check national insurance membership is executed with outputs child_has_national_insurance_membership = false
+Then
+  reject application is available
+  AND reject application is pending
+  AND grant care allowance is not available
+  AND open case is not available.
+
+Scenario: Open case begins manual assessment stage
+Given
+  the Care allowance application is prechecked
+  AND the Care allowance application's certificate_is_genuine equal to true
+  AND the Care allowance application's child_has_national_insurance_membership equal to true
+  AND open case is available
+  AND open case was not executed
+When open case is executed
+Then
+  open case is not available
+  AND determine_caregiver_absence_from_work_requirement is available
+  AND determine_caregiver_absence_from_work_requirement is pending
+  AND request similar cases is available
+  AND request relevant laws is available.
+
+Scenario: Open adult case requires adult assessments
+Given
+  the Care allowance application is prechecked
+  AND the Care allowance application's certificate_is_genuine equal to true
+  AND the Care allowance application's child_has_national_insurance_membership equal to true
+  AND the Care allowance application's child_is_minor equal to false
+  AND open case is available
+  AND open case was not executed
+When open case is executed
+Then
+  assess developmental disability is available
+  AND assess developmental disability is pending
+  AND assess life threatening continuous supervision and care is available
+  AND assess life threatening continuous supervision and care is pending.
+
+Scenario: Open minor case requires minor assessments
+Given
+  the Care allowance application is prechecked
+  AND the Care allowance application's certificate_is_genuine equal to true
+  AND the Care allowance application's child_has_national_insurance_membership equal to true
+  AND the Care allowance application's child_is_minor equal to true
+  AND open case is available
+  AND open case was not executed
+When open case is executed
+Then
+  assess_illness_or_disability is available
+  AND assess_illness_or_disability is pending
+  AND assess continuous supervision is available
+  AND assess continuous supervision is pending.
+
+Scenario: Open case with multiple caregivers requires justification assessment
+Given
+  the Care allowance application is prechecked
+  AND the Care allowance application's certificate_is_genuine equal to true
+  AND the Care allowance application's child_has_national_insurance_membership equal to true
+  AND the Care allowance application's number_of_caregivers larger than 1
+  AND open case is available
+  AND open case was not executed
+When open case is executed
+Then
+  assess second caregiver justification is available
+  AND assess second caregiver justification is pending.
+
+Scenario: Adult developmental disability assessment records finding
+Given
+  open case was executed
+  AND the Care allowance application's child_is_minor equal to false
+  AND assess developmental disability is available
+  AND assess developmental disability was not executed
+When assess developmental disability is executed with inputs has_developmental_disability
+Then
+  the Care allowance application's has_developmental_disability is set to has_developmental_disability
+  AND assess developmental disability is not available.
+
+Scenario: Adult life threatening supervision and care assessment records finding
+Given
+  open case was executed
+  AND the Care allowance application's child_is_minor equal to false
+  AND assess life threatening continuous supervision and care is available
+  AND assess life threatening continuous supervision and care was not executed
+When assess life threatening continuous supervision and care is executed with inputs needs_life_threatening_continuous_supervision_and_care
+Then
+  the Care allowance application's needs_life_threatening_continuous_supervision_and_care is set to needs_life_threatening_continuous_supervision_and_care
+  AND assess life threatening continuous supervision and care is not available.
+
+Scenario: Minor illness or disability assessment records finding
+Given
+  open case was executed
+  AND the Care allowance application's child_is_minor equal to true
+  AND assess_illness_or_disability is available
+  AND assess_illness_or_disability was not executed
+When assess_illness_or_disability is executed with inputs has_illness_or_disability
+Then
+  the Care allowance application's has_illness_or_disability is set to has_illness_or_disability
+  AND assess_illness_or_disability is not available.
+
+Scenario: Minor continuous supervision assessment records finding
+Given
+  open case was executed
+  AND the Care allowance application's child_is_minor equal to true
+  AND assess continuous supervision is available
+  AND assess continuous supervision was not executed
+When assess continuous supervision is executed with inputs needs_continuous_supervision
+Then
+  the Care allowance application's needs_continuous_supervision is set to needs_continuous_supervision
+  AND assess continuous supervision is not available.
+
+Scenario: Adult developmental disability failure requires rejection
+Given
+  open case was executed
+  AND the Care allowance application's child_is_minor equal to false
+  AND assess developmental disability is available
+  AND assess developmental disability was not executed
+When assess developmental disability is executed with inputs has_developmental_disability = false
+Then
+  reject application is available
+  AND reject application is pending
+  AND grant care allowance is not available.
+
+Scenario: Adult life threatening supervision and care failure requires rejection
+Given
+  open case was executed
+  AND the Care allowance application's child_is_minor equal to false
+  AND assess life threatening continuous supervision and care is available
+  AND assess life threatening continuous supervision and care was not executed
+When assess life threatening continuous supervision and care is executed with inputs needs_life_threatening_continuous_supervision_and_care = false
+Then
+  reject application is available
+  AND reject application is pending
+  AND grant care allowance is not available.
+
+Scenario: Minor illness or disability failure requires rejection
+Given
+  open case was executed
+  AND the Care allowance application's child_is_minor equal to true
+  AND assess_illness_or_disability is available
+  AND assess_illness_or_disability was not executed
+When assess_illness_or_disability is executed with inputs has_illness_or_disability = false
+Then
+  reject application is available
+  AND reject application is pending
+  AND grant care allowance is not available.
+
+Scenario: Minor continuous supervision failure requires rejection
+Given
+  open case was executed
+  AND the Care allowance application's child_is_minor equal to true
+  AND assess continuous supervision is available
+  AND assess continuous supervision was not executed
+When assess continuous supervision is executed with inputs needs_continuous_supervision = false
+Then
+  reject application is available
+  AND reject application is pending
+  AND grant care allowance is not available.
+
+Scenario: Reject application completes rejection decision
+Given
+  reject application is available
+  AND reject application was not executed
+  AND grant care allowance was not executed
+When reject application is executed
+Then
+  reject application is not available
+  AND grant care allowance is not available.
+
+Scenario: Grant minor case with one caregiver
+Given
+  the Care allowance application's child_is_minor equal to true
+  AND the Care allowance application's has_illness_or_disability equal to true
+  AND the Care allowance application's needs_continuous_supervision equal to true
+  AND the Care allowance application's care_requires_absence_from_work equal to true
+  AND the Care allowance application's number_of_caregivers equal to 1
+When grant care allowance is executed
+Then
+  grant care allowance is not available
+  AND reject application is not available
+  AND summarize case is available
+  AND summarize case is pending.
+
+Scenario: Grant minor case with multiple caregivers
+Given
+  the Care allowance application's child_is_minor equal to true
+  AND the Care allowance application's has_illness_or_disability equal to true
+  AND the Care allowance application's needs_continuous_supervision equal to true
+  AND the Care allowance application's care_requires_absence_from_work equal to true
+  AND the Care allowance application's number_of_caregivers larger than 1
+  AND the Care allowance application's second_caregiver_is_justified equal to true
+When grant care allowance is executed
+Then
+  grant care allowance is not available
+  AND reject application is not available
+  AND summarize case is available
+  AND summarize case is pending.
+
+Scenario: Grant adult case with one caregiver
+Given
+  the Care allowance application's child_is_minor equal to false
+  AND the Care allowance application's has_developmental_disability equal to true
+  AND the Care allowance application's needs_life_threatening_continuous_supervision_and_care equal to true
+  AND the Care allowance application's care_requires_absence_from_work equal to true
+  AND the Care allowance application's number_of_caregivers equal to 1
+When grant care allowance is executed
+Then
+  grant care allowance is not available
+  AND reject application is not available
+  AND summarize case is available
+  AND summarize case is pending.
+
+Scenario: Grant adult case with multiple caregivers
+Given
+  the Care allowance application's child_is_minor equal to false
+  AND the Care allowance application's has_developmental_disability equal to true
+  AND the Care allowance application's needs_life_threatening_continuous_supervision_and_care equal to true
+  AND the Care allowance application's care_requires_absence_from_work equal to true
+  AND the Care allowance application's number_of_caregivers larger than 1
+  AND the Care allowance application's second_caregiver_is_justified equal to true
+When grant care allowance is executed
+Then
+  grant care allowance is not available
+  AND reject application is not available
+  AND summarize case is available
+  AND summarize case is pending.
+
+Scenario: Case summarization requires assessment and justification
+Given
+  grant care allowance was executed
+When summarize case is executed
+Then
+  summarize case is not available
+  AND issue_assessment_and_justification is available
+  AND issue_assessment_and_justification is pending.
+
+Scenario: Issue assessment and justification enables citizen viewing
+Given
+  summarize case was executed
+When issue_assessment_and_justification is executed with inputs assessment, justification
+Then
+  the Care allowance application's assessment is set to assessment
+  AND the Care allowance application's justification is set to justification
+  AND issue_assessment_and_justification is not available
+  AND view justification is available.
+
+Scenario: Citizen views issued justification
+Given
+  issue_assessment_and_justification was executed
+When view justification is executed
+Then
+  view justification is available.

@@ -1,0 +1,2115 @@
+<dcrgraph title="Care allowance" dataTypesStatus="hide" filterLevel="-1" insightFilter="false" zoomLevel="0" formGroupStyle="Normal" formLayoutStyle="Horizontal" formShowPendingCount="true" graphBG="#f1f6fe" graphType="0" exercise="false" version="1.1">
+    <specification>
+        <resources>
+            <events>
+                <event id="Data" type="nesting">
+                    <precondition message=""/>
+                    <custom>
+                        <visualization>
+                            <location xLoc="0" yLoc="0"/>
+                            <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                        </visualization>
+                        <roles/>
+                        <readRoles/>
+                        <groups>
+                            <group/>
+                        </groups>
+                        <phases>
+                            <phase/>
+                        </phases>
+                        <eventType/>
+                        <eventScope>private</eventScope>
+                        <eventTypeData/>
+                        <eventDescription/>
+                        <purpose/>
+                        <guide/>
+                        <insight use="false"/>
+                        <level>100</level>
+                        <sequence>1</sequence>
+                        <costs>0</costs>
+                        <eventData>
+                            <styles/>
+                        </eventData>
+                        <interfaces/>
+                    </custom>
+                    <event id="child_age">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="30" yLoc="50"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles>
+                                <role description="" specification="">Care allowance application</role>
+                            </roles>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>2</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <dataType sequence="2" width="small" min="NaN" max="NaN" placeholder="" hinttext="">int</dataType>
+                                <validationRules/>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                    </event>
+                    <event id="medical_certificate">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="190" yLoc="50"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles>
+                                <role description="" specification="">Care allowance application</role>
+                            </roles>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>3</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <dataType sequence="3" width="small" min="NaN" max="NaN" placeholder="" hinttext="">text</dataType>
+                                <validationRules/>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                    </event>
+                    <event id="number_of_caregivers">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="350" yLoc="50"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles>
+                                <role description="" specification="">Care allowance application</role>
+                            </roles>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>4</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <dataType sequence="4" width="small" min="NaN" max="NaN" placeholder="" hinttext="">int</dataType>
+                                <validationRules/>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                    </event>
+                    <event id="child_is_minor">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="510" yLoc="50"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles>
+                                <role description="" specification="">Care allowance application</role>
+                            </roles>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>5</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <dataType sequence="5" width="small" placeholder="" hinttext="" dataSetList="" radio="horizontal" multiple="false" format="bool">choice</dataType>
+                                <dictionary>
+                                    <item label="True" value="true"/>
+                                    <item label="False" value="false"/>
+                                </dictionary>
+                                <validationRules/>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                    </event>
+                    <event id="certificate_is_genuine">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="670" yLoc="50"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles>
+                                <role description="" specification="">Care allowance application</role>
+                            </roles>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>6</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <dataType sequence="6" width="small" placeholder="" hinttext="" dataSetList="" radio="horizontal" multiple="false" format="bool">choice</dataType>
+                                <dictionary>
+                                    <item label="True" value="true"/>
+                                    <item label="False" value="false"/>
+                                </dictionary>
+                                <validationRules/>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                    </event>
+                    <event id="child_has_national_insurance_membership">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="830" yLoc="50"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles>
+                                <role description="" specification="">Care allowance application</role>
+                            </roles>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>7</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <dataType sequence="7" width="small" placeholder="" hinttext="" dataSetList="" radio="horizontal" multiple="false" format="bool">choice</dataType>
+                                <dictionary>
+                                    <item label="True" value="true"/>
+                                    <item label="False" value="false"/>
+                                </dictionary>
+                                <validationRules/>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                    </event>
+                    <event id="has_developmental_disability">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="990" yLoc="50"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles>
+                                <role description="" specification="">Care allowance application</role>
+                            </roles>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>8</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <dataType sequence="8" width="small" placeholder="" hinttext="" dataSetList="" radio="horizontal" multiple="false" format="bool">choice</dataType>
+                                <dictionary>
+                                    <item label="True" value="true"/>
+                                    <item label="False" value="false"/>
+                                </dictionary>
+                                <validationRules/>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                    </event>
+                    <event id="needs_life_threatening_continuous_supervision_and_care">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="1150" yLoc="50"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles>
+                                <role description="" specification="">Care allowance application</role>
+                            </roles>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>9</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <dataType sequence="9" width="small" placeholder="" hinttext="" dataSetList="" radio="horizontal" multiple="false" format="bool">choice</dataType>
+                                <dictionary>
+                                    <item label="True" value="true"/>
+                                    <item label="False" value="false"/>
+                                </dictionary>
+                                <validationRules/>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                    </event>
+                    <event id="has_illness_or_disability">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="1310" yLoc="50"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles>
+                                <role description="" specification="">Care allowance application</role>
+                            </roles>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>10</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <dataType sequence="10" width="small" placeholder="" hinttext="" dataSetList="" radio="horizontal" multiple="false" format="bool">choice</dataType>
+                                <dictionary>
+                                    <item label="True" value="true"/>
+                                    <item label="False" value="false"/>
+                                </dictionary>
+                                <validationRules/>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                    </event>
+                    <event id="needs_continuous_supervision">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="1470" yLoc="50"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles>
+                                <role description="" specification="">Care allowance application</role>
+                            </roles>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>11</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <dataType sequence="11" width="small" placeholder="" hinttext="" dataSetList="" radio="horizontal" multiple="false" format="bool">choice</dataType>
+                                <dictionary>
+                                    <item label="True" value="true"/>
+                                    <item label="False" value="false"/>
+                                </dictionary>
+                                <validationRules/>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                    </event>
+                    <event id="care_requires_absence_from_work">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="1630" yLoc="50"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles>
+                                <role description="" specification="">Care allowance application</role>
+                            </roles>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>12</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <dataType sequence="12" width="small" placeholder="" hinttext="" dataSetList="" radio="horizontal" multiple="false" format="bool">choice</dataType>
+                                <dictionary>
+                                    <item label="True" value="true"/>
+                                    <item label="False" value="false"/>
+                                </dictionary>
+                                <validationRules/>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                    </event>
+                    <event id="second_caregiver_is_justified">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="1790" yLoc="50"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles>
+                                <role description="" specification="">Care allowance application</role>
+                            </roles>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>13</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <dataType sequence="13" width="small" placeholder="" hinttext="" dataSetList="" radio="horizontal" multiple="false" format="bool">choice</dataType>
+                                <dictionary>
+                                    <item label="True" value="true"/>
+                                    <item label="False" value="false"/>
+                                </dictionary>
+                                <validationRules/>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                    </event>
+                    <event id="assessment">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="1950" yLoc="50"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles>
+                                <role description="" specification="">Care allowance application</role>
+                            </roles>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>14</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <dataType sequence="14" width="small" min="NaN" max="NaN" placeholder="" hinttext="">text</dataType>
+                                <validationRules/>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                    </event>
+                    <event id="justification">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="2110" yLoc="50"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles>
+                                <role description="" specification="">Care allowance application</role>
+                            </roles>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>15</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <dataType sequence="15" width="small" min="NaN" max="NaN" placeholder="" hinttext="">text</dataType>
+                                <validationRules/>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                    </event>
+                </event>
+                <event id="start_application">
+                    <precondition message=""/>
+                    <custom>
+                        <visualization>
+                            <location xLoc="0" yLoc="824"/>
+                            <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                        </visualization>
+                        <roles>
+                            <role description="" specification="">Citizen</role>
+                        </roles>
+                        <readRoles/>
+                        <groups>
+                            <group/>
+                        </groups>
+                        <phases>
+                            <phase/>
+                        </phases>
+                        <eventType/>
+                        <eventScope>private</eventScope>
+                        <eventTypeData/>
+                        <eventDescription/>
+                        <purpose/>
+                        <guide/>
+                        <insight use="false"/>
+                        <level>100</level>
+                        <sequence>16</sequence>
+                        <costs>0</costs>
+                        <eventData>
+                            <styles/>
+                        </eventData>
+                        <interfaces/>
+                    </custom>
+                </event>
+                <event id="submit_information" type="form" cancelText="" sendText="" hideCancel="false" formShowInitialPhase="1">
+                    <precondition message=""/>
+                    <custom>
+                        <visualization>
+                            <location xLoc="190" yLoc="614"/>
+                            <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                        </visualization>
+                        <roles>
+                            <role description="" specification="">Citizen</role>
+                        </roles>
+                        <readRoles>
+                            <readRole description="" specification="">System robot</readRole>
+                        </readRoles>
+                        <groups>
+                            <group/>
+                        </groups>
+                        <phases>
+                            <phase/>
+                        </phases>
+                        <eventType/>
+                        <eventScope>private</eventScope>
+                        <eventTypeData/>
+                        <eventDescription/>
+                        <purpose/>
+                        <guide/>
+                        <insight use="false"/>
+                        <level>100</level>
+                        <sequence>17</sequence>
+                        <costs>0</costs>
+                        <eventData>
+                            <styles/>
+                        </eventData>
+                        <interfaces/>
+                    </custom>
+                    <event id="submit_information_child_age">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="210" yLoc="844"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles/>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>18</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <dataType sequence="18" width="small" min="NaN" max="NaN" placeholder="" hinttext="">int</dataType>
+                                <validationRules/>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                    </event>
+                    <event id="submit_information_medical_certificate">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="210" yLoc="1014"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles/>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>19</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <dataType sequence="19" width="small" min="NaN" max="NaN" placeholder="" hinttext="">text</dataType>
+                                <validationRules/>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                    </event>
+                    <event id="submit_information_number_of_caregivers">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="210" yLoc="674"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles/>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>20</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <dataType sequence="20" width="small" min="NaN" max="NaN" placeholder="" hinttext="">int</dataType>
+                                <validationRules/>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                    </event>
+                </event>
+                <event id="determine_minor_status" type="form" cancelText="" sendText="" hideCancel="false" formShowInitialPhase="1">
+                    <precondition message=""/>
+                    <custom>
+                        <visualization>
+                            <location xLoc="420" yLoc="1084"/>
+                            <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                        </visualization>
+                        <roles>
+                            <role description="" specification="">System robot</role>
+                        </roles>
+                        <readRoles>
+                            <readRole description="" specification="">Caseworker</readRole>
+                        </readRoles>
+                        <groups>
+                            <group/>
+                        </groups>
+                        <phases>
+                            <phase/>
+                        </phases>
+                        <eventType/>
+                        <eventScope>private</eventScope>
+                        <eventTypeData/>
+                        <eventDescription/>
+                        <purpose/>
+                        <guide/>
+                        <insight use="false"/>
+                        <level>100</level>
+                        <sequence>21</sequence>
+                        <costs>0</costs>
+                        <eventData>
+                            <styles/>
+                        </eventData>
+                        <interfaces/>
+                    </custom>
+                    <event id="determine_minor_status_output" type="nesting">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="440" yLoc="1144"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles/>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>22</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                        <event id="determine_minor_status_child_is_minor">
+                            <precondition message=""/>
+                            <custom>
+                                <visualization>
+                                    <location xLoc="460" yLoc="1204"/>
+                                    <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                                </visualization>
+                                <roles/>
+                                <readRoles/>
+                                <groups>
+                                    <group/>
+                                </groups>
+                                <phases>
+                                    <phase/>
+                                </phases>
+                                <eventType/>
+                                <eventScope>private</eventScope>
+                                <eventTypeData/>
+                                <eventDescription/>
+                                <purpose/>
+                                <guide/>
+                                <insight use="false"/>
+                                <level>100</level>
+                                <sequence>23</sequence>
+                                <costs>0</costs>
+                                <eventData>
+                                    <dataType sequence="23" width="small" placeholder="" hinttext="" dataSetList="" radio="horizontal" multiple="false" format="bool">choice</dataType>
+                                    <dictionary>
+                                        <item label="True" value="true"/>
+                                        <item label="False" value="false"/>
+                                    </dictionary>
+                                    <validationRules/>
+                                    <styles/>
+                                </eventData>
+                                <interfaces/>
+                            </custom>
+                        </event>
+                    </event>
+                </event>
+                <event id="verify_medical_certificate" type="form" cancelText="" sendText="" hideCancel="false" formShowInitialPhase="1">
+                    <precondition message=""/>
+                    <custom>
+                        <visualization>
+                            <location xLoc="420" yLoc="404"/>
+                            <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                        </visualization>
+                        <roles>
+                            <role description="" specification="">System robot</role>
+                        </roles>
+                        <readRoles>
+                            <readRole description="" specification="">Verification system</readRole>
+                            <readRole description="" specification="">Caseworker</readRole>
+                        </readRoles>
+                        <groups>
+                            <group/>
+                        </groups>
+                        <phases>
+                            <phase/>
+                        </phases>
+                        <eventType/>
+                        <eventScope>private</eventScope>
+                        <eventTypeData/>
+                        <eventDescription/>
+                        <purpose/>
+                        <guide/>
+                        <insight use="false"/>
+                        <level>100</level>
+                        <sequence>24</sequence>
+                        <costs>0</costs>
+                        <eventData>
+                            <styles/>
+                        </eventData>
+                        <interfaces/>
+                    </custom>
+                    <event id="verify_medical_certificate_output" type="nesting">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="440" yLoc="464"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles/>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>25</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                        <event id="verify_medical_certificate_certificate_is_genuine">
+                            <precondition message=""/>
+                            <custom>
+                                <visualization>
+                                    <location xLoc="460" yLoc="524"/>
+                                    <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                                </visualization>
+                                <roles/>
+                                <readRoles/>
+                                <groups>
+                                    <group/>
+                                </groups>
+                                <phases>
+                                    <phase/>
+                                </phases>
+                                <eventType/>
+                                <eventScope>private</eventScope>
+                                <eventTypeData/>
+                                <eventDescription/>
+                                <purpose/>
+                                <guide/>
+                                <insight use="false"/>
+                                <level>100</level>
+                                <sequence>26</sequence>
+                                <costs>0</costs>
+                                <eventData>
+                                    <dataType sequence="26" width="small" placeholder="" hinttext="" dataSetList="" radio="horizontal" multiple="false" format="bool">choice</dataType>
+                                    <dictionary>
+                                        <item label="True" value="true"/>
+                                        <item label="False" value="false"/>
+                                    </dictionary>
+                                    <validationRules/>
+                                    <styles/>
+                                </eventData>
+                                <interfaces/>
+                            </custom>
+                        </event>
+                    </event>
+                </event>
+                <event id="check_national_insurance_membership" type="form" cancelText="" sendText="" hideCancel="false" formShowInitialPhase="1">
+                    <precondition message=""/>
+                    <custom>
+                        <visualization>
+                            <location xLoc="420" yLoc="744"/>
+                            <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                        </visualization>
+                        <roles>
+                            <role description="" specification="">System robot</role>
+                        </roles>
+                        <readRoles>
+                            <readRole description="" specification="">Caseworker</readRole>
+                        </readRoles>
+                        <groups>
+                            <group/>
+                        </groups>
+                        <phases>
+                            <phase/>
+                        </phases>
+                        <eventType/>
+                        <eventScope>private</eventScope>
+                        <eventTypeData/>
+                        <eventDescription/>
+                        <purpose/>
+                        <guide/>
+                        <insight use="false"/>
+                        <level>100</level>
+                        <sequence>27</sequence>
+                        <costs>0</costs>
+                        <eventData>
+                            <styles/>
+                        </eventData>
+                        <interfaces/>
+                    </custom>
+                    <event id="check_national_insurance_membership_output" type="nesting">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="440" yLoc="804"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles/>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>28</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                        <event id="check_national_insurance_membership_child_has_national_insurance_membership">
+                            <precondition message=""/>
+                            <custom>
+                                <visualization>
+                                    <location xLoc="460" yLoc="864"/>
+                                    <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                                </visualization>
+                                <roles/>
+                                <readRoles/>
+                                <groups>
+                                    <group/>
+                                </groups>
+                                <phases>
+                                    <phase/>
+                                </phases>
+                                <eventType/>
+                                <eventScope>private</eventScope>
+                                <eventTypeData/>
+                                <eventDescription/>
+                                <purpose/>
+                                <guide/>
+                                <insight use="false"/>
+                                <level>100</level>
+                                <sequence>29</sequence>
+                                <costs>0</costs>
+                                <eventData>
+                                    <dataType sequence="29" width="small" placeholder="" hinttext="" dataSetList="" radio="horizontal" multiple="false" format="bool">choice</dataType>
+                                    <dictionary>
+                                        <item label="True" value="true"/>
+                                        <item label="False" value="false"/>
+                                    </dictionary>
+                                    <validationRules/>
+                                    <styles/>
+                                </eventData>
+                                <interfaces/>
+                            </custom>
+                        </event>
+                    </event>
+                </event>
+                <event id="open_case">
+                    <precondition message=""/>
+                    <custom>
+                        <visualization>
+                            <location xLoc="690" yLoc="1164"/>
+                            <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                        </visualization>
+                        <roles>
+                            <role description="" specification="">Caseworker</role>
+                        </roles>
+                        <readRoles/>
+                        <groups>
+                            <group/>
+                        </groups>
+                        <phases>
+                            <phase/>
+                        </phases>
+                        <eventType/>
+                        <eventScope>private</eventScope>
+                        <eventTypeData/>
+                        <eventDescription/>
+                        <purpose/>
+                        <guide/>
+                        <insight use="false"/>
+                        <level>100</level>
+                        <sequence>30</sequence>
+                        <costs>0</costs>
+                        <eventData>
+                            <styles/>
+                        </eventData>
+                        <interfaces/>
+                    </custom>
+                </event>
+                <event id="assess_developmental_disability_has_developmental_disability">
+                    <precondition message=""/>
+                    <custom>
+                        <visualization>
+                            <location xLoc="1450" yLoc="493"/>
+                            <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                        </visualization>
+                        <roles>
+                            <role description="" specification="">Caseworker</role>
+                        </roles>
+                        <readRoles/>
+                        <groups>
+                            <group/>
+                        </groups>
+                        <phases>
+                            <phase/>
+                        </phases>
+                        <eventType/>
+                        <eventScope>private</eventScope>
+                        <eventTypeData/>
+                        <eventDescription/>
+                        <purpose/>
+                        <guide/>
+                        <insight use="false"/>
+                        <level>100</level>
+                        <sequence>31</sequence>
+                        <costs>0</costs>
+                        <eventData>
+                            <dataType sequence="31" width="small" placeholder="" hinttext="" dataSetList="" radio="horizontal" multiple="false" format="bool">choice</dataType>
+                            <dictionary>
+                                <item label="True" value="true"/>
+                                <item label="False" value="false"/>
+                            </dictionary>
+                            <validationRules/>
+                            <styles/>
+                        </eventData>
+                        <interfaces/>
+                    </custom>
+                </event>
+                <event id="assess_life_threatening_continuous_supervision_and_care_needs_life_threatening_continuous_supervision_and_care">
+                    <precondition message=""/>
+                    <custom>
+                        <visualization>
+                            <location xLoc="1450" yLoc="1524"/>
+                            <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                        </visualization>
+                        <roles>
+                            <role description="" specification="">Caseworker</role>
+                        </roles>
+                        <readRoles/>
+                        <groups>
+                            <group/>
+                        </groups>
+                        <phases>
+                            <phase/>
+                        </phases>
+                        <eventType/>
+                        <eventScope>private</eventScope>
+                        <eventTypeData/>
+                        <eventDescription/>
+                        <purpose/>
+                        <guide/>
+                        <insight use="false"/>
+                        <level>100</level>
+                        <sequence>32</sequence>
+                        <costs>0</costs>
+                        <eventData>
+                            <dataType sequence="32" width="small" placeholder="" hinttext="" dataSetList="" radio="horizontal" multiple="false" format="bool">choice</dataType>
+                            <dictionary>
+                                <item label="True" value="true"/>
+                                <item label="False" value="false"/>
+                            </dictionary>
+                            <validationRules/>
+                            <styles/>
+                        </eventData>
+                        <interfaces/>
+                    </custom>
+                </event>
+                <event id="assess_illness_or_disability_has_illness_or_disability">
+                    <precondition message=""/>
+                    <custom>
+                        <visualization>
+                            <location xLoc="1450" yLoc="1344"/>
+                            <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                        </visualization>
+                        <roles>
+                            <role description="" specification="">Caseworker</role>
+                        </roles>
+                        <readRoles/>
+                        <groups>
+                            <group/>
+                        </groups>
+                        <phases>
+                            <phase/>
+                        </phases>
+                        <eventType/>
+                        <eventScope>private</eventScope>
+                        <eventTypeData/>
+                        <eventDescription/>
+                        <purpose/>
+                        <guide/>
+                        <insight use="false"/>
+                        <level>100</level>
+                        <sequence>33</sequence>
+                        <costs>0</costs>
+                        <eventData>
+                            <dataType sequence="33" width="small" placeholder="" hinttext="" dataSetList="" radio="horizontal" multiple="false" format="bool">choice</dataType>
+                            <dictionary>
+                                <item label="True" value="true"/>
+                                <item label="False" value="false"/>
+                            </dictionary>
+                            <validationRules/>
+                            <styles/>
+                        </eventData>
+                        <interfaces/>
+                    </custom>
+                </event>
+                <event id="assess_continuous_supervision_needs_continuous_supervision">
+                    <precondition message=""/>
+                    <custom>
+                        <visualization>
+                            <location xLoc="1450" yLoc="673"/>
+                            <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                        </visualization>
+                        <roles>
+                            <role description="" specification="">Caseworker</role>
+                        </roles>
+                        <readRoles/>
+                        <groups>
+                            <group/>
+                        </groups>
+                        <phases>
+                            <phase/>
+                        </phases>
+                        <eventType/>
+                        <eventScope>private</eventScope>
+                        <eventTypeData/>
+                        <eventDescription/>
+                        <purpose/>
+                        <guide/>
+                        <insight use="false"/>
+                        <level>100</level>
+                        <sequence>34</sequence>
+                        <costs>0</costs>
+                        <eventData>
+                            <dataType sequence="34" width="small" placeholder="" hinttext="" dataSetList="" radio="horizontal" multiple="false" format="bool">choice</dataType>
+                            <dictionary>
+                                <item label="True" value="true"/>
+                                <item label="False" value="false"/>
+                            </dictionary>
+                            <validationRules/>
+                            <styles/>
+                        </eventData>
+                        <interfaces/>
+                    </custom>
+                </event>
+                <event id="determine_caregiver_absence_from_work_requirement_care_requires_absence_from_work">
+                    <precondition message=""/>
+                    <custom>
+                        <visualization>
+                            <location xLoc="1450" yLoc="984"/>
+                            <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                        </visualization>
+                        <roles>
+                            <role description="" specification="">Caseworker</role>
+                        </roles>
+                        <readRoles/>
+                        <groups>
+                            <group/>
+                        </groups>
+                        <phases>
+                            <phase/>
+                        </phases>
+                        <eventType/>
+                        <eventScope>private</eventScope>
+                        <eventTypeData/>
+                        <eventDescription/>
+                        <purpose/>
+                        <guide/>
+                        <insight use="false"/>
+                        <level>100</level>
+                        <sequence>35</sequence>
+                        <costs>0</costs>
+                        <eventData>
+                            <dataType sequence="35" width="small" placeholder="" hinttext="" dataSetList="" radio="horizontal" multiple="false" format="bool">choice</dataType>
+                            <dictionary>
+                                <item label="True" value="true"/>
+                                <item label="False" value="false"/>
+                            </dictionary>
+                            <validationRules/>
+                            <styles/>
+                        </eventData>
+                        <interfaces/>
+                    </custom>
+                </event>
+                <event id="assess_second_caregiver_justification_second_caregiver_is_justified">
+                    <precondition message=""/>
+                    <custom>
+                        <visualization>
+                            <location xLoc="1450" yLoc="1164"/>
+                            <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                        </visualization>
+                        <roles>
+                            <role description="" specification="">Caseworker</role>
+                        </roles>
+                        <readRoles/>
+                        <groups>
+                            <group/>
+                        </groups>
+                        <phases>
+                            <phase/>
+                        </phases>
+                        <eventType/>
+                        <eventScope>private</eventScope>
+                        <eventTypeData/>
+                        <eventDescription/>
+                        <purpose/>
+                        <guide/>
+                        <insight use="false"/>
+                        <level>100</level>
+                        <sequence>36</sequence>
+                        <costs>0</costs>
+                        <eventData>
+                            <dataType sequence="36" width="small" placeholder="" hinttext="" dataSetList="" radio="horizontal" multiple="false" format="bool">choice</dataType>
+                            <dictionary>
+                                <item label="True" value="true"/>
+                                <item label="False" value="false"/>
+                            </dictionary>
+                            <validationRules/>
+                            <styles/>
+                        </eventData>
+                        <interfaces/>
+                    </custom>
+                </event>
+                <event id="request_similar_cases">
+                    <precondition message=""/>
+                    <custom>
+                        <visualization>
+                            <location xLoc="880" yLoc="759"/>
+                            <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                        </visualization>
+                        <roles>
+                            <role description="" specification="">Caseworker</role>
+                        </roles>
+                        <readRoles>
+                            <readRole description="" specification="">System robot</readRole>
+                        </readRoles>
+                        <groups>
+                            <group/>
+                        </groups>
+                        <phases>
+                            <phase/>
+                        </phases>
+                        <eventType/>
+                        <eventScope>private</eventScope>
+                        <eventTypeData/>
+                        <eventDescription/>
+                        <purpose/>
+                        <guide/>
+                        <insight use="false"/>
+                        <level>100</level>
+                        <sequence>37</sequence>
+                        <costs>0</costs>
+                        <eventData>
+                            <styles/>
+                        </eventData>
+                        <interfaces/>
+                    </custom>
+                </event>
+                <event id="request_relevant_laws">
+                    <precondition message=""/>
+                    <custom>
+                        <visualization>
+                            <location xLoc="880" yLoc="969"/>
+                            <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                        </visualization>
+                        <roles>
+                            <role description="" specification="">Caseworker</role>
+                        </roles>
+                        <readRoles>
+                            <readRole description="" specification="">System robot</readRole>
+                        </readRoles>
+                        <groups>
+                            <group/>
+                        </groups>
+                        <phases>
+                            <phase/>
+                        </phases>
+                        <eventType/>
+                        <eventScope>private</eventScope>
+                        <eventTypeData/>
+                        <eventDescription/>
+                        <purpose/>
+                        <guide/>
+                        <insight use="false"/>
+                        <level>100</level>
+                        <sequence>38</sequence>
+                        <costs>0</costs>
+                        <eventData>
+                            <styles/>
+                        </eventData>
+                        <interfaces/>
+                    </custom>
+                </event>
+                <event id="find_similar_cases">
+                    <precondition message=""/>
+                    <custom>
+                        <visualization>
+                            <location xLoc="1070" yLoc="759"/>
+                            <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                        </visualization>
+                        <roles>
+                            <role description="" specification="">System robot</role>
+                        </roles>
+                        <readRoles>
+                            <readRole description="" specification="">Caseworker</readRole>
+                        </readRoles>
+                        <groups>
+                            <group/>
+                        </groups>
+                        <phases>
+                            <phase/>
+                        </phases>
+                        <eventType/>
+                        <eventScope>private</eventScope>
+                        <eventTypeData/>
+                        <eventDescription/>
+                        <purpose/>
+                        <guide/>
+                        <insight use="false"/>
+                        <level>100</level>
+                        <sequence>39</sequence>
+                        <costs>0</costs>
+                        <eventData>
+                            <styles/>
+                        </eventData>
+                        <interfaces/>
+                    </custom>
+                </event>
+                <event id="find_relevant_laws">
+                    <precondition message=""/>
+                    <custom>
+                        <visualization>
+                            <location xLoc="1070" yLoc="969"/>
+                            <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                        </visualization>
+                        <roles>
+                            <role description="" specification="">System robot</role>
+                        </roles>
+                        <readRoles>
+                            <readRole description="" specification="">Caseworker</readRole>
+                        </readRoles>
+                        <groups>
+                            <group/>
+                        </groups>
+                        <phases>
+                            <phase/>
+                        </phases>
+                        <eventType/>
+                        <eventScope>private</eventScope>
+                        <eventTypeData/>
+                        <eventDescription/>
+                        <purpose/>
+                        <guide/>
+                        <insight use="false"/>
+                        <level>100</level>
+                        <sequence>40</sequence>
+                        <costs>0</costs>
+                        <eventData>
+                            <styles/>
+                        </eventData>
+                        <interfaces/>
+                    </custom>
+                </event>
+                <event id="review_similar_cases">
+                    <precondition message=""/>
+                    <custom>
+                        <visualization>
+                            <location xLoc="1260" yLoc="774"/>
+                            <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                        </visualization>
+                        <roles>
+                            <role description="" specification="">Caseworker</role>
+                        </roles>
+                        <readRoles/>
+                        <groups>
+                            <group/>
+                        </groups>
+                        <phases>
+                            <phase/>
+                        </phases>
+                        <eventType/>
+                        <eventScope>private</eventScope>
+                        <eventTypeData/>
+                        <eventDescription/>
+                        <purpose/>
+                        <guide/>
+                        <insight use="false"/>
+                        <level>100</level>
+                        <sequence>41</sequence>
+                        <costs>0</costs>
+                        <eventData>
+                            <styles/>
+                        </eventData>
+                        <interfaces/>
+                    </custom>
+                </event>
+                <event id="review_relevant_laws">
+                    <precondition message=""/>
+                    <custom>
+                        <visualization>
+                            <location xLoc="1260" yLoc="984"/>
+                            <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                        </visualization>
+                        <roles>
+                            <role description="" specification="">Caseworker</role>
+                        </roles>
+                        <readRoles/>
+                        <groups>
+                            <group/>
+                        </groups>
+                        <phases>
+                            <phase/>
+                        </phases>
+                        <eventType/>
+                        <eventScope>private</eventScope>
+                        <eventTypeData/>
+                        <eventDescription/>
+                        <purpose/>
+                        <guide/>
+                        <insight use="false"/>
+                        <level>100</level>
+                        <sequence>42</sequence>
+                        <costs>0</costs>
+                        <eventData>
+                            <styles/>
+                        </eventData>
+                        <interfaces/>
+                    </custom>
+                </event>
+                <event id="reject_application">
+                    <precondition message=""/>
+                    <custom>
+                        <visualization>
+                            <location xLoc="1830" yLoc="1634"/>
+                            <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                        </visualization>
+                        <roles>
+                            <role description="" specification="">Caseworker</role>
+                        </roles>
+                        <readRoles/>
+                        <groups>
+                            <group/>
+                        </groups>
+                        <phases>
+                            <phase/>
+                        </phases>
+                        <eventType/>
+                        <eventScope>private</eventScope>
+                        <eventTypeData/>
+                        <eventDescription/>
+                        <purpose/>
+                        <guide/>
+                        <insight use="false"/>
+                        <level>100</level>
+                        <sequence>43</sequence>
+                        <costs>0</costs>
+                        <eventData>
+                            <styles/>
+                        </eventData>
+                        <interfaces/>
+                    </custom>
+                </event>
+                <event id="grant_care_allowance">
+                    <precondition message=""/>
+                    <custom>
+                        <visualization>
+                            <location xLoc="1640" yLoc="1439"/>
+                            <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                        </visualization>
+                        <roles>
+                            <role description="" specification="">Caseworker</role>
+                        </roles>
+                        <readRoles/>
+                        <groups>
+                            <group/>
+                        </groups>
+                        <phases>
+                            <phase/>
+                        </phases>
+                        <eventType/>
+                        <eventScope>private</eventScope>
+                        <eventTypeData/>
+                        <eventDescription/>
+                        <purpose/>
+                        <guide/>
+                        <insight use="false"/>
+                        <level>100</level>
+                        <sequence>44</sequence>
+                        <costs>0</costs>
+                        <eventData>
+                            <styles/>
+                        </eventData>
+                        <interfaces/>
+                    </custom>
+                </event>
+                <event id="summarize_case">
+                    <precondition message=""/>
+                    <custom>
+                        <visualization>
+                            <location xLoc="1830" yLoc="1424"/>
+                            <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                        </visualization>
+                        <roles>
+                            <role description="" specification="">System robot</role>
+                        </roles>
+                        <readRoles>
+                            <readRole description="" specification="">Caseworker</readRole>
+                        </readRoles>
+                        <groups>
+                            <group/>
+                        </groups>
+                        <phases>
+                            <phase/>
+                        </phases>
+                        <eventType/>
+                        <eventScope>private</eventScope>
+                        <eventTypeData/>
+                        <eventDescription/>
+                        <purpose/>
+                        <guide/>
+                        <insight use="false"/>
+                        <level>100</level>
+                        <sequence>45</sequence>
+                        <costs>0</costs>
+                        <eventData>
+                            <styles/>
+                        </eventData>
+                        <interfaces/>
+                    </custom>
+                </event>
+                <event id="issue_assessment_and_justification" type="form" cancelText="" sendText="" hideCancel="false" formShowInitialPhase="1">
+                    <precondition message=""/>
+                    <custom>
+                        <visualization>
+                            <location xLoc="2020" yLoc="1314"/>
+                            <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                        </visualization>
+                        <roles>
+                            <role description="" specification="">Caseworker</role>
+                        </roles>
+                        <readRoles>
+                            <readRole description="" specification="">Citizen</readRole>
+                        </readRoles>
+                        <groups>
+                            <group/>
+                        </groups>
+                        <phases>
+                            <phase/>
+                        </phases>
+                        <eventType/>
+                        <eventScope>private</eventScope>
+                        <eventTypeData/>
+                        <eventDescription/>
+                        <purpose/>
+                        <guide/>
+                        <insight use="false"/>
+                        <level>100</level>
+                        <sequence>46</sequence>
+                        <costs>0</costs>
+                        <eventData>
+                            <styles/>
+                        </eventData>
+                        <interfaces/>
+                    </custom>
+                    <event id="issue_assessment_and_justification_assessment">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="2040" yLoc="1374"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles/>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>47</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <dataType sequence="47" width="small" min="NaN" max="NaN" placeholder="" hinttext="">text</dataType>
+                                <validationRules/>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                    </event>
+                    <event id="issue_assessment_and_justification_justification">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="2040" yLoc="1544"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles/>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>48</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <dataType sequence="48" width="small" min="NaN" max="NaN" placeholder="" hinttext="">text</dataType>
+                                <validationRules/>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                    </event>
+                </event>
+                <event id="view_justification">
+                    <precondition message=""/>
+                    <custom>
+                        <visualization>
+                            <location xLoc="2250" yLoc="1439"/>
+                            <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                        </visualization>
+                        <roles>
+                            <role description="" specification="">Citizen</role>
+                        </roles>
+                        <readRoles/>
+                        <groups>
+                            <group/>
+                        </groups>
+                        <phases>
+                            <phase/>
+                        </phases>
+                        <eventType/>
+                        <eventScope>private</eventScope>
+                        <eventTypeData/>
+                        <eventDescription/>
+                        <purpose/>
+                        <guide/>
+                        <insight use="false"/>
+                        <level>100</level>
+                        <sequence>49</sequence>
+                        <costs>0</costs>
+                        <eventData>
+                            <styles/>
+                        </eventData>
+                        <interfaces/>
+                    </custom>
+                </event>
+            </events>
+            <subProcesses/>
+            <labels>
+                <label id="Data"/>
+                <label id="child_age"/>
+                <label id="medical_certificate"/>
+                <label id="number_of_caregivers"/>
+                <label id="child_is_minor"/>
+                <label id="certificate_is_genuine"/>
+                <label id="child_has_national_insurance_membership"/>
+                <label id="has_developmental_disability"/>
+                <label id="needs_life_threatening_continuous_supervision_and_care"/>
+                <label id="has_illness_or_disability"/>
+                <label id="needs_continuous_supervision"/>
+                <label id="care_requires_absence_from_work"/>
+                <label id="second_caregiver_is_justified"/>
+                <label id="assessment"/>
+                <label id="justification"/>
+                <label id="start application"/>
+                <label id="submit information"/>
+                <label id="determine minor status"/>
+                <label id="Output"/>
+                <label id="verify medical certificate"/>
+                <label id="check national insurance membership"/>
+                <label id="open case"/>
+                <label id="assess developmental disability"/>
+                <label id="assess life threatening continuous supervision and care"/>
+                <label id="assess_illness_or_disability"/>
+                <label id="assess continuous supervision"/>
+                <label id="determine_caregiver_absence_from_work_requirement"/>
+                <label id="assess second caregiver justification"/>
+                <label id="request similar cases"/>
+                <label id="request relevant laws"/>
+                <label id="find similar cases"/>
+                <label id="find relevant laws"/>
+                <label id="review similar cases"/>
+                <label id="review relevant laws"/>
+                <label id="reject application"/>
+                <label id="grant care allowance"/>
+                <label id="summarize case"/>
+                <label id="issue_assessment_and_justification"/>
+                <label id="view justification"/>
+            </labels>
+            <labelMappings>
+                <labelMapping eventId="Data" labelId="Data"/>
+                <labelMapping eventId="child_age" labelId="child_age"/>
+                <labelMapping eventId="medical_certificate" labelId="medical_certificate"/>
+                <labelMapping eventId="number_of_caregivers" labelId="number_of_caregivers"/>
+                <labelMapping eventId="child_is_minor" labelId="child_is_minor"/>
+                <labelMapping eventId="certificate_is_genuine" labelId="certificate_is_genuine"/>
+                <labelMapping eventId="child_has_national_insurance_membership" labelId="child_has_national_insurance_membership"/>
+                <labelMapping eventId="has_developmental_disability" labelId="has_developmental_disability"/>
+                <labelMapping eventId="needs_life_threatening_continuous_supervision_and_care" labelId="needs_life_threatening_continuous_supervision_and_care"/>
+                <labelMapping eventId="has_illness_or_disability" labelId="has_illness_or_disability"/>
+                <labelMapping eventId="needs_continuous_supervision" labelId="needs_continuous_supervision"/>
+                <labelMapping eventId="care_requires_absence_from_work" labelId="care_requires_absence_from_work"/>
+                <labelMapping eventId="second_caregiver_is_justified" labelId="second_caregiver_is_justified"/>
+                <labelMapping eventId="assessment" labelId="assessment"/>
+                <labelMapping eventId="justification" labelId="justification"/>
+                <labelMapping eventId="start_application" labelId="start application"/>
+                <labelMapping eventId="submit_information" labelId="submit information"/>
+                <labelMapping eventId="submit_information_child_age" labelId="child_age"/>
+                <labelMapping eventId="submit_information_medical_certificate" labelId="medical_certificate"/>
+                <labelMapping eventId="submit_information_number_of_caregivers" labelId="number_of_caregivers"/>
+                <labelMapping eventId="determine_minor_status" labelId="determine minor status"/>
+                <labelMapping eventId="determine_minor_status_output" labelId="Output"/>
+                <labelMapping eventId="determine_minor_status_child_is_minor" labelId="child_is_minor"/>
+                <labelMapping eventId="verify_medical_certificate" labelId="verify medical certificate"/>
+                <labelMapping eventId="verify_medical_certificate_output" labelId="Output"/>
+                <labelMapping eventId="verify_medical_certificate_certificate_is_genuine" labelId="certificate_is_genuine"/>
+                <labelMapping eventId="check_national_insurance_membership" labelId="check national insurance membership"/>
+                <labelMapping eventId="check_national_insurance_membership_output" labelId="Output"/>
+                <labelMapping eventId="check_national_insurance_membership_child_has_national_insurance_membership" labelId="child_has_national_insurance_membership"/>
+                <labelMapping eventId="open_case" labelId="open case"/>
+                <labelMapping eventId="assess_developmental_disability_has_developmental_disability" labelId="assess developmental disability"/>
+                <labelMapping eventId="assess_life_threatening_continuous_supervision_and_care_needs_life_threatening_continuous_supervision_and_care" labelId="assess life threatening continuous supervision and care"/>
+                <labelMapping eventId="assess_illness_or_disability_has_illness_or_disability" labelId="assess_illness_or_disability"/>
+                <labelMapping eventId="assess_continuous_supervision_needs_continuous_supervision" labelId="assess continuous supervision"/>
+                <labelMapping eventId="determine_caregiver_absence_from_work_requirement_care_requires_absence_from_work" labelId="determine_caregiver_absence_from_work_requirement"/>
+                <labelMapping eventId="assess_second_caregiver_justification_second_caregiver_is_justified" labelId="assess second caregiver justification"/>
+                <labelMapping eventId="request_similar_cases" labelId="request similar cases"/>
+                <labelMapping eventId="request_relevant_laws" labelId="request relevant laws"/>
+                <labelMapping eventId="find_similar_cases" labelId="find similar cases"/>
+                <labelMapping eventId="find_relevant_laws" labelId="find relevant laws"/>
+                <labelMapping eventId="review_similar_cases" labelId="review similar cases"/>
+                <labelMapping eventId="review_relevant_laws" labelId="review relevant laws"/>
+                <labelMapping eventId="reject_application" labelId="reject application"/>
+                <labelMapping eventId="grant_care_allowance" labelId="grant care allowance"/>
+                <labelMapping eventId="summarize_case" labelId="summarize case"/>
+                <labelMapping eventId="issue_assessment_and_justification" labelId="issue_assessment_and_justification"/>
+                <labelMapping eventId="issue_assessment_and_justification_assessment" labelId="assessment"/>
+                <labelMapping eventId="issue_assessment_and_justification_justification" labelId="justification"/>
+                <labelMapping eventId="view_justification" labelId="view justification"/>
+            </labelMappings>
+            <expressions>
+                <expression id="submit_information-path-child_age--update--value" value="submit_information_child_age"/>
+                <expression id="submit_information-path-medical_certificate--update--value" value="submit_information_medical_certificate"/>
+                <expression id="submit_information-path-number_of_caregivers--update--value" value="submit_information_number_of_caregivers"/>
+                <expression id="determine_minor_status-path-child_is_minor--update--value" value="determine_minor_status_child_is_minor"/>
+                <expression id="verify_medical_certificate-path-open_case--include" value="verify_medical_certificate_certificate_is_genuine = true"/>
+                <expression id="verify_medical_certificate-path-open_case--response" value="verify_medical_certificate_certificate_is_genuine = true"/>
+                <expression id="verify_medical_certificate-path-reject_application--include" value="verify_medical_certificate_certificate_is_genuine = false"/>
+                <expression id="verify_medical_certificate-path-grant_care_allowance--exclude" value="verify_medical_certificate_certificate_is_genuine = false"/>
+                <expression id="verify_medical_certificate-path-open_case--exclude" value="verify_medical_certificate_certificate_is_genuine = false"/>
+                <expression id="verify_medical_certificate-path-reject_application--response" value="verify_medical_certificate_certificate_is_genuine = false"/>
+                <expression id="verify_medical_certificate-path-certificate_is_genuine--update--value" value="verify_medical_certificate_certificate_is_genuine"/>
+                <expression id="check_national_insurance_membership-path-open_case--include" value="check_national_insurance_membership_child_has_national_insurance_membership = true"/>
+                <expression id="check_national_insurance_membership-path-open_case--response" value="check_national_insurance_membership_child_has_national_insurance_membership = true"/>
+                <expression id="check_national_insurance_membership-path-reject_application--include" value="check_national_insurance_membership_child_has_national_insurance_membership = false"/>
+                <expression id="check_national_insurance_membership-path-grant_care_allowance--exclude" value="check_national_insurance_membership_child_has_national_insurance_membership = false"/>
+                <expression id="check_national_insurance_membership-path-open_case--exclude" value="check_national_insurance_membership_child_has_national_insurance_membership = false"/>
+                <expression id="check_national_insurance_membership-path-reject_application--response" value="check_national_insurance_membership_child_has_national_insurance_membership = false"/>
+                <expression id="check_national_insurance_membership-path-child_has_national_insurance_membership--update--value" value="check_national_insurance_membership_child_has_national_insurance_membership"/>
+                <expression id="Data-path-open_case--condition" value="not((child_age != null and medical_certificate != null and number_of_caregivers != null and child_is_minor != null and certificate_is_genuine != null and child_has_national_insurance_membership != null and certificate_is_genuine = true and child_has_national_insurance_membership = true) or (child_age != null and medical_certificate != null and number_of_caregivers != null and child_is_minor != null and certificate_is_genuine != null and child_has_national_insurance_membership != null and certificate_is_genuine = true and child_has_national_insurance_membership = true and child_is_minor = false) or (child_age != null and medical_certificate != null and number_of_caregivers != null and child_is_minor != null and certificate_is_genuine != null and child_has_national_insurance_membership != null and certificate_is_genuine = true and child_has_national_insurance_membership = true and child_is_minor = true) or (child_age != null and medical_certificate != null and number_of_caregivers != null and child_is_minor != null and certificate_is_genuine != null and child_has_national_insurance_membership != null and certificate_is_genuine = true and child_has_national_insurance_membership = true and number_of_caregivers &gt; 1))"/>
+                <expression id="Data-path-assess_developmental_disability_has_developmental_disability--condition" value="not(child_is_minor = false)"/>
+                <expression id="assess_developmental_disability_has_developmental_disability-path-reject_application--include" value="assess_developmental_disability_has_developmental_disability = false"/>
+                <expression id="assess_developmental_disability_has_developmental_disability-path-grant_care_allowance--exclude" value="assess_developmental_disability_has_developmental_disability = false"/>
+                <expression id="assess_developmental_disability_has_developmental_disability-path-reject_application--response" value="assess_developmental_disability_has_developmental_disability = false"/>
+                <expression id="assess_developmental_disability_has_developmental_disability-path-has_developmental_disability--update--value" value="assess_developmental_disability_has_developmental_disability"/>
+                <expression id="Data-path-assess_life_threatening_continuous_supervision_and_care_needs_life_threatening_continuous_supervision_and_care--condition" value="not(child_is_minor = false)"/>
+                <expression id="assess_life_threatening_continuous_supervision_and_care_needs_life_threatening_continuous_supervision_and_care-path-reject_application--include" value="assess_life_threatening_continuous_supervision_and_care_needs_life_threatening_continuous_supervision_and_care = false"/>
+                <expression id="assess_life_threatening_continuous_supervision_and_care_needs_life_threatening_continuous_supervision_and_care-path-grant_care_allowance--exclude" value="assess_life_threatening_continuous_supervision_and_care_needs_life_threatening_continuous_supervision_and_care = false"/>
+                <expression id="assess_life_threatening_continuous_supervision_and_care_needs_life_threatening_continuous_supervision_and_care-path-reject_application--response" value="assess_life_threatening_continuous_supervision_and_care_needs_life_threatening_continuous_supervision_and_care = false"/>
+                <expression id="assess_life_threatening_continuous_supervision_and_care_needs_life_threatening_continuous_supervision_and_care-path-needs_life_threatening_continuous_supervision_and_care--update--value" value="assess_life_threatening_continuous_supervision_and_care_needs_life_threatening_continuous_supervision_and_care"/>
+                <expression id="Data-path-assess_illness_or_disability_has_illness_or_disability--condition" value="not(child_is_minor = true)"/>
+                <expression id="assess_illness_or_disability_has_illness_or_disability-path-reject_application--include" value="assess_illness_or_disability_has_illness_or_disability = false"/>
+                <expression id="assess_illness_or_disability_has_illness_or_disability-path-grant_care_allowance--exclude" value="assess_illness_or_disability_has_illness_or_disability = false"/>
+                <expression id="assess_illness_or_disability_has_illness_or_disability-path-reject_application--response" value="assess_illness_or_disability_has_illness_or_disability = false"/>
+                <expression id="assess_illness_or_disability_has_illness_or_disability-path-has_illness_or_disability--update--value" value="assess_illness_or_disability_has_illness_or_disability"/>
+                <expression id="Data-path-assess_continuous_supervision_needs_continuous_supervision--condition" value="not(child_is_minor = true)"/>
+                <expression id="assess_continuous_supervision_needs_continuous_supervision-path-reject_application--include" value="assess_continuous_supervision_needs_continuous_supervision = false"/>
+                <expression id="assess_continuous_supervision_needs_continuous_supervision-path-grant_care_allowance--exclude" value="assess_continuous_supervision_needs_continuous_supervision = false"/>
+                <expression id="assess_continuous_supervision_needs_continuous_supervision-path-reject_application--response" value="assess_continuous_supervision_needs_continuous_supervision = false"/>
+                <expression id="assess_continuous_supervision_needs_continuous_supervision-path-needs_continuous_supervision--update--value" value="assess_continuous_supervision_needs_continuous_supervision"/>
+                <expression id="Data-path-grant_care_allowance--condition" value="not((child_is_minor = true and has_illness_or_disability = true and needs_continuous_supervision = true and care_requires_absence_from_work = true and number_of_caregivers = 1) or (child_is_minor = true and has_illness_or_disability = true and needs_continuous_supervision = true and care_requires_absence_from_work = true and number_of_caregivers &gt; 1 and second_caregiver_is_justified = true) or (child_is_minor = false and has_developmental_disability = true and needs_life_threatening_continuous_supervision_and_care = true and care_requires_absence_from_work = true and number_of_caregivers = 1) or (child_is_minor = false and has_developmental_disability = true and needs_life_threatening_continuous_supervision_and_care = true and care_requires_absence_from_work = true and number_of_caregivers &gt; 1 and second_caregiver_is_justified = true))"/>
+                <expression id="issue_assessment_and_justification-path-assessment--update--value" value="issue_assessment_and_justification_assessment"/>
+                <expression id="issue_assessment_and_justification-path-justification--update--value" value="issue_assessment_and_justification_justification"/>
+            </expressions>
+            <variables/>
+            <variableAccesses>
+                <writeAccesses/>
+            </variableAccesses>
+            <custom>
+                <keywords/>
+                <roles>
+                    <role description="" specification="">Care allowance application</role>
+                    <role description="" specification="">Citizen</role>
+                    <role description="" specification="">System robot</role>
+                    <role description="" specification="">Caseworker</role>
+                    <role description="" specification="">Verification system</role>
+                </roles>
+                <groups/>
+                <phases/>
+                <eventTypes/>
+                <eventParameters/>
+                <graphDetails>DCR Process</graphDetails>
+                <graphDocumentation/>
+                <graphLanguage>en-US</graphLanguage>
+                <graphDomain>process</graphDomain>
+                <graphFilters>
+                    <filteredGroups/>
+                    <filteredRoles/>
+                    <filteredPhases/>
+                </graphFilters>
+                <highlighterMarkup>
+                    <highlightLayers/>
+                    <highlights/>
+                </highlighterMarkup>
+            </custom>
+        </resources>
+        <constraints>
+            <conditions>
+                <condition sourceId="Data" targetId="Data" filterLevel="100" description="" time="" groups=""/>
+                <condition sourceId="start_application" targetId="submit_information" filterLevel="100" description="" time="" groups=""/>
+                <condition sourceId="submit_information" targetId="determine_minor_status" filterLevel="100" description="" time="" groups=""/>
+                <condition sourceId="submit_information" targetId="verify_medical_certificate" filterLevel="100" description="" time="" groups=""/>
+                <condition sourceId="submit_information" targetId="check_national_insurance_membership" filterLevel="100" description="" time="" groups=""/>
+                <condition sourceId="determine_minor_status" targetId="open_case" filterLevel="100" description="" time="" groups=""/>
+                <condition sourceId="verify_medical_certificate" targetId="open_case" filterLevel="100" description="" time="" groups=""/>
+                <condition sourceId="check_national_insurance_membership" targetId="open_case" filterLevel="100" description="" time="" groups=""/>
+                <condition sourceId="open_case" targetId="assess_developmental_disability_has_developmental_disability" filterLevel="100" description="" time="" groups=""/>
+                <condition sourceId="open_case" targetId="assess_life_threatening_continuous_supervision_and_care_needs_life_threatening_continuous_supervision_and_care" filterLevel="100" description="" time="" groups=""/>
+                <condition sourceId="open_case" targetId="assess_illness_or_disability_has_illness_or_disability" filterLevel="100" description="" time="" groups=""/>
+                <condition sourceId="open_case" targetId="assess_continuous_supervision_needs_continuous_supervision" filterLevel="100" description="" time="" groups=""/>
+                <condition sourceId="open_case" targetId="determine_caregiver_absence_from_work_requirement_care_requires_absence_from_work" filterLevel="100" description="" time="" groups=""/>
+                <condition sourceId="open_case" targetId="assess_second_caregiver_justification_second_caregiver_is_justified" filterLevel="100" description="" time="" groups=""/>
+                <condition sourceId="open_case" targetId="request_similar_cases" filterLevel="100" description="" time="" groups=""/>
+                <condition sourceId="open_case" targetId="request_relevant_laws" filterLevel="100" description="" time="" groups=""/>
+                <condition sourceId="request_similar_cases" targetId="find_similar_cases" filterLevel="100" description="" time="" groups=""/>
+                <condition sourceId="request_relevant_laws" targetId="find_relevant_laws" filterLevel="100" description="" time="" groups=""/>
+                <condition sourceId="find_similar_cases" targetId="review_similar_cases" filterLevel="100" description="" time="" groups=""/>
+                <condition sourceId="find_relevant_laws" targetId="review_relevant_laws" filterLevel="100" description="" time="" groups=""/>
+                <condition sourceId="Data" targetId="open_case" filterLevel="100" description="" time="" groups="" expressionId="Data-path-open_case--condition"/>
+                <condition sourceId="Data" targetId="assess_developmental_disability_has_developmental_disability" filterLevel="100" description="" time="" groups="" expressionId="Data-path-assess_developmental_disability_has_developmental_disability--condition"/>
+                <condition sourceId="Data" targetId="assess_life_threatening_continuous_supervision_and_care_needs_life_threatening_continuous_supervision_and_care" filterLevel="100" description="" time="" groups="" expressionId="Data-path-assess_life_threatening_continuous_supervision_and_care_needs_life_threatening_continuous_supervision_and_care--condition"/>
+                <condition sourceId="Data" targetId="assess_illness_or_disability_has_illness_or_disability" filterLevel="100" description="" time="" groups="" expressionId="Data-path-assess_illness_or_disability_has_illness_or_disability--condition"/>
+                <condition sourceId="Data" targetId="assess_continuous_supervision_needs_continuous_supervision" filterLevel="100" description="" time="" groups="" expressionId="Data-path-assess_continuous_supervision_needs_continuous_supervision--condition"/>
+                <condition sourceId="Data" targetId="grant_care_allowance" filterLevel="100" description="" time="" groups="" expressionId="Data-path-grant_care_allowance--condition"/>
+            </conditions>
+            <responses>
+                <response sourceId="start_application" targetId="submit_information" filterLevel="100" description="" time="" groups=""/>
+                <response sourceId="submit_information" targetId="determine_minor_status" filterLevel="100" description="" time="" groups=""/>
+                <response sourceId="submit_information" targetId="verify_medical_certificate" filterLevel="100" description="" time="" groups=""/>
+                <response sourceId="submit_information" targetId="check_national_insurance_membership" filterLevel="100" description="" time="" groups=""/>
+                <response sourceId="determine_minor_status" targetId="open_case" filterLevel="100" description="" time="" groups=""/>
+                <response sourceId="verify_medical_certificate" targetId="open_case" filterLevel="100" description="" time="" groups="" expressionId="verify_medical_certificate-path-open_case--response"/>
+                <response sourceId="verify_medical_certificate" targetId="reject_application" filterLevel="100" description="" time="" groups="" expressionId="verify_medical_certificate-path-reject_application--response"/>
+                <response sourceId="check_national_insurance_membership" targetId="open_case" filterLevel="100" description="" time="" groups="" expressionId="check_national_insurance_membership-path-open_case--response"/>
+                <response sourceId="check_national_insurance_membership" targetId="reject_application" filterLevel="100" description="" time="" groups="" expressionId="check_national_insurance_membership-path-reject_application--response"/>
+                <response sourceId="open_case" targetId="determine_caregiver_absence_from_work_requirement_care_requires_absence_from_work" filterLevel="100" description="" time="" groups=""/>
+                <response sourceId="open_case" targetId="assess_developmental_disability_has_developmental_disability" filterLevel="100" description="" time="" groups=""/>
+                <response sourceId="open_case" targetId="assess_life_threatening_continuous_supervision_and_care_needs_life_threatening_continuous_supervision_and_care" filterLevel="100" description="" time="" groups=""/>
+                <response sourceId="open_case" targetId="assess_illness_or_disability_has_illness_or_disability" filterLevel="100" description="" time="" groups=""/>
+                <response sourceId="open_case" targetId="assess_continuous_supervision_needs_continuous_supervision" filterLevel="100" description="" time="" groups=""/>
+                <response sourceId="open_case" targetId="assess_second_caregiver_justification_second_caregiver_is_justified" filterLevel="100" description="" time="" groups=""/>
+                <response sourceId="assess_developmental_disability_has_developmental_disability" targetId="reject_application" filterLevel="100" description="" time="" groups="" expressionId="assess_developmental_disability_has_developmental_disability-path-reject_application--response"/>
+                <response sourceId="assess_life_threatening_continuous_supervision_and_care_needs_life_threatening_continuous_supervision_and_care" targetId="reject_application" filterLevel="100" description="" time="" groups="" expressionId="assess_life_threatening_continuous_supervision_and_care_needs_life_threatening_continuous_supervision_and_care-path-reject_application--response"/>
+                <response sourceId="assess_illness_or_disability_has_illness_or_disability" targetId="reject_application" filterLevel="100" description="" time="" groups="" expressionId="assess_illness_or_disability_has_illness_or_disability-path-reject_application--response"/>
+                <response sourceId="assess_continuous_supervision_needs_continuous_supervision" targetId="reject_application" filterLevel="100" description="" time="" groups="" expressionId="assess_continuous_supervision_needs_continuous_supervision-path-reject_application--response"/>
+                <response sourceId="grant_care_allowance" targetId="summarize_case" filterLevel="100" description="" time="" groups=""/>
+                <response sourceId="summarize_case" targetId="issue_assessment_and_justification" filterLevel="100" description="" time="" groups=""/>
+            </responses>
+            <coresponses/>
+            <includes>
+                <include sourceId="start_application" targetId="submit_information" filterLevel="100" description="" time="" groups=""/>
+                <include sourceId="submit_information" targetId="determine_minor_status" filterLevel="100" description="" time="" groups=""/>
+                <include sourceId="submit_information" targetId="verify_medical_certificate" filterLevel="100" description="" time="" groups=""/>
+                <include sourceId="submit_information" targetId="check_national_insurance_membership" filterLevel="100" description="" time="" groups=""/>
+                <include sourceId="determine_minor_status" targetId="open_case" filterLevel="100" description="" time="" groups=""/>
+                <include sourceId="verify_medical_certificate" targetId="open_case" filterLevel="100" description="" time="" groups="" expressionId="verify_medical_certificate-path-open_case--include"/>
+                <include sourceId="verify_medical_certificate" targetId="reject_application" filterLevel="100" description="" time="" groups="" expressionId="verify_medical_certificate-path-reject_application--include"/>
+                <include sourceId="check_national_insurance_membership" targetId="open_case" filterLevel="100" description="" time="" groups="" expressionId="check_national_insurance_membership-path-open_case--include"/>
+                <include sourceId="check_national_insurance_membership" targetId="reject_application" filterLevel="100" description="" time="" groups="" expressionId="check_national_insurance_membership-path-reject_application--include"/>
+                <include sourceId="open_case" targetId="determine_caregiver_absence_from_work_requirement_care_requires_absence_from_work" filterLevel="100" description="" time="" groups=""/>
+                <include sourceId="open_case" targetId="request_similar_cases" filterLevel="100" description="" time="" groups=""/>
+                <include sourceId="open_case" targetId="request_relevant_laws" filterLevel="100" description="" time="" groups=""/>
+                <include sourceId="open_case" targetId="assess_developmental_disability_has_developmental_disability" filterLevel="100" description="" time="" groups=""/>
+                <include sourceId="open_case" targetId="assess_life_threatening_continuous_supervision_and_care_needs_life_threatening_continuous_supervision_and_care" filterLevel="100" description="" time="" groups=""/>
+                <include sourceId="open_case" targetId="assess_illness_or_disability_has_illness_or_disability" filterLevel="100" description="" time="" groups=""/>
+                <include sourceId="open_case" targetId="assess_continuous_supervision_needs_continuous_supervision" filterLevel="100" description="" time="" groups=""/>
+                <include sourceId="open_case" targetId="assess_second_caregiver_justification_second_caregiver_is_justified" filterLevel="100" description="" time="" groups=""/>
+                <include sourceId="assess_developmental_disability_has_developmental_disability" targetId="reject_application" filterLevel="100" description="" time="" groups="" expressionId="assess_developmental_disability_has_developmental_disability-path-reject_application--include"/>
+                <include sourceId="assess_life_threatening_continuous_supervision_and_care_needs_life_threatening_continuous_supervision_and_care" targetId="reject_application" filterLevel="100" description="" time="" groups="" expressionId="assess_life_threatening_continuous_supervision_and_care_needs_life_threatening_continuous_supervision_and_care-path-reject_application--include"/>
+                <include sourceId="assess_illness_or_disability_has_illness_or_disability" targetId="reject_application" filterLevel="100" description="" time="" groups="" expressionId="assess_illness_or_disability_has_illness_or_disability-path-reject_application--include"/>
+                <include sourceId="assess_continuous_supervision_needs_continuous_supervision" targetId="reject_application" filterLevel="100" description="" time="" groups="" expressionId="assess_continuous_supervision_needs_continuous_supervision-path-reject_application--include"/>
+                <include sourceId="grant_care_allowance" targetId="summarize_case" filterLevel="100" description="" time="" groups=""/>
+                <include sourceId="summarize_case" targetId="issue_assessment_and_justification" filterLevel="100" description="" time="" groups=""/>
+                <include sourceId="issue_assessment_and_justification" targetId="view_justification" filterLevel="100" description="" time="" groups=""/>
+                <include sourceId="view_justification" targetId="view_justification" filterLevel="100" description="" time="" groups=""/>
+            </includes>
+            <excludes>
+                <exclude sourceId="start_application" targetId="start_application" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="submit_information" targetId="submit_information" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="determine_minor_status" targetId="determine_minor_status" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="verify_medical_certificate" targetId="verify_medical_certificate" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="verify_medical_certificate" targetId="grant_care_allowance" filterLevel="100" description="" time="" groups="" expressionId="verify_medical_certificate-path-grant_care_allowance--exclude"/>
+                <exclude sourceId="verify_medical_certificate" targetId="open_case" filterLevel="100" description="" time="" groups="" expressionId="verify_medical_certificate-path-open_case--exclude"/>
+                <exclude sourceId="check_national_insurance_membership" targetId="check_national_insurance_membership" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="check_national_insurance_membership" targetId="grant_care_allowance" filterLevel="100" description="" time="" groups="" expressionId="check_national_insurance_membership-path-grant_care_allowance--exclude"/>
+                <exclude sourceId="check_national_insurance_membership" targetId="open_case" filterLevel="100" description="" time="" groups="" expressionId="check_national_insurance_membership-path-open_case--exclude"/>
+                <exclude sourceId="open_case" targetId="open_case" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="assess_developmental_disability_has_developmental_disability" targetId="assess_developmental_disability_has_developmental_disability" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="assess_developmental_disability_has_developmental_disability" targetId="grant_care_allowance" filterLevel="100" description="" time="" groups="" expressionId="assess_developmental_disability_has_developmental_disability-path-grant_care_allowance--exclude"/>
+                <exclude sourceId="assess_life_threatening_continuous_supervision_and_care_needs_life_threatening_continuous_supervision_and_care" targetId="assess_life_threatening_continuous_supervision_and_care_needs_life_threatening_continuous_supervision_and_care" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="assess_life_threatening_continuous_supervision_and_care_needs_life_threatening_continuous_supervision_and_care" targetId="grant_care_allowance" filterLevel="100" description="" time="" groups="" expressionId="assess_life_threatening_continuous_supervision_and_care_needs_life_threatening_continuous_supervision_and_care-path-grant_care_allowance--exclude"/>
+                <exclude sourceId="assess_illness_or_disability_has_illness_or_disability" targetId="assess_illness_or_disability_has_illness_or_disability" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="assess_illness_or_disability_has_illness_or_disability" targetId="grant_care_allowance" filterLevel="100" description="" time="" groups="" expressionId="assess_illness_or_disability_has_illness_or_disability-path-grant_care_allowance--exclude"/>
+                <exclude sourceId="assess_continuous_supervision_needs_continuous_supervision" targetId="assess_continuous_supervision_needs_continuous_supervision" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="assess_continuous_supervision_needs_continuous_supervision" targetId="grant_care_allowance" filterLevel="100" description="" time="" groups="" expressionId="assess_continuous_supervision_needs_continuous_supervision-path-grant_care_allowance--exclude"/>
+                <exclude sourceId="reject_application" targetId="reject_application" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="reject_application" targetId="grant_care_allowance" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="grant_care_allowance" targetId="grant_care_allowance" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="grant_care_allowance" targetId="reject_application" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="summarize_case" targetId="summarize_case" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="issue_assessment_and_justification" targetId="issue_assessment_and_justification" filterLevel="100" description="" time="" groups=""/>
+            </excludes>
+            <milestones>
+                <milestone sourceId="review_similar_cases" targetId="assess_developmental_disability_has_developmental_disability" filterLevel="100" description="" time="" groups=""/>
+                <milestone sourceId="review_relevant_laws" targetId="assess_developmental_disability_has_developmental_disability" filterLevel="100" description="" time="" groups=""/>
+                <milestone sourceId="review_similar_cases" targetId="assess_life_threatening_continuous_supervision_and_care_needs_life_threatening_continuous_supervision_and_care" filterLevel="100" description="" time="" groups=""/>
+                <milestone sourceId="review_relevant_laws" targetId="assess_life_threatening_continuous_supervision_and_care_needs_life_threatening_continuous_supervision_and_care" filterLevel="100" description="" time="" groups=""/>
+                <milestone sourceId="review_similar_cases" targetId="assess_illness_or_disability_has_illness_or_disability" filterLevel="100" description="" time="" groups=""/>
+                <milestone sourceId="review_relevant_laws" targetId="assess_illness_or_disability_has_illness_or_disability" filterLevel="100" description="" time="" groups=""/>
+                <milestone sourceId="review_similar_cases" targetId="assess_continuous_supervision_needs_continuous_supervision" filterLevel="100" description="" time="" groups=""/>
+                <milestone sourceId="review_relevant_laws" targetId="assess_continuous_supervision_needs_continuous_supervision" filterLevel="100" description="" time="" groups=""/>
+                <milestone sourceId="review_similar_cases" targetId="determine_caregiver_absence_from_work_requirement_care_requires_absence_from_work" filterLevel="100" description="" time="" groups=""/>
+                <milestone sourceId="review_relevant_laws" targetId="determine_caregiver_absence_from_work_requirement_care_requires_absence_from_work" filterLevel="100" description="" time="" groups=""/>
+                <milestone sourceId="review_similar_cases" targetId="assess_second_caregiver_justification_second_caregiver_is_justified" filterLevel="100" description="" time="" groups=""/>
+                <milestone sourceId="review_relevant_laws" targetId="assess_second_caregiver_justification_second_caregiver_is_justified" filterLevel="100" description="" time="" groups=""/>
+            </milestones>
+            <spawns/>
+            <templateSpawns/>
+            <updates>
+                <update sourceId="submit_information" targetId="child_age" filterLevel="100" description="" time="" groups="" valueExpressionId="submit_information-path-child_age--update--value"/>
+                <update sourceId="submit_information" targetId="medical_certificate" filterLevel="100" description="" time="" groups="" valueExpressionId="submit_information-path-medical_certificate--update--value"/>
+                <update sourceId="submit_information" targetId="number_of_caregivers" filterLevel="100" description="" time="" groups="" valueExpressionId="submit_information-path-number_of_caregivers--update--value"/>
+                <update sourceId="determine_minor_status" targetId="child_is_minor" filterLevel="100" description="" time="" groups="" valueExpressionId="determine_minor_status-path-child_is_minor--update--value"/>
+                <update sourceId="verify_medical_certificate" targetId="certificate_is_genuine" filterLevel="100" description="" time="" groups="" valueExpressionId="verify_medical_certificate-path-certificate_is_genuine--update--value"/>
+                <update sourceId="check_national_insurance_membership" targetId="child_has_national_insurance_membership" filterLevel="100" description="" time="" groups="" valueExpressionId="check_national_insurance_membership-path-child_has_national_insurance_membership--update--value"/>
+                <update sourceId="assess_developmental_disability_has_developmental_disability" targetId="has_developmental_disability" filterLevel="100" description="" time="" groups="" valueExpressionId="assess_developmental_disability_has_developmental_disability-path-has_developmental_disability--update--value"/>
+                <update sourceId="assess_life_threatening_continuous_supervision_and_care_needs_life_threatening_continuous_supervision_and_care" targetId="needs_life_threatening_continuous_supervision_and_care" filterLevel="100" description="" time="" groups="" valueExpressionId="assess_life_threatening_continuous_supervision_and_care_needs_life_threatening_continuous_supervision_and_care-path-needs_life_threatening_continuous_supervision_and_care--update--value"/>
+                <update sourceId="assess_illness_or_disability_has_illness_or_disability" targetId="has_illness_or_disability" filterLevel="100" description="" time="" groups="" valueExpressionId="assess_illness_or_disability_has_illness_or_disability-path-has_illness_or_disability--update--value"/>
+                <update sourceId="assess_continuous_supervision_needs_continuous_supervision" targetId="needs_continuous_supervision" filterLevel="100" description="" time="" groups="" valueExpressionId="assess_continuous_supervision_needs_continuous_supervision-path-needs_continuous_supervision--update--value"/>
+                <update sourceId="issue_assessment_and_justification" targetId="assessment" filterLevel="100" description="" time="" groups="" valueExpressionId="issue_assessment_and_justification-path-assessment--update--value"/>
+                <update sourceId="issue_assessment_and_justification" targetId="justification" filterLevel="100" description="" time="" groups="" valueExpressionId="issue_assessment_and_justification-path-justification--update--value"/>
+            </updates>
+        </constraints>
+    </specification>
+    <runtime accepting="false">
+        <custom>
+            <globalMarking>
+                <enabled/>
+                <enabledSubprocesses/>
+                <executed/>
+                <pending/>
+                <included/>
+            </globalMarking>
+        </custom>
+        <marking>
+            <globalStore>
+                <variable id="child_age" value="null" isNull="false" type="expr"/>
+                <variable id="medical_certificate" value="null" isNull="false" type="expr"/>
+                <variable id="number_of_caregivers" value="null" isNull="false" type="expr"/>
+                <variable id="child_is_minor" value="null" isNull="false" type="expr"/>
+                <variable id="certificate_is_genuine" value="null" isNull="false" type="expr"/>
+                <variable id="child_has_national_insurance_membership" value="null" isNull="false" type="expr"/>
+                <variable id="has_developmental_disability" value="null" isNull="false" type="expr"/>
+                <variable id="needs_life_threatening_continuous_supervision_and_care" value="null" isNull="false" type="expr"/>
+                <variable id="has_illness_or_disability" value="null" isNull="false" type="expr"/>
+                <variable id="needs_continuous_supervision" value="null" isNull="false" type="expr"/>
+                <variable id="care_requires_absence_from_work" value="null" isNull="false" type="expr"/>
+                <variable id="second_caregiver_is_justified" value="null" isNull="false" type="expr"/>
+                <variable id="assessment" value="null" isNull="false" type="expr"/>
+                <variable id="justification" value="null" isNull="false" type="expr"/>
+            </globalStore>
+            <executed/>
+            <included>
+                <event id="Data"/>
+                <event id="child_age"/>
+                <event id="medical_certificate"/>
+                <event id="number_of_caregivers"/>
+                <event id="child_is_minor"/>
+                <event id="certificate_is_genuine"/>
+                <event id="child_has_national_insurance_membership"/>
+                <event id="has_developmental_disability"/>
+                <event id="needs_life_threatening_continuous_supervision_and_care"/>
+                <event id="has_illness_or_disability"/>
+                <event id="needs_continuous_supervision"/>
+                <event id="care_requires_absence_from_work"/>
+                <event id="second_caregiver_is_justified"/>
+                <event id="assessment"/>
+                <event id="justification"/>
+                <event id="start_application"/>
+                <event id="submit_information_child_age"/>
+                <event id="submit_information_medical_certificate"/>
+                <event id="submit_information_number_of_caregivers"/>
+                <event id="determine_minor_status_output"/>
+                <event id="determine_minor_status_child_is_minor"/>
+                <event id="verify_medical_certificate_output"/>
+                <event id="verify_medical_certificate_certificate_is_genuine"/>
+                <event id="check_national_insurance_membership_output"/>
+                <event id="check_national_insurance_membership_child_has_national_insurance_membership"/>
+                <event id="issue_assessment_and_justification_assessment"/>
+                <event id="issue_assessment_and_justification_justification"/>
+            </included>
+            <pendingResponses/>
+        </marking>
+    </runtime>
+</dcrgraph>
