@@ -10,8 +10,9 @@
 //   (an event in a form has no roles or read roles: the form's are its)
 // Each event starts as in the DCR.js graph: Data and the data properties' events included, an action's event or form
 // as its Action … { … } says (Initially available, Initially pending).
-// Expressions name an event by its id: a data property's, input's or output's is its variable's name (speed, or
-// Printer_speed when two have the same); an action's or a form's is its name; a nesting's in a form the form's with
+// Expressions name an event by its id: a data property's, input's or output's is its variable's name (speed; or
+// Printer_speed when two entities' data properties have the same, tune_speed when an input or output has the name of
+// another variable); an action's or a form's is its name; a nesting's in a form the form's with
 // _input or _output after it; each with a number after it should another event have it already.
 // The relations are the DCR.js graph's (Data's condition to itself, and the Givens' conditions from Data, guarded by
 // not(…)), their guards and values as they are, with

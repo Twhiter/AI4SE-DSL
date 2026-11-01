@@ -271,20 +271,24 @@ function writer(model: Model, names: Map<string, string>, { noValue }: Options) 
 
 /**
  * The variables' names, by propertyKey for a data property and parameterKey for an input or output: its name, each
- * space an _ (max speed: max_speed); when two would have the same, each has its owner's before it, its entity's or its
- * action's (Printer_speed, tune_speed), and a number after it should that still not be unique.
+ * space an _ (max speed: max_speed). A data property keeps it, unless another entity's data property has it too: then
+ * each has its entity's before it (Printer_speed). An input or output keeps it, unless any other variable has it: then
+ * it has its action's before it (tune_speed), and the data property keeps it (child_age, submit_child_age). A number
+ * comes after a name that is still not unique.
  */
 function variableNames(model: Model): Map<string, string> {
     const owned = [
         ...model.entities.flatMap(entity => entity.dataProperties.filter(isPrimitive)
-            .map(property => ({ key: propertyKey(entity.name, property.name), owner: entity.name, name: property.name }))),
+            .map(property => ({ key: propertyKey(entity.name, property.name), owner: entity.name, name: property.name, property: true }))),
         ...model.actions.flatMap(action => [...(model.inputs[action] ?? []), ...(model.outputs[action] ?? [])]
-            .map((parameter, i) => ({ key: parameterKey(action, i), owner: action, name: parameter.name })))
+            .map((parameter, i) => ({ key: parameterKey(action, i), owner: action, name: parameter.name, property: false })))
     ];
     const plain = owned.map(({ name }) => identifier(name));
     const used = new Set<string>();
-    return new Map(owned.map(({ key, owner }, i) => {
-        const wanted = plain.filter(name => name === plain[i]).length > 1 ? `${identifier(owner)}_${plain[i]}` : plain[i];
+    return new Map(owned.map(({ key, owner, property }, i) => {
+        // a data property clashes only with another data property; an input or output with any other variable
+        const clashes = owned.filter((other, j) => j !== i && plain[j] === plain[i] && (other.property || !property)).length > 0;
+        const wanted = clashes ? `${identifier(owner)}_${plain[i]}` : plain[i];
         let name = wanted;
         for (let n = 2; used.has(name); n++) {
             name = `${wanted}_${n}`;

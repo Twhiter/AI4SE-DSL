@@ -218,6 +218,35 @@ describe('toDcrJsXml', () => {
         expect(elements.find(({ type }) => type === 'setValue')?.targetRef?.eventData?.name).toBe('Printer_speed');
     });
 
+    it('names an input or output with the name of a data property, or of another input or output, after its action; the data property keeps its name', async () => {
+        const { outline, relations } = await dcrJs(`
+            Entity Application {
+                Data properties: child age: int, is_minor: boolean
+            }
+            Role Citizen.
+            Action submit { Initiators: Citizen, Input: child age: int }
+            Action determine minor { Initiators: Citizen, Output: is_minor: boolean }
+            Action assess first { Initiators: Citizen, Input: decision: boolean }
+            Action assess second { Initiators: Citizen, Input: decision: boolean }
+            Scenario: Submit
+            Given the Application's is_minor equal to true
+            When submit is executed with inputs child age
+            Then the Application's child age is set to child age.`);
+
+        expect(outline).toEqual([
+            { 'nesting Data': ['child age [Application] child_age: Int', 'is_minor [Application] is_minor: Bool'] },
+            'submit [Citizen] submit_child_age: Int excluded',
+            { 'nesting determine minor': [{ 'nesting Output': ['is_minor [Citizen] determine_minor_is_minor: Bool excluded'] }] },
+            'assess first [Citizen] assess_first_decision: Bool excluded',
+            'assess second [Citizen] assess_second_decision: Bool excluded'
+        ]);
+        expect(relations).toEqual([
+            'condition Data → Data',
+            'condition Data → submit [not(is_minor = true)]',
+            'setValue submit → child age := submit_child_age'
+        ]);
+    });
+
     it('leaves out lists and queues, with what the scenarios say about them, and is undefined', async () => {
         const { outline, relations } = await dcrJs(`
             Entity Printer {
