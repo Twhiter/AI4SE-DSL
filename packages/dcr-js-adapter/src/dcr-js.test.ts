@@ -56,12 +56,12 @@ interface Box { x: number, y: number, width: number, height: number }
 /**
  * The XML of a document read as the DCR page reads it, without a warning, with a shape for every element and a route
  * for every relation, no two shapes of the graph itself overlapping (boxes); its elements outlined (outline) and its
- * relations written out (condition Data → print [not(speed > 2)]).
+ * relations written out (condition Data → print [not(speed > 2)]). Without the fixer, unless `fixInclusion` says so.
  */
-async function dcrJs(text: string) {
+async function dcrJs(text: string, fixInclusion = false) {
     const result = await build(text);
     expect(result.errors?.map(({ message }) => message) ?? []).toEqual([]);
-    const xml = await toDcrJsXml(result.model!);
+    const xml = await toDcrJsXml(result.model!, { fixInclusion });
     const reader = new Reader({ model: new Moddle(schema), lax: false });
     const { rootElement, warnings } = await reader.fromXML(xml, reader.handler('dcr:Definitions'));
     expect(warnings).toEqual([]);
@@ -308,6 +308,36 @@ describe('toDcrJsXml', () => {
             'stop [Operator] excluded',
             { 'nesting move': [{ 'nesting Input': ['x [Operator] x: Int', 'y [Operator] y: Int'] }] },
             { 'nesting check': [{ 'nesting Output': ['ok [Operator] ok: Bool excluded pending'] }] }
+        ]);
+    });
+
+    it('with the fixer, starts an action that no include relation goes to included, whatever its Action … { … } says, and its inputs and outputs too', async () => {
+        const text = `
+            Entity Heater {
+                Actions: start, stop, adjust
+                Data properties: running: boolean
+            }
+            Role Resident.
+            Action start { Initiators: Resident }
+            Action stop { Initiators: Resident }
+            Action adjust { Initiators: Resident, Input: degrees: int, Output: accepted: boolean, Initially available: false }
+            Scenario: Start
+            Given the Heater's running equal to false
+            When start is executed
+            Then stop is available.`;
+        const data = { 'nesting Data': ['running [Heater] running: Bool'] };
+
+        expect((await dcrJs(text, true)).outline).toEqual([
+            data,
+            'start [Resident]',
+            'stop [Resident] excluded',   // start includes it
+            { 'nesting adjust': [{ 'nesting Input': ['degrees [Resident] degrees: Int'] }, { 'nesting Output': ['accepted [Resident] accepted: Bool'] }] }
+        ]);
+        expect((await dcrJs(text)).outline).toEqual([
+            data,
+            'start [Resident] excluded',
+            'stop [Resident] excluded',
+            { 'nesting adjust': [{ 'nesting Input': ['degrees [Resident] degrees: Int excluded'] }, { 'nesting Output': ['accepted [Resident] accepted: Bool excluded'] }] }
         ]);
     });
 

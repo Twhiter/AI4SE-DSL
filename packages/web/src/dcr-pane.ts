@@ -1,10 +1,14 @@
 // The DCR graph view of the editor area (views.ts): the DCR page of legal-dcr-frontend (its COMPONENT.md) showing the
-// DCR.js editor XML of every check (checks.ts), where the user looked at the graph before; while the document has
-// errors, it says the graph is out of date. Layout lays the graph out again, undoing what the user moved.
+// model of every check (checks.ts) as DCR.js editor XML (easy-dcr-js-adapter), with the fixer or without (fixer.ts),
+// where the user looked at the graph before; while the document has errors, it says the graph is out of date. Layout
+// lays the graph out again, undoing what the user moved.
 
 import { mountDcrPage } from 'dcr-page/dcr-page.js';
 import 'dcr-page/dcr-page.css';
-import { onCheckStatus, onDcrXml } from './checks.js';
+import { toDcrJsXml } from 'easy-dcr-js-adapter';
+import type { EasyModel } from 'easy-language';
+import { onCheckStatus, onChecked } from './checks.js';
+import { fixerCheckbox, fixInclusion, onFixInclusion } from './fixer.js';
 
 /** What the DCR page does not offer here, as the graph comes from the document. */
 const HIDDEN_OPTIONS = ['newDiagram', 'open', 'examples', 'simulation', 'layout'] as const;
@@ -19,10 +23,14 @@ export function createDcrView(view: HTMLElement): () => void {
         </div>
         <div class="canvas"></div>`;
     const status = view.querySelector<HTMLElement>('.dcr-status')!;
+    view.querySelector('.layout')!.before(fixerCheckbox('dcr-fixer'));
     const page = mountDcrPage(view.querySelector<HTMLElement>('.canvas')!, { hiddenOptions: HIDDEN_OPTIONS });
     keepKeys(view);
     /** The XML shown last. */
     let shown: string | undefined;
+    /** The model checked last, and how many times a graph was made of a model. */
+    let checked: EasyModel.Model | undefined;
+    let made = 0;
 
     const show = (xml: string) => {
         shown = xml;
@@ -31,11 +39,18 @@ export function createDcrView(view: HTMLElement): () => void {
             (error: unknown) => status.textContent = `Cannot show the graph: ${error instanceof Error ? error.message : String(error)}`
         );
     };
-    onDcrXml(xml => {
-        if (xml !== shown) {   // the same graph again would undo what the user moved
+    const make = async () => {
+        const making = ++made;
+        const xml = checked && await toDcrJsXml(checked, { fixInclusion: fixInclusion() });
+        if (xml !== undefined && making === made && xml !== shown) {   // the same graph again would undo what the user moved
             show(xml);
         }
+    };
+    onChecked(model => {
+        checked = model;
+        make();
     });
+    onFixInclusion(make);
     onCheckStatus(({ state }) => {
         if (state === 'not checked') {
             status.textContent = shown ? 'Out of date: fix the errors first' : 'fix the errors first';

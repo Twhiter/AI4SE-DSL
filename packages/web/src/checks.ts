@@ -1,7 +1,7 @@
 // Checks the editor's document with Z3, in the page: the Declarative and enabled specifications together, each
 // scenario on its own, and the scenarios with the same When against each other. All the problems become markers
 // together, like the language's own errors, so the editor underlines them and the Problems panel lists them; then
-// the document becomes DCR.js editor XML (easy-dcr-js-adapter), for the DCR graph view (dcr-pane.ts).
+// the document's model goes to the DCR graph view (dcr-pane.ts), which shows it as a DCR graph.
 // Z3 is WebAssembly: z3/z3-built.js, a classic script served by vite.config.ts, defines initZ3 and loads
 // z3/z3-built.wasm; its threads need SharedArrayBuffer, so the page is cross-origin isolated (by the headers in
 // vite.config.ts, or on another web server by the service worker of cross-origin-isolation.ts).
@@ -14,7 +14,6 @@ import {
     checkConsistency, checkCrossScenarios, checkScenarios, isDeclarativeSpec, isEnabledSpec, isScenario,
     type ConsistencyResult, type CrossScenarioResult, type EasyModel, type Model as ModelNode, type ScenarioResult, type Z3Context
 } from 'easy-language';
-import { toDcrJsXml } from 'easy-dcr-js-adapter';
 import { crossOriginIsolation } from './cross-origin-isolation.js';
 import { toMonacoRange } from './ranges.js';
 
@@ -42,11 +41,11 @@ function report(status: CheckStatus): void {
     statusListeners.forEach(listener => listener(status));
 }
 
-const xmlListeners: Array<(xml: string) => void> = [];
+const checkedListeners: Array<(model: EasyModel.Model) => void> = [];
 
-/** Called with the DCR graph of every document that was checked, as DCR.js editor XML. */
-export function onDcrXml(listener: (xml: string) => void): void {
-    xmlListeners.push(listener);
+/** Called with the model of every document that was checked. */
+export function onChecked(listener: (model: EasyModel.Model) => void): void {
+    checkedListeners.push(listener);
 }
 
 // ---------------- Running the checks, one at a time ----------------
@@ -75,7 +74,7 @@ export function checkWithZ3(editorModel: monaco.editor.ITextModel, text: string,
             if (result && !stale()) {
                 monaco.editor.setModelMarkers(editorModel, OWNER, result.markers);
                 report({ state: 'done', text: result.summary });
-                xmlListeners.forEach(listener => listener(result.xml));
+                checkedListeners.forEach(listener => listener(model));
             }
         } catch (error) {
             report({ state: 'failed', text: `Z3 failed: ${error instanceof Error ? error.message : String(error)}` });
@@ -158,7 +157,6 @@ function loadScript(src: string): Promise<void> {
 interface CheckResult {
     markers: monaco.editor.IMarkerData[];
     summary: string;
-    xml: string;
 }
 
 /**
@@ -166,8 +164,7 @@ interface CheckResult {
  * 2. each scenario on its own: a Given that can never hold with its When action enabled, or a Then that can never hold
  *    with its When action executed, is an error;
  * 3. the scenarios with the same When, of those that hold on their own: a group that can apply together (at some
- *    input) but whose Thens cannot hold together is an error;
- * 4. the DCR graph, as DCR.js editor XML, for the DCR graph view (built as if there were no problems).
+ *    input) but whose Thens cannot hold together is an error.
  * Stops early, without a result, once `stale` says a newer text is waiting.
  */
 async function runChecks(z3: Z3Context, model: EasyModel.Model, locations: Locations, uri: monaco.Uri, stale: () => boolean): Promise<CheckResult | undefined> {
@@ -192,13 +189,8 @@ async function runChecks(z3: Z3Context, model: EasyModel.Model, locations: Locat
     const crossTime = lap();
     groups.forEach(group => markers.push(crossScenarioMarker(group, locations, uri)));
 
-    if (stale()) {
-        return undefined;
-    }
-    const xml = await toDcrJsXml(model);   // not a check: its time is not in the summary
     return {
         markers,
-        xml,
         // the scenarios' time: each scenario on its own, and the scenarios with the same When against each other
         summary: `Checked in ${consistency + scenarioTime + crossTime} ms · consistency ${consistency} ms · scenarios ${scenarioTime + crossTime} ms`
     };

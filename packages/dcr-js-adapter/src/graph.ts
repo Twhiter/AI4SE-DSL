@@ -7,7 +7,9 @@
 //                                                  (with outputs): an activity per input and output, with a variable
 //                                                  of its type and the action's initiators and observers
 //   (the data properties' activities are included at the start, and an action's, or its inputs' and outputs', when its
-//   Action … { … } says 'Initially available: true'; they are pending at the start with 'Initially pending: true')
+//   Action … { … } says 'Initially available: true', or when no include relation goes to it (the fixer, which can be
+//   turned off: Options.fixInclusion), as it could otherwise never happen; they are pending at the start with
+//   'Initially pending: true')
 //   Action print is enabled means { start was executed or is not available }     condition start → print
 //                                 { reboot is not pending or is not available }  milestone reboot → print
 //   (Data has a condition to itself: its activities are never executed, their values change by setValues only, so a
@@ -90,10 +92,17 @@ const OPERATORS: Partial<Record<EasyModel.AssertionOperation, [string, string]>>
     'equal to': ['=', '!='], 'larger than': ['>', '<='], 'smaller than': ['<', '>=']
 };
 
-/** How to say what the graph will be written in can say, but DCR.js cannot. */
 export interface Options {
-    /** Its word for no value (null): 'is undefined' is then '= null', and 'is not undefined' '!= null'. */
+    /**
+     * What the graph will be written in can say, but DCR.js cannot: its word for no value (null). 'is undefined' is then
+     * '= null', and 'is not undefined' '!= null'.
+     */
     noValue?: string;
+    /**
+     * The fixer: an action that no include relation goes to starts included, whatever its Action … { … } says, and so
+     * do its inputs and outputs. True by default.
+     */
+    fixInclusion?: boolean;
 }
 
 export function toDcrJsGraph(model: Model, options: Options = {}): DcrJsGraph {
@@ -190,6 +199,11 @@ export function toDcrJsGraph(model: Model, options: Options = {}): DcrJsGraph {
             }
         }
         setValues.forEach(([to, guard, value]) => relate('setValue', rule.action, to, guard, value));
+    }
+
+    if (options.fixInclusion ?? true) {
+        const included = new Set(relations.filter(({ type }) => type === 'include').map(({ target }) => target));
+        actions.filter(({ id }) => !included.has(id)).flatMap(activitiesOf).forEach(activity => activity.included = true);
     }
 
     const unique = relations.filter((relation, i) => relations.findIndex(other => sameRelation(relation, other)) === i);
@@ -313,6 +327,11 @@ function guardOf(alternatives: string[][]): string | undefined {
 /** An int, string, boolean or Any property: one with a variable. */
 function isPrimitive(property: EasyModel.DataProperty): property is EasyModel.DataProperty & { type: EasyModel.ScalarType } {
     return property.type !== 'list' && property.type !== 'queue';
+}
+
+/** The activities of an element: itself, or what its nestings hold. */
+function activitiesOf(element: Element): Activity[] {
+    return element.kind === 'activity' ? [element] : element.children.flatMap(activitiesOf);
 }
 
 /** 'Printer.speed' */

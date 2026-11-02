@@ -77,12 +77,13 @@ const KEYWORDS = new Set(['and', 'or', 'not', 'if', 'then', 'else', 'true', 'fal
 /**
  * The XML of a document, read back, each event with a place, a label and a unique id, every relation from an event to
  * another, and every expression naming events only; its events outlined (outline) and its relations written out
- * (condition speed → print [speed > 2], update print → speed [copies = 1] := 10).
+ * (condition speed → print [speed > 2], update print → speed [copies = 1] := 10). Without the fixer, unless `options`
+ * turn it on.
  */
 async function dcrSolution(text: string, options?: Options) {
     const result = await build(text);
     expect(result.errors?.map(({ message }) => message) ?? []).toEqual([]);
-    const xml = await toDcrSolutionXml(result.model!, options);
+    const xml = await toDcrSolutionXml(result.model!, { fixInclusion: false, ...options });
     const root = parse(xml);
     const resources = find(root, 'specification', 'resources');
     const all = find(resources, 'events').children.flatMap(events);
@@ -301,6 +302,37 @@ describe('toDcrSolutionXml', () => {
             'stop "stop" [Clerk] excluded',
             { 'form submit "submit" [Clerk]': ['text "text": text', 'age "age": int'] },
             { 'form check "check" [Clerk] excluded pending': [{ 'nesting check_output "Output"': ['result "result": int'] }] }
+        ]);
+    });
+
+    it('with the fixer, starts an action, as an event or a form, that no include relation goes to included, whatever its Action … { … } says', async () => {
+        const text = `
+            Entity Heater {
+                Actions: start, stop, adjust
+                Data properties: running: boolean
+            }
+            Role Resident.
+            Action start { Initiators: Resident }
+            Action stop { Initiators: Resident }
+            Action adjust { Initiators: Resident, Input: degrees: int, Output: accepted: boolean, Initially available: false }
+            Scenario: Start
+            Given the Heater's running equal to false
+            When start is executed
+            Then stop is available.`;
+        const data = { 'nesting Data "Data"': ['running "running" [Heater]: bool'] };
+        const adjust = [{ 'nesting adjust_input "Input"': ['degrees "degrees": int'] }, { 'nesting adjust_output "Output"': ['accepted "accepted": bool'] }];
+
+        expect((await dcrSolution(text, { fixInclusion: true })).outline).toEqual([
+            data,
+            'start "start" [Resident]',
+            'stop "stop" [Resident] excluded',   // start includes it
+            { 'form adjust "adjust" [Resident]': adjust }
+        ]);
+        expect((await dcrSolution(text)).outline).toEqual([
+            data,
+            'start "start" [Resident] excluded',
+            'stop "stop" [Resident] excluded',
+            { 'form adjust "adjust" [Resident] excluded': adjust }
         ]);
     });
 

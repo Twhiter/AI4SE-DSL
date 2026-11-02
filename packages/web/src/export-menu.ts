@@ -1,19 +1,20 @@
 // The Export menu in the menu bar at the top, as an IDE has File and Edit there: the document as DCR Solutions XML
 // (easy-dcr-solution-adapter), which dcrgraphs.net imports, or as DCR.js editor XML (easy-dcr-js-adapter), which the
-// DCR graph view shows; each downloaded as a file. While the document has errors there is nothing to export, and the
-// menu says so.
+// DCR graph view shows; each downloaded as a file, with the fixer or without, as the DCR graph view (fixer.ts), and
+// with its checkbox. While the document has errors there is nothing to export, and the menu says so.
 
 import { buildModel, type EasyModel } from 'easy-language';
 import { toDcrJsXml } from 'easy-dcr-js-adapter';
 import { toDcrSolutionXml } from 'easy-dcr-solution-adapter';
 import { onDocument } from './easy-language.js';
+import { fixerCheckbox, fixInclusion } from './fixer.js';
 
 const TITLE = 'DSL easy';
 
 /** What the menu offers: its item's text, the file's name, and the XML of a model. */
 const EXPORTS: Array<{ text: string, file: string, xml: (model: EasyModel.Model) => Promise<string> }> = [
-    { text: 'DCR Solutions XML (dcrgraphs.net)', file: `${TITLE} - DCR Solutions.xml`, xml: model => toDcrSolutionXml(model, { title: TITLE }) },
-    { text: 'DCR.js XML', file: `${TITLE} - DCR.js.xml`, xml: toDcrJsXml }
+    { text: 'DCR Solutions XML (dcrgraphs.net)', file: `${TITLE} - DCR Solutions.xml`, xml: model => toDcrSolutionXml(model, { title: TITLE, fixInclusion: fixInclusion() }) },
+    { text: 'DCR.js XML', file: `${TITLE} - DCR.js.xml`, xml: model => toDcrJsXml(model, { fixInclusion: fixInclusion() }) }
 ];
 
 export function createExportMenu(bar: HTMLElement): void {
@@ -46,6 +47,7 @@ export function createExportMenu(bar: HTMLElement): void {
         return item;
     });
     list.prepend(...items);
+    list.append(fixerCheckbox('menu-check'));
     onDocument(built => {
         model = buildModel(built).model;
         items.forEach(item => item.disabled = model === undefined);
