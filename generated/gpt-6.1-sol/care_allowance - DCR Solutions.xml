@@ -2106,6 +2106,11 @@
                 <event id="verify_medical_certificate_certificate_is_genuine"/>
                 <event id="check_national_insurance_membership_output"/>
                 <event id="check_national_insurance_membership_child_has_national_insurance_membership"/>
+                <event id="find_similar_cases"/>
+                <event id="find_relevant_laws"/>
+                <event id="review_similar_cases"/>
+                <event id="review_relevant_laws"/>
+                <event id="grant_care_allowance"/>
                 <event id="issue_assessment_and_justification_assessment"/>
                 <event id="issue_assessment_and_justification_justification"/>
             </included>

@@ -1890,6 +1890,9 @@
                 <event id="verify_certificate_certificate_valid"/>
                 <event id="check_insurance_membership_output"/>
                 <event id="check_insurance_membership_has_insurance_membership"/>
+                <event id="open_case"/>
+                <event id="grant_care_allowance"/>
+                <event id="issue_assessment_and_justification"/>
             </included>
             <pendingResponses/>
         </marking>
