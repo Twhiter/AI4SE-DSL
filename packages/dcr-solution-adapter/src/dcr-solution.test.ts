@@ -71,14 +71,14 @@ function find(node: Node, ...path: string[]): Node {
 /** An event and the events in it. */
 const events = (event: Node): Node[] => [event, ...event.children.filter(({ name }) => name === 'event').flatMap(events)];
 
-/** The words of DCR Solutions' expressions that do not name an event. */
-const KEYWORDS = new Set(['and', 'or', 'not', 'if', 'then', 'else', 'true', 'false', 'null']);
+/** The words of DCR Solutions' expressions that do not name an event, its list functions' too. */
+const KEYWORDS = new Set(['and', 'or', 'not', 'if', 'then', 'else', 'true', 'false', 'null', 'count', 'list', 'contains', 'append', 'remove', 'index', 'of']);
 
 /**
  * The XML of a document, read back, each event with a place, a label and a unique id, every relation from an event to
- * another, and every expression naming events only; its events outlined (outline) and its relations written out
- * (condition speed → print [speed > 2], update print → speed [copies = 1] := 10). Without the fixer, unless `options`
- * turn it on.
+ * another, and every expression naming events only (but for an event's status: print@executed); its events outlined
+ * (outline, a state with its computation: = print@executed) and its relations written out (condition speed → print
+ * [speed > 2], update print → speed [copies = 1] := 10). Without the fixer, unless `options` turn it on.
  */
 async function dcrSolution(text: string, options?: Options) {
     const result = await build(text);
@@ -96,7 +96,7 @@ async function dcrSolution(text: string, options?: Options) {
     expect(find(resources, 'labels').children.map(({ attributes }) => attributes.id)).toEqual([...new Set(labels.values())]);
     const expressions = new Map(find(resources, 'expressions').children.map(({ attributes }) => [attributes.id, attributes.value]));
     for (const expression of expressions.values()) {
-        const words = expression.replace(/'[^']*'/g, '').match(/[A-Za-z_]\w*/g) ?? [];
+        const words = expression.replace(/'[^']*'/g, '').replace(/@\w+/g, '').match(/[A-Za-z_]\w*/g) ?? [];
         expect(words.filter(word => !KEYWORDS.has(word) && !ids.includes(word)), expression).toEqual([]);
     }
 
@@ -110,7 +110,8 @@ async function dcrSolution(text: string, options?: Options) {
         const name = `${type ? `${type} ` : ''}${id} "${labels.get(id)}"`
             + (roles.length + readRoles.length > 0 ? ` [${roles.join(', ')}${readRoles.length > 0 ? `; observers ${readRoles.join(', ')}` : ''}]` : '')
             + (dataType ? `: ${dataType.attributes.format ?? dataType.text}` : '')
-            + `${included.has(id) ? '' : ' excluded'}${executed.has(id) ? ' executed' : ''}${pending.has(id) ? ' pending' : ''}`;
+            + `${included.has(id) ? '' : ' excluded'}${executed.has(id) ? ' executed' : ''}${pending.has(id) ? ' pending' : ''}`
+            + (event.attributes.computation ? ` = ${expressions.get(event.attributes.computation)}` : '');
         const inside = event.children.filter(child => child.name === 'event');
         return type ? { [name]: inside.map(outline) } : name;
     };
@@ -400,11 +401,11 @@ describe('toDcrSolutionXml', () => {
             Role Clerk.
             Action write { Initiators: Clerk, Input: text: string }
             Scenario: Write
-            Given write is available
+            Given the Case's note is undefined
             When write is executed with inputs text = "1"
             Then the Case's note is set to text.`);
 
-        expect(relations).toEqual(['condition Data → Data', "update text → note [text = '1'] := text"]);
+        expect(relations).toEqual(['condition Data → Data', 'condition Data → text [not(note = null)]', "update text → note [text = '1'] := text"]);
         /** Each update, and its expressions, with its source and target as A1 and A2, as the example's. */
         const update = (graph: Node) => {
             const [relation] = find(graph, 'specification', 'constraints', 'updates').children;
@@ -412,9 +413,70 @@ describe('toDcrSolutionXml', () => {
             return {
                 attributes: Object.fromEntries(Object.entries(relation.attributes).map(([key, value]) => [key, named(value)])),
                 expressions: find(graph, 'specification', 'resources', 'expressions').children.map(({ attributes }) => named(attributes.id))
+                    .filter(id => id.endsWith('--update') || id.endsWith('--update--value'))
             };
         };
         expect(update(root)).toEqual(update(example));
+    });
+
+    it('writes a state as an event of Robot in the nesting States, its value its computation, included, pending and a response to itself, as dcrgraphs.net does (DCR computation.xml)', async () => {
+        const example = parse(readFileSync(new URL('../../../dcr solution examples/DCR computation.xml', import.meta.url), 'utf8'));
+        const { root, outline, relations } = await dcrSolution(`
+            Entity Case {
+                Actions: submit, process
+                Data properties: somedata: int
+                States: processed, Submitted
+            }
+            Role someone.
+            Action submit { Initiators: someone, Initially available: true }
+            Action process { Initiators: someone, Initially available: true }
+            Declarative specification Case is processed means { submit was executed }
+            Declarative specification Case is Submitted means { process is pending }
+            Scenario: Process
+            Given the Case is processed AND the Case's somedata larger than 10
+            When process is executed
+            Then submit is pending.`);
+
+        expect(outline).toEqual([
+            { 'nesting Data "Data"': ['somedata "somedata" [Case]: int'] },
+            { 'nesting States "States"': ['processed "processed" [Robot]: bool pending = submit@executed', 'Submitted "Submitted" [Robot]: bool pending = process@pending'] },
+            'submit "submit" [someone]',
+            'process "process" [someone]'
+        ]);
+        expect(relations).toEqual([
+            'condition Data → Data',
+            'condition Data → process [not(processed = true and somedata > 10)]',
+            'response processed → processed',
+            'response Submitted → Submitted',
+            'response process → submit'
+        ]);
+        const keys = (node: Node) => Object.keys(node.attributes).sort();
+        const names = (node: Node) => node.children.map(({ name }) => name);
+        /** How an event is written, but for what it says: its roles, place, label, … */
+        const shape = (event: Node) => JSON.stringify({
+            attributes: keys(event),
+            custom: names(find(event, 'custom')),
+            data: find(event, 'custom', 'eventData').children.map(child => [child.name, keys(child), child.name === 'dataType' ? child.text : '', names(child)])
+        });
+        const shapes = (graph: Node) => [...new Set(find(graph, 'specification', 'resources', 'events').children.flatMap(events).map(shape))].sort();
+        expect(shapes(root)).toEqual(shapes(example));
+        /** Each event's label by its id, in lower case (the example's data property is Somedata). */
+        const labelsOf = (graph: Node) => new Map(find(graph, 'specification', 'resources', 'labelMappings').children
+            .map(({ attributes }) => [attributes.eventId, attributes.labelId.toLowerCase()]));
+        /** The expressions, each event by its label and without spaces: not (processed=true …) is not(processed = true …). */
+        const expressions = (graph: Node) => {
+            const labels = labelsOf(graph);
+            const named = (text: string) => text.replace(/[A-Za-z_]\w*/g, word => labels.get(word) ?? word).replace(/\s+/g, '');
+            return find(graph, 'specification', 'resources', 'expressions').children.map(({ attributes }) => `${named(attributes.id)}: ${named(attributes.value)}`).sort();
+        };
+        expect(expressions(root)).toEqual(expressions(example));
+        const selfResponses = (graph: Node) => find(graph, 'specification', 'constraints', 'responses').children
+            .filter(({ attributes }) => attributes.sourceId === attributes.targetId).map(keys);
+        expect(selfResponses(root)).toEqual(selfResponses(example));
+        /** The labels of the events that start included, and pending. */
+        const marking = (graph: Node) => ['included', 'pendingResponses'].map(name =>
+            find(graph, 'runtime', 'marking', name).children.map(({ attributes }) => labelsOf(graph).get(attributes.id)).sort());
+        expect(marking(root)).toEqual(marking(example));
     });
 
     it("writes 'is undefined' with null, and starts each data property with none, as dcrgraphs.net does (DCR null.xml)", async () => {
@@ -433,7 +495,79 @@ describe('toDcrSolutionXml', () => {
 
         expect(relations).toEqual(['condition Data → Data', 'condition Data → file [not(label != null and speed = null and ready != true)]', 'update file → speed := 1']);
         const store = (graph: Node) => find(graph, 'runtime', 'marking', 'globalStore').children;
-        expect(store(root).map(({ attributes }) => attributes)).toEqual(['label', 'speed', 'ready'].map(id => ({ ...store(example)[0].attributes, id })));
+        expect(store(root).map(({ attributes }) => attributes)).toEqual([
+            ...['label', 'speed', 'ready'].map(id => ({ ...store(example)[0].attributes, id })),
+            { ...store(example)[0].attributes, id: 'jobs', value: '[]' }   // a list starts empty
+        ]);
+    });
+
+    it('writes a list or queue as an event of its entity in Data, with a list value, starting empty, as dcrgraphs.net does (DCR list.xml)', async () => {
+        const example = parse(readFileSync(new URL('../../../dcr solution examples/DCR list.xml', import.meta.url), 'utf8'));
+        const { root, outline } = await dcrSolution(`
+            Entity Printer {
+                Actions: print
+                Data properties: jobs: a list of string, waiting: a queue
+            }
+            Role Operator.
+            Action print { Initiators: Operator }
+            Scenario: Print
+            Given "a" is included in the Printer's jobs
+            When print is executed
+            Then the Printer's waiting is enqueued with "a".`);
+
+        expect(outline[0]).toEqual({ 'nesting Data "Data"': ['jobs "jobs" [Printer]: list', 'waiting "waiting" [Printer]: list'] });
+        const dataType = (graph: Node, id: string) => {
+            const event = find(graph, 'specification', 'resources', 'events').children.flatMap(events).find(({ attributes }) => attributes.id === id)!;
+            const type = find(event, 'custom', 'eventData', 'dataType');
+            return { attributes: Object.keys(type.attributes).sort(), text: type.text, data: find(event, 'custom', 'eventData').children.map(({ name }) => name) };
+        };
+        expect(dataType(root, 'jobs')).toEqual(dataType(example, 'A1'));
+        const store = (graph: Node) => find(graph, 'runtime', 'marking', 'globalStore').children.map(({ attributes }) => attributes);
+        expect(store(root)).toEqual(['jobs', 'waiting'].map(id => ({ ...store(example)[0], id, value: '[]' })));
+        const guards = (graph: Node) => find(graph, 'specification', 'resources', 'expressions').children.map(({ attributes }) => attributes.value);
+        expect(guards(root)).toContain("not(list contains(jobs, 'a'))");
+    });
+
+    it("writes what the scenarios and the specifications say about a list or queue with list functions, and a Then's effects on each as one update", async () => {
+        const { outline, relations } = await dcrSolution(`
+            Entity Printer {
+                Actions: submit, take, clear
+                Data properties: jobs: a list of string, waiting: a queue of string, speed: int
+                States: busy
+            }
+            Role Operator.
+            Action submit { Initiators: Operator, Input: job: string }
+            Action take { Initiators: Operator }
+            Action clear { Initiators: Operator }
+            Declarative specification Printer is busy means { the jobs is not empty }
+            Scenario: Submit
+            Given the Printer's jobs is not full AND "x" is not included in the Printer's jobs
+            When submit is executed with inputs job
+            Then the Printer's waiting is enqueued with job AND job is added to the Printer's jobs AND job is added to the Printer's jobs.
+            Scenario: Take
+            Given the Printer's waiting is not empty
+            When take is executed
+            Then the Printer's waiting is dequeued as next AND the Printer's jobs is removed with next AND the Printer's speed is set to 1.
+            Scenario: Clear
+            Given the Printer is busy
+            When clear is executed
+            Then the Printer's jobs is set to empty.`, { capacity: 20 });
+
+        expect(outline[1]).toEqual({ 'nesting States "States"': ['busy "busy" [Robot]: bool pending = count(jobs) > 0'] });
+        expect(relations).toEqual([
+            'condition Data → Data',
+            "condition Data → job [not(count(jobs) < 20 and list contains(jobs, 'x') = false)]",   // full: the capacity
+            'condition Data → take [not(count(waiting) > 0)]',
+            'condition Data → clear [not(busy = true)]',
+            'response busy → busy',
+            'update job → waiting := append(waiting, job)',
+            'update job → jobs := append(append(jobs, job), job)',   // in the order they are written
+            // the dequeued element is the front of the waiting before the step
+            'update take → waiting [count(waiting) > 0] := remove(waiting, 1)',
+            'update take → jobs [list contains(jobs, index(waiting, 1))] := remove(jobs, index(index of(jobs, index(waiting, 1)), 1))',
+            'update take → speed := 1',
+            'update clear → jobs := []'
+        ]);
     });
 
     it('gives every example without errors XML read back as above', async () => {

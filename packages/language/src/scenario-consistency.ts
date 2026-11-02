@@ -8,7 +8,7 @@
 // Given says. Both use the same names for the instances.
 
 import type { Bool, Expr } from 'z3-solver';
-import { NamedConstant, type Model, type Operand, type ScalarType, type TitledFormula, type Value, type WhenRule } from './model.js';
+import { NamedConstant, type Model, type Operand, type ScalarType, type Time, type TitledFormula, type Value, type WhenRule } from './model.js';
 import { conflictOf, specificationRules, type CheckResult } from './consistency.js';
 import { Z3Vocabulary, type Instance, type Z3Context, type Z3VocabularyOptions } from './z3-vocabulary.js';
 
@@ -47,13 +47,16 @@ export interface CrossScenarioResult {
  *                                                         says, or exactly when it is available without one; In: what
  *                                                         the When says about its inputs (age = 30, age larger than 17,
  *                                                         age = the Person's age, … AND the Person's age larger than 3)
- *   Then part TP:   Out(s) ∧ Then(s′) ∧ executed(A, s′)    Out: what it says about its outputs (is_adult = true,
- *                                                         pages = the Printer's speed: data as at s)
+ *   Then part TP:   Out(s) ∧ Then(s, s′) ∧ executed(A, s′) Out: what it says about its outputs (is_adult = true,
+ *                                                         pages = the Printer's speed: data as at s); Then: at s′, a
+ *                                                         list's or queue's effects in order from what it is at s
  *   Given check:  rules(s) ∧ GP                           unsat: the scenario can never apply
  *   Then check:   rules(s) ∧ GP ∧ rules(s′) ∧ TP          unsat: its Then can never follow its Given and When
+ * A Given says only states and data: what it says about the actions (the DCR marking) is what the specifications of
+ * its states say, as rules.
  * The conflict of an unsat check names what contradicts: the specifications ('spec: Printer is busy', at s′
- * 'spec: Printer is busy (after)'), the items of the Given or Then ('Given: print is not available') and of the When
- * ('When: age larger than 17', 'When: print is enabled').
+ * 'spec: Printer is busy (after)'), the items of the Given or Then ('Given: the Printer is busy', 'Then: print is not
+ * available') and of the When ('When: age larger than 17', 'When: print is enabled').
  */
 export async function checkScenarios(z3: Z3Context, model: Model, options?: Z3VocabularyOptions): Promise<ScenarioResult[]> {
     const results: ScenarioResult[] = [];
@@ -74,7 +77,7 @@ export async function checkScenarios(z3: Z3Context, model: Model, options?: Z3Vo
             ...givenPart,
             ...after.rules.map(({ title, formula }) => ({ title: `spec: ${title} (after)`, formula })),
             ...titled('When', scenario.outputAssertions.toZ3(v, instances)),
-            ...titled('Then', scenario.then.toZ3(after.v, after.instances)),
+            ...titled('Then', scenario.then.toZ3({ v, instances }, after)),
             { title: `When: ${scenario.when} was executed`, formula: after.v.status('executed', scenario.when, after.x) }
         ]);
         results.push({ scenario: scenario.name, given, then });
@@ -94,8 +97,8 @@ export async function checkScenarios(z3: Z3Context, model: Model, options?: Z3Vo
  * constant stands for, or for none. At each point:
  *   1. the scenarios whose values for the inputs and outputs hold there may apply;
  *   2. Thens, on s′: the specifications as rules, the When action executed, the inputs and outputs at the point, and
- *      the Thens; Z3 finds each smallest group of those scenarios whose Thens cannot hold together (an unsat core),
- *      until none is left;
+ *      the Thens, a list's or queue's effects from what it is at s, the same for all of them; Z3 finds each smallest
+ *      group of those scenarios whose Thens cannot hold together (an unsat core), until none is left;
  *   3. Givens, on s: the specifications as rules, the When action enabled, the inputs and outputs at the point (a fresh
  *      constant: some value it stands for), and the Givens and Whens of such a group. If they can hold together, the
  *      group applies together but its Thens cannot hold: a conflict, reported once, at that point.
@@ -118,6 +121,7 @@ export async function checkCrossScenarios(z3: Z3Context, model: Model, options?:
 /** The conflicts among the scenarios `kept` (their positions in the rule) of one When rule. */
 async function checkRule(z3: Z3Context, model: Model, rule: WhenRule, kept: number[], options?: Z3VocabularyOptions): Promise<CrossScenarioResult[]> {
     const { v, instances, rules, x } = setting(z3, model, rule.instances, rule.actionCtx, options);
+    const later = afterStep(v, model, rule.instances, rule.actionCtx);
     // the other named constants (dequeued as job) are told apart by their scenario
     for (const i of kept) {
         rule.constants[i].forEach(constant => v.nameConstant(constant, `${rule.scenarios[i]}: ${constant.name}`));
@@ -128,7 +132,7 @@ async function checkRule(z3: Z3Context, model: Model, rule: WhenRule, kept: numb
         if (applying.length < 2) {
             continue;
         }
-        for (const { members, conflict } of await conflictingThens(z3, v, model, rule, applying, point, rules.map(spec => spec.formula), instances, x)) {
+        for (const { members, conflict } of await conflictingThens(z3, { v, instances }, later, model, rule, applying, point)) {
             const key = members.join(',');
             if (results.has(key)) {
                 continue;
@@ -155,21 +159,23 @@ async function checkRule(z3: Z3Context, model: Model, rule: WhenRule, kept: numb
 
 /**
  * Every smallest group of the scenarios `applying` whose Thens cannot hold together at the point, with the Then items
- * that contradict ("Rush job: the Printer's speed is set to 10", in the scenario's own words). A seed of scenarios is
- * either grown to a largest group whose Thens can hold, or shrunk to a smallest one whose Thens cannot; either way it is
- * ruled out from then on.
+ * that contradict ("Rush job: the Printer's speed is set to 10", in the scenario's own words): their Thens at the time
+ * after the step (`later`, with the specifications there as rules), a list's or queue's effects from what it is before
+ * the step (`before`), the same for all of them. A seed of scenarios is either grown to a largest group whose Thens can
+ * hold, or shrunk to a smallest one whose Thens cannot; either way it is ruled out from then on.
  */
-async function conflictingThens(z3: Z3Context, v: Z3Vocabulary, model: Model, rule: WhenRule, applying: number[], point: Point,
-    rules: Array<Bool<'main'>>, instances: Record<string, Instance>, x: Instance | undefined): Promise<Array<{ members: number[], conflict: string[] }>> {
+async function conflictingThens(z3: Z3Context, before: Time, later: ReturnType<typeof afterStep>, model: Model, rule: WhenRule, applying: number[],
+    point: Point): Promise<Array<{ members: number[], conflict: string[] }>> {
+    const { v, instances } = before;
     const after = new z3.Solver();
     after.set('core.minimize', true);
-    after.add(...rules, v.status('executed', rule.action, x), ...point.facts,
+    after.add(...later.rules.map(spec => spec.formula), later.v.status('executed', rule.action, later.x), ...point.facts,
         ...rule.parameters.map((parameter, p) => v.constant(parameter).eq(point.terms[p])));
     // each Then item of scenario i behind a literal of its own
     const items: Array<{ i: number, title: string, literal: Bool<'main'> }> = [];
     for (const i of applying) {
         const titles = model.scenarios[rule.indices[i]].then.titles();
-        rule.thens[i].toZ3(v, instances).forEach(({ formula }, k) => {
+        rule.thens[i].toZ3(before, later).forEach(({ formula }, k) => {
             const literal = z3.Bool.const(`item ${items.length}`);
             after.add(z3.Implies(literal, formula));
             items.push({ i, title: `${rule.scenarios[i]}: ${titles[k]}`, literal });
@@ -180,7 +186,7 @@ async function conflictingThens(z3: Z3Context, v: Z3Vocabulary, model: Model, ru
             after.add(z3.Implies(z3.And(assignmentLiteral(items, rule, i, a), assignmentLiteral(items, rule, j, b)), formula));
         }
     }
-    after.add(...v.constraints());
+    after.add(...v.constraints(), ...later.v.constraints());
     const thens = async (group: number[]) => {
         const result = await after.check(...items.filter(item => group.includes(item.i)).map(item => item.literal));
         const core = result === 'unsat' ? new Set([...after.unsatCore()].map(literal => literal.toString())) : new Set<string>();
@@ -396,12 +402,19 @@ function titled(prefix: string, formulas: TitledFormula[]): TitledFormula[] {
     return formulas.map(({ title, formula }) => ({ title: `${prefix}: ${title}`, formula }));
 }
 
-/** Can the formulas hold together, with the rules of the language (of each vocabulary they use)? If not, those that conflict. */
+/**
+ * Can the formulas hold together, with the rules of the language (of each vocabulary they use)? If not, those that
+ * conflict; a title said again is numbered (a list's effect said twice: "Then: the Printer's jobs is added with "a" (2)").
+ */
 async function check(z3: Z3Context, vocabularies: Z3Vocabulary[], formulas: TitledFormula[]): Promise<CheckResult> {
     const solver = new z3.Solver();
     solver.set('core.minimize', true);
-    formulas.forEach(({ title, formula }) => solver.addAndTrack(formula, z3.Bool.const(title)));
+    const tracked = formulas.map(({ title, formula }, i) => {
+        const repeats = formulas.slice(0, i).filter(other => other.title === title).length;
+        return { title: repeats > 0 ? `${title} (${repeats + 1})` : title, formula };
+    });
+    tracked.forEach(({ title, formula }) => solver.addAndTrack(formula, z3.Bool.const(title)));
     solver.add(...vocabularies.flatMap(v => v.constraints()));
     const result = await solver.check();
-    return { result, conflict: result === 'unsat' ? conflictOf(solver, formulas) : [] };
+    return { result, conflict: result === 'unsat' ? conflictOf(solver, tracked) : [] };
 }

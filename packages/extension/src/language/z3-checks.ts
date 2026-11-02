@@ -4,7 +4,8 @@
 // diagnostics, so VS Code underlines them and its Problems panel lists them; then the document's DCR graph goes to the
 // extension (DCR_GRAPH), for its DCR graph panel. A document with errors gets no Z3 problems, and its graph is out of
 // date. One check runs at a time; a check of a text that changed meanwhile is dropped, and a text checked before is
-// not checked again (Langium validates a document again when another one changes).
+// not checked again (Langium validates a document again when another one changes), unless the setting easy.listCapacity
+// changed: then every document is built again, and checked with it.
 // Z3 is z3-solver's WebAssembly, left out of the bundle (esbuild.mjs), as it starts its threads from its own files.
 
 import { DocumentState, GrammarUtils, type LangiumDocument, type LangiumSharedCoreServices } from 'langium';
@@ -19,9 +20,10 @@ import {
 } from 'easy-language';
 import { DCR_GRAPH, type DcrGraphParams } from '../protocol.js';
 
-/** A text that was checked: its Z3 problems and its DCR graph. */
+/** A text that was checked, with a list capacity: its Z3 problems and its DCR graph. */
 interface Checked {
     text: string;
+    capacity: number | undefined;
     diagnostics: Diagnostic[];
     graph: DcrGraph;
 }
@@ -51,13 +53,14 @@ export function startZ3Checks(connection: Connection, shared: LangiumSharedCoreS
             if (stale()) {
                 return;
             }
+            const capacity = listCapacity(await shared.workspace.ConfigurationProvider.getConfiguration('easy', 'listCapacity'));
             let result = checked.get(uri);
-            if (result?.text !== text) {
-                const found = await runChecks(await loadZ3(), model, locations, uri, stale);
+            if (result?.text !== text || result.capacity !== capacity) {
+                const found = await runChecks(await loadZ3(), model, locations, uri, stale, capacity);
                 if (!found) {
                     return;
                 }
-                result = { text, ...found };
+                result = { text, capacity, ...found };
                 checked.set(uri, result);
             }
             if (!stale()) {
@@ -76,6 +79,17 @@ export function startZ3Checks(connection: Connection, shared: LangiumSharedCoreS
         latest.delete(uri.toString());
         checked.delete(uri.toString());
     }));
+    // another list capacity: every document is built and so checked again
+    shared.workspace.ConfigurationProvider.onConfigurationSectionUpdate(({ section }) => {
+        if (section === 'easy') {
+            void shared.workspace.DocumentBuilder.update(shared.workspace.LangiumDocuments.all.map(document => document.uri).toArray(), []);
+        }
+    });
+}
+
+/** The setting easy.listCapacity, when it is a whole number of at least 1; easy-language's DEFAULT_CAPACITY without it. */
+function listCapacity(setting: unknown): number | undefined {
+    return typeof setting === 'number' && Number.isInteger(setting) && setting >= 1 ? setting : undefined;
 }
 
 // ---------------- Z3 ----------------
@@ -132,25 +146,27 @@ function freeGarbage(): void {
  * 4. the DCR graph, for the DCR graph panel (built as if there were no problems).
  * Stops early, without a result, once `stale` says a newer text is waiting.
  */
-async function runChecks(z3: Z3Context, model: EasyModel.Model, locations: Locations, uri: string, stale: () => boolean): Promise<Omit<Checked, 'text'> | undefined> {
+async function runChecks(z3: Z3Context, model: EasyModel.Model, locations: Locations, uri: string, stale: () => boolean,
+    capacity: number | undefined): Promise<Omit<Checked, 'text' | 'capacity'> | undefined> {
     const diagnostics: Diagnostic[] = [];
+    const options = { capacity };
 
-    const specifications = await checkConsistency(z3, model);
+    const specifications = await checkConsistency(z3, model, options);
     specifications.filter(({ result }) => result !== 'sat').forEach(result => diagnostics.push(specificationDiagnostic(result, locations, uri)));
     if (stale()) {
         return undefined;
     }
-    const scenarios = await checkScenarios(z3, model);
+    const scenarios = await checkScenarios(z3, model, options);
     scenarios.forEach((result, i) => diagnostics.push(...scenarioDiagnostics(result, i, locations, uri)));
     if (stale()) {
         return undefined;
     }
-    const groups = await checkCrossScenarios(z3, model, undefined, scenarios);
+    const groups = await checkCrossScenarios(z3, model, options, scenarios);
     groups.forEach(group => diagnostics.push(crossScenarioDiagnostic(group, locations, uri)));
     if (stale()) {
         return undefined;
     }
-    return { diagnostics, graph: await toDcrGraph(z3, model) };
+    return { diagnostics, graph: await toDcrGraph(z3, model, options) };
 }
 
 /** 'Printer is busy' can never hold: it conflicts with 'print is enabled'. */

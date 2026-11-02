@@ -41,6 +41,7 @@ interface DcrElement {
     included?: boolean;
     pending?: boolean;
     takesInput?: boolean;
+    computation?: string;
     eventData?: { name: string, type: string };
     boardElements?: DcrElement[];
     sourceRef?: DcrElement;
@@ -78,11 +79,12 @@ async function dcrJs(text: string, fixInclusion = false) {
         .map((element: DcrElement) => layout.find(({ boardElement }) => boardElement === element)!.bounds as Box);
     boxes.forEach((a, i) => boxes.slice(i + 1).forEach(b =>
         expect(a.x + a.width <= b.x || b.x + b.width <= a.x || a.y + a.height <= b.y || b.y + b.height <= a.y, 'shapes overlap').toBe(true)));
+    const labels = new Map(elements.map(({ id, label }) => [id, label ?? id]));
     return {
         xml,
         elements,
         boxes,
-        outline: rootElement.rootElements[0].boardElements.filter((element: DcrElement) => !isRelation(element)).map(outline),
+        outline: rootElement.rootElements[0].boardElements.filter((element: DcrElement) => !isRelation(element)).map((element: DcrElement) => outline(element, labels)),
         relations: elements.filter(isRelation).map(({ type, sourceRef, targetRef, guard, value }) =>
             `${type} ${sourceRef!.label} → ${targetRef!.label}${guard ? ` [${guard}]` : ''}${value ? ` := ${value}` : ''}`)
     };
@@ -90,17 +92,23 @@ async function dcrJs(text: string, fixInclusion = false) {
 
 /**
  *   speed [Printer] speed: Int                                  an activity: its role, observers, variable (or excluded),
- *                                                               pending or not
+ *                                                               pending or not, and its computation, each token with a
+ *   busy [Robot] busy: Bool pending = ready == true and …       space between, an element's value by its label (ready),
+ *                                                               its status as print@pending
  *   { 'nesting print': [ … ] }                                   a nesting (or a sub-process), and what it holds
  */
-function outline(element: DcrElement): string | Record<string, unknown[]> {
+function outline(element: DcrElement, labels: Map<string, string>): string | Record<string, unknown[]> {
     const role = element.role ? ` [${element.role}${element.observers ? `; observers ${element.observers}` : ''}]` : '';
     if (element.$type === 'dcr:Event') {
+        const token = (token: unknown) => typeof token === 'object' && token !== null && 'tuple' in token
+            ? (([id, part]: string[]) => part === 'data' ? labels.get(id) : `${labels.get(id)}@${part}`)((token as { tuple: string[] }).tuple)
+            : String(token);
+        const computation = element.computation === undefined ? '' : ` = ${(JSON.parse(element.computation) as unknown[]).map(token).join(' ')}`;
         return `${element.label}${role}${element.eventData ? ` ${element.eventData.name}: ${element.eventData.type}` : ''}${element.included ? '' : ' excluded'}`
-            + (element.pending ? ' pending' : '');
+            + (element.pending ? ' pending' : '') + computation;
     }
     const name = element.$type === 'dcr:Nesting' ? `nesting ${element.label}${role}` : `sub-process ${element.label}${role}${element.included ? '' : ' excluded'}`;
-    return { [name]: (element.boardElements ?? []).map(outline) };
+    return { [name]: (element.boardElements ?? []).map(child => outline(child, labels)) };
 }
 
 describe('toDcrJsXml', () => {
@@ -276,23 +284,98 @@ describe('toDcrJsXml', () => {
         ]);
     });
 
-    it('gives an action with more inputs and no output a nesting with Input, and a document without data no Data', async () => {
+    it("gives an action with more inputs and no output a nesting with Input, and a document without data properties a placeholder in Data for its Givens' condition", async () => {
         const { outline, relations } = await dcrJs(`
+            Entity Machine { States: off }
             Role Operator.
             Action start { Initiators: Operator }
             Action stop { Initiators: Operator }
             Action move { Initiators: Operator, Input: x: int, y: int }
+            Declarative specification Machine is off means { start is available }
             Scenario: Start
-            Given start is available
+            Given the Machine is off
             When start is executed
             Then stop is available.`);
 
         expect(outline).toEqual([
+            { 'nesting Data': ['placeholder'] },   // never executed, as Data has a condition to itself
+            { 'nesting States': ['off [Robot] off: Bool pending = start@included'] },
             'start [Operator] excluded',
             'stop [Operator] excluded',
             { 'nesting move': [{ 'nesting Input': ['x [Operator] x: Int excluded', 'y [Operator] y: Int excluded'] }] }
         ]);
-        expect(relations).toEqual(['include start → stop']);
+        expect(relations).toEqual(['condition Data → Data', 'response off → off', 'condition Data → start [not(off = true)]', 'include start → stop']);
+    });
+
+    it("gives every state an activity in the nesting States, initiated by Robot, with a Bool variable, included and pending, a response to itself and its specification as its computation; a Given names its states", async () => {
+        const { outline, relations, elements } = await dcrJs(`
+            Entity Printer {
+                Actions: start, print, reboot
+                Data properties: speed: int, label: string, jobs: a list of string
+                States: ready, busy, clear, plain
+            }
+            Role Operator.
+            Action start { Initiators: Operator }
+            Action print { Initiators: Operator, Input: copies: int }
+            Action reboot { Initiators: Operator }
+            Action print is enabled means { start was executed or is not available }
+            Declarative specification Printer is ready means { print is enabled AND the label equal to "eco" }
+            Declarative specification Printer is busy means { it is ready AND reboot is not pending AND the speed larger than 2 }
+            Declarative specification Printer is clear means { the jobs is empty }
+            Scenario: Print
+            Given the Printer is busy AND the Printer's speed smaller than 9
+            When print is executed with inputs copies
+            Then the Printer's speed is set to copies.`);
+
+        expect(outline).toEqual([
+            { 'nesting Data': ['speed [Printer] speed: Int', 'label [Printer] label: String'] },
+            {
+                'nesting States': [
+                    // what its enabled specification says, and that print is available
+                    'ready [Robot] ready: Bool pending = ( start@executed or not ( start@included ) ) and print@included and label == "eco"',
+                    'busy [Robot] busy: Bool pending = not ( reboot@pending ) and ready == true and speed > 2',
+                    'clear [Robot] clear: Bool pending',   // only about a list, which DCR.js has not yet
+                    'plain [Robot] plain: Bool pending'    // no specification
+                ]
+            },
+            'start [Operator] excluded',
+            'print [Operator] copies: Int excluded',
+            'reboot [Operator] excluded'
+        ]);
+        expect(relations).toEqual([
+            'condition Data → Data',
+            ...['ready', 'busy', 'clear', 'plain'].map(state => `response ${state} → ${state}`),
+            'condition start → print',
+            'condition Data → print [not(busy = true and speed < 9)]',
+            'setValue print → speed := copies'
+        ]);
+        // a computed value is no input; a state without a computation's is Robot's
+        expect(['busy', 'plain'].map(state => elements.find(({ label }) => label === state)!.takesInput)).toEqual([false, true]);
+        // as DCR.js's own import of a DCR Solutions expression gives it, an action's status the action's element and the status
+        const id = (label: string) => elements.find(element => element.label === label && element.$type === 'dcr:Event')!.id;
+        expect(JSON.parse(elements.find(({ label }) => label === 'busy')!.computation!))
+            .toEqual(['not', '(', { tuple: [id('reboot'), 'pending'] }, ')', 'and', { tuple: [id('ready'), 'data'] }, '==', true, 'and', { tuple: [id('speed'), 'data'] }, '>', 2]);
+    });
+
+    it("names a state's variable with its entity before its name when another entity's state, a data property or an action has it", async () => {
+        const { outline } = await dcrJs(`
+            Entity Printer {
+                Actions: start
+                Data properties: speed: int
+                States: idle, speed, start, on
+            }
+            Entity Tray { States: idle }
+            Role Operator.
+            Action start { Initiators: Operator, Input: on: boolean }`);
+
+        expect(outline).toEqual([
+            { 'nesting Data': ['speed [Printer] speed: Int'] },
+            {
+                'nesting States': ['idle [Robot] Printer_idle: Bool pending', 'speed [Robot] Printer_speed: Bool pending', 'start [Robot] Printer_start: Bool pending',
+                    'on [Robot] on: Bool pending', 'idle [Robot] Tray_idle: Bool pending']
+            },
+            'start [Operator] start_on: Bool excluded'   // an input after its action, when any other variable has its name
+        ]);
     });
 
     it('starts an action, or the inputs and outputs in its nesting, as its Action … { … } says', async () => {
@@ -343,6 +426,7 @@ describe('toDcrJsXml', () => {
 
     it('puts the parts of a graph that no relation connects in rows, wider than high, not in one column', async () => {
         const { boxes } = await dcrJs(`
+            Entity Machine { States: off }
             Role Operator.
             Action start { Initiators: Operator }
             Action stop { Initiators: Operator }
@@ -353,8 +437,9 @@ describe('toDcrJsXml', () => {
             Action scan { Initiators: Operator }
             Action send { Initiators: Operator }
             Action print { Initiators: Operator }
+            Declarative specification Machine is off means { start is available }
             Scenario: Start
-            Given start is available
+            Given the Machine is off
             When start is executed
             Then stop is available.`);
 

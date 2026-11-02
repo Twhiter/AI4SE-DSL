@@ -28,3 +28,7 @@ One example using enqueue and dequeue: In scenario then: `the Printer's waiting 
 ## Notes
 * If a property is asserted as undefined, ensure not to access its value (e.g., assert it with other defined values or variables or append it into a collection). Otherwise an error will be thrown. However, an undefined property can be assigned, by setting a value.
 * Do not have mismatched type operations (e.g., insert an int into a string queue).
+* A list keeps duplicates: a value added twice is in it twice, and removing it takes out one of them. A queue keeps its order: `dequeued` gives the element enqueued first.
+* The effects of one Then on the same list or queue happen in the order they are written: `"a" is added to the jobs AND the jobs is removed with "a"` is fine; `the jobs is set to empty AND the jobs is removed with "a"` is a contradiction.
+* Removing a value, or dequeuing, needs an element there: a scenario whose Given says the value is not in the list, or that the list or queue is empty, can never apply.
+* A list or queue holds at most its capacity: a full one cannot be added to.

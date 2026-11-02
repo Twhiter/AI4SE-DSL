@@ -10,8 +10,7 @@ export default defineConfig({
             interopDefault: true
         },
         include: ['**/*.test.ts'],
-        // disconnected until the semantics follows the new model: these tests check the old Z3 model and the Given
-        // simplification
-        exclude: ['**/node_modules/**', 'test/model-z3.test.ts', 'test/scenario-check.test.ts']
+        // disconnected until the semantics follows the new model: this test checks the old Z3 model
+        exclude: ['**/node_modules/**', 'test/model-z3.test.ts']
     }
 });

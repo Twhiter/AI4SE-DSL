@@ -15,7 +15,7 @@ entity_part:             "Actions" ":" action ("," action)*                     
 data_property:           property_name ":" property_type
 
 property_type:           scalar_type
-                       | "a" ("list" | "queue") ("of" scalar_type)?                  // without "of": holds Any
+                       | "a" ("list" | "queue") ("of" scalar_type)?                  // without "of": holds Any; at most its capacity
 
 scalar_type:             "int" | "string" | "boolean" | "Any"                        // Any: an int, a string or a boolean
 

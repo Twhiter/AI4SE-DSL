@@ -13,7 +13,7 @@ import { isParticipantsOfLifecycleAction, lifecycleOf, participantsOf, typeOfBin
 import {
     Comparison, DataProperty, EnabledSpecification, Entity, Model, NamedConstant, PropertyAssertion, PropertyAssignment, Role, Scenario,
     StateSpecification, WhenRule,
-    type AssertionOperation, type AssignmentOperation, type ComparisonOperation, type Context, type Given, type Operand, type Parameter,
+    type AssertionOperation, type AssignmentOperation, type ComparisonOperation, type Context, type Operand, type Parameter,
     type ScalarType, type Then, type Value
 } from './model.js';
 
@@ -230,16 +230,12 @@ function scenario(node: ScenarioNode): Scenario {
         }
     }
 
+    // the Given: states and data only
     for (const condition of node.given) {
         if (isStateCondition(condition)) {
             const entity = resolved(condition.entity).name;
             given.states.push([entity, resolved(condition.state).name]);
             given.statesCtx.push([instance(entity)]);
-        } else if (isActionCondition(condition)) {
-            addScenarioStatus(given, condition, actionCtx(condition.action));
-        } else if (isEnabledCondition(condition)) {
-            given.enableds.push(resolved(condition.action).name);
-            given.enabledsCtx.push(actionCtx(condition.action));
         } else if (isPropertyAssertion(condition)) {
             const result = assertion(condition, undefined);
             given.dataAssertions.push(result);
@@ -279,13 +275,6 @@ const STATUS_LISTS = {
 function addStatus(lists: StatusLists, condition: ActionCondition | ActionEffect): void {
     const list = STATUS_LISTS[condition.status][condition.negated ? 1 : 0];
     lists[list].push(resolved(condition.action).name);
-}
-
-/** As addStatus, with the action's context in the context list next to it: pendings -> pendingsCtx. */
-function addScenarioStatus(given: Given, condition: ActionCondition, ctx: Context): void {
-    const list = STATUS_LISTS[condition.status][condition.negated ? 1 : 0];
-    given[list].push(resolved(condition.action).name);
-    given[`${list}Ctx`].push(ctx);
 }
 
 /** print is pending -> pendings, print is (not) available -> availables / notAvailables, with the action's context. */

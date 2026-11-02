@@ -36,12 +36,12 @@ Declarative specification Printer is busy means { it is idle AND print is pendin
 Action print is enabled means { reset was executed or is not available AND reset is not pending or is not available }
 
 Scenario: Print a file
-Given the Printer is idle AND print is enabled AND the Printer's speed smaller than 5 AND the Printer's note is undefined
+Given the Printer is idle AND the Printer's speed smaller than 5 AND the Printer's note is undefined
 When print is executed with inputs file = "a.pdf", copies = the Printer's speed, outputs printed AND copies larger than 0 AND printed equal to true
 Then the Printer's label is set to file AND the Printer's names is added with file AND file is removed from the Printer's names AND the Printer's waiting is dequeued as job AND the Printer's done is enqueued with copies AND the Printer's jobs is set to empty AND reset is pending AND print is not available AND report is available.
 
 Scenario: Report
-Given report is available
+Given "a" is included in the Printer's names
 When report is executed with outputs count = 3
 Then the Printer's speed is set to count.
 `;
@@ -180,7 +180,7 @@ describe('the diff as text', () => {
             'Scenarios',
             '~ Report',
             '      Scenario: Report',
-            '      Given report is available',
+            '      Given "a" is included in the Printer\'s names',
             '    - When report is executed with outputs count = 3',
             '    + When report is executed with outputs count = 4',
             '      Then the Printer\'s speed is set to count.'

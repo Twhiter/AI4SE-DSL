@@ -62,7 +62,6 @@ The customer can also cancel a pending order. When cancellation occurs, the orde
 Scenario: Successful Payment
 Given:
     the Order is confirmed
-    AND process Payment is enabled
 When:
     process Payment is executed with inputs amount=100, outputs paymentSuccess=true
 Then:
@@ -89,7 +88,6 @@ This scenario is valid because:
 Scenario: Failed Payment
 Given:
     the Order is confirmed
-    AND process Payment is enabled
 When:
     process Payment is executed with inputs amount, outputs paymentSuccess
     AND paymentSuccess equal to false
@@ -113,11 +111,13 @@ This scenario is valid because:
 ### Correct Extraction
 
 ```text
+Declarative specification Order is paid means {
+    the paymentStatus equal to "Paid" AND ship Order is enabled AND confirm Delivery is not pending
+}
+
 Scenario: Ship Paid Order
 Given:
     the Order is paid
-    AND ship Order is enabled
-    AND confirm Delivery is not pending
 When:
     ship Order is executed
 Then:
@@ -128,7 +128,7 @@ Then:
 ### Explanation
 
 This scenario is valid because:
-- Given checks the Order state, enabledness, and pendingness.
+- Given checks the Order state; the state's specification says what that means for the actions: ship Order is enabled and confirm Delivery is not pending.
 - When contains one action execution.
 - Then assigns the new order status.
 - Then creates a pending obligation to confirm delivery.
@@ -171,6 +171,29 @@ Then:
 ### Explanation
 
 - The successful payment result belongs in Then, not Given.
+---
+
+## Anti-Example: Action Status in Given
+
+### Incorrect Extraction
+
+```text
+Scenario: Successful Payment
+Given:
+    the Order is confirmed
+    AND process Payment is available
+When:
+    process Payment is executed with inputs amount=100, outputs paymentSuccess=true
+Then:
+    the Order's paymentStatus is set to "Paid".
+```
+
+### Explanation
+
+- A Given says only states and data; "process Payment is available" is an action's status (the DCR marking).
+
+**Correct approach:** Say it in the Declarative specification of the state (`Declarative specification Order is confirmed means { … AND process Payment is available }`), and give the state in the Given.
+
 ---
 
 ## Anti-Example: Invalid Consequence in Then
@@ -254,11 +277,13 @@ Do not invent consequences that are not supported by the source text.
 ### Incorrect Extraction
 
 ```text
+Declarative specification Order is confirmed means { process Payment is available }
+Declarative specification Order is cancelled means { process Payment is not available }
+
 Scenario: Successful Payment
 Given:
     the Order is confirmed
-    AND process Payment is available
-    AND process Payment is not available
+    AND the Order is cancelled
 When:
     process Payment is executed with inputs amount=100, outputs paymentSuccess=true
 Then:
@@ -268,6 +293,7 @@ Then:
 ### Explanation
 
 The Given conditions are contradictory because:
+- confirmed means process Payment is available, and cancelled that it is not.
 - process Payment cannot be both available and not available at the same moment.
 - The preconditions describe an impossible DCR marking.
 

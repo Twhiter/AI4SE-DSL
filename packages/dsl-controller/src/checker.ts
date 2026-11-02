@@ -148,14 +148,24 @@ function languageProblem({ severity, range, message, data }: Diagnostic): Proble
     };
 }
 
+/**
+ * The capacity of every list and queue, the most elements one holds: LIST_CAPACITY in the environment (the chatbot's
+ * .env), a whole number of at least 1; easy-language's DEFAULT_CAPACITY without it.
+ */
+function listCapacity(): number | undefined {
+    const capacity = Number(process.env.LIST_CAPACITY);
+    return Number.isInteger(capacity) && capacity >= 1 ? capacity : undefined;
+}
+
 /** What Z3 finds: a specification or a scenario part that can never hold, and scenarios whose Thens contradict. */
 async function z3Problems(model: EasyModel.Model): Promise<Problem[]> {
     const { context } = await startZ3();
+    const options = { capacity: listCapacity() };
     const problems: Problem[] = [];
     const error = (message: string) => problems.push({ severity: 'error', kind: 'z3', message: `Z3: ${message}` });
     const warning = (message: string) => problems.push({ severity: 'warning', kind: 'z3', message: `Z3: ${message}` });
 
-    for (const { specification, result, conflict } of await checkConsistency(context, model)) {
+    for (const { specification, result, conflict } of await checkConsistency(context, model, options)) {
         if (result === 'unknown') {
             warning(`cannot decide whether '${specification}' can hold.`);
         } else if (result === 'unsat') {
@@ -165,7 +175,7 @@ async function z3Problems(model: EasyModel.Model): Promise<Problem[]> {
                 : `'${specification}' can never hold: it conflicts with ${others.map(title => `'${title}'`).join(', ')}.`);
         }
     }
-    const scenarios = await checkScenarios(context, model);
+    const scenarios = await checkScenarios(context, model, options);
     for (const { scenario, given, then } of scenarios) {
         for (const [part, check] of [['Given', given], ['Then', then]] as const) {
             if (check.result === 'unknown') {
@@ -175,7 +185,7 @@ async function z3Problems(model: EasyModel.Model): Promise<Problem[]> {
             }
         }
     }
-    for (const { scenarios: names, inputs, conflict } of await checkCrossScenarios(context, model, undefined, scenarios)) {
+    for (const { scenarios: names, inputs, conflict } of await checkCrossScenarios(context, model, options, scenarios)) {
         const at = inputs.length > 0 ? ` (${inputs.join('; ')})` : '';
         error([`${names.map(name => `'${name}'`).join(' and ')} have the same When and can apply together${at}, but their Thens contradict:`,
             ...conflict.map(title => `  ${title}`)].join('\n'));

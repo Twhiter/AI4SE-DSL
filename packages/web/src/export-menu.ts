@@ -7,13 +7,14 @@ import { buildModel, type EasyModel } from 'easy-language';
 import { toDcrJsXml } from 'easy-dcr-js-adapter';
 import { toDcrSolutionXml } from 'easy-dcr-solution-adapter';
 import { onDocument } from './easy-language.js';
+import { listCapacity } from './capacity.js';
 import { fixerCheckbox, fixInclusion } from './fixer.js';
 
 const TITLE = 'DSL easy';
 
 /** What the menu offers: its item's text, the file's name, and the XML of a model. */
 const EXPORTS: Array<{ text: string, file: string, xml: (model: EasyModel.Model) => Promise<string> }> = [
-    { text: 'DCR Solutions XML (dcrgraphs.net)', file: `${TITLE} - DCR Solutions.xml`, xml: model => toDcrSolutionXml(model, { title: TITLE, fixInclusion: fixInclusion() }) },
+    { text: 'DCR Solutions XML (dcrgraphs.net)', file: `${TITLE} - DCR Solutions.xml`, xml: model => toDcrSolutionXml(model, { title: TITLE, fixInclusion: fixInclusion(), capacity: listCapacity() }) },
     { text: 'DCR.js XML', file: `${TITLE} - DCR.js.xml`, xml: model => toDcrJsXml(model, { fixInclusion: fixInclusion() }) }
 ];
 

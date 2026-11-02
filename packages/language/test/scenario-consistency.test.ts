@@ -13,7 +13,7 @@ const DECLARATIONS = `
 Entity Printer {
     Actions: start, print
     Data properties: speed: int, jobs: a list of string, waiting: a queue
-    States: busy
+    States: busy, fresh, stopped, locked, down, ready, on, up
 }
 Role Operator.
 Action start { Initiators: Operator }
@@ -21,6 +21,14 @@ Action print { Initiators: Operator }
 Action reboot { Initiators: Operator }
 Declarative specification Printer is busy means { the jobs is not empty }
 Action print is enabled means { start was executed or is not available }
+// a Given says an action's status through a state
+Declarative specification Printer is fresh means { start is available AND start was not executed }
+Declarative specification Printer is stopped means { print is not available }
+Declarative specification Printer is locked means { start is not available }
+Declarative specification Printer is down means { reboot is not available }
+Declarative specification Printer is ready means { print is enabled }
+Declarative specification Printer is on means { print is available }
+Declarative specification Printer is up means { reboot is available }
 `;
 
 let api: Awaited<ReturnType<typeof init>>;
@@ -72,47 +80,73 @@ describe('checkScenarios', () => {
 
     it('needs the When action to be enabled, as its enabled specification says', async () => {
         // print is enabled exactly when start was executed or is not available, and print is available
-        expect((await scenario('start is available AND start was not executed', 'print', 'reboot is pending')).given).toEqual({
-            result: 'unsat',
-            conflict: ['spec: print is enabled', 'Given: start is available', 'Given: start was not executed', 'When: print is enabled']
+        expect((await scenario('the Printer is fresh', 'print', 'reboot is pending')).given).toEqual({
+            result: 'unsat', conflict: ['spec: Printer is fresh', 'spec: print is enabled', 'Given: the Printer is fresh', 'When: print is enabled']
         });
-        expect((await scenario('print is not available', 'print', 'reboot is pending')).given).toEqual({
-            result: 'unsat', conflict: ['spec: print is enabled', 'Given: print is not available', 'When: print is enabled']
+        expect((await scenario('the Printer is stopped', 'print', 'reboot is pending')).given).toEqual({
+            result: 'unsat', conflict: ['spec: Printer is stopped', 'spec: print is enabled', 'Given: the Printer is stopped', 'When: print is enabled']
         });
     });
 
     it('needs the When action to be available when it has no enabled specification', async () => {
-        expect((await scenario('start is not available', 'start', 'print is pending')).given)
-            .toEqual({ result: 'unsat', conflict: ['Given: start is not available', 'When: start is enabled'] });
-        expect((await scenario('reboot is not available', 'reboot', 'print is pending')).given)
-            .toEqual({ result: 'unsat', conflict: ['Given: reboot is not available', 'When: reboot is enabled'] });
+        expect((await scenario('the Printer is locked', 'start', 'print is pending')).given)
+            .toEqual({ result: 'unsat', conflict: ['spec: Printer is locked', 'Given: the Printer is locked', 'When: start is enabled'] });
+        expect((await scenario('the Printer is down', 'reboot', 'print is pending')).given)
+            .toEqual({ result: 'unsat', conflict: ['spec: Printer is down', 'Given: the Printer is down', 'When: reboot is enabled'] });
     });
 
     it('finds the Givens of the given-contradicts-when example that rule out their When', async () => {
         const results = await checkScenarios(z3, await modelOf(readFileSync('../../examples/given-contradicts-when.easy', 'utf8')));
         expect(results).toEqual([
-            { scenario: 'Unready printer', given: { result: 'unsat', conflict: ['Given: print is not available', 'When: print is enabled'] }, then: sat },
+            {
+                scenario: 'Unready printer',
+                given: { result: 'unsat', conflict: ['spec: Printer is unready', 'Given: the Printer is unready', 'When: print is enabled'] },
+                then: sat
+            },
             {
                 scenario: 'Pending print',   // a pending print stops start while print is available
-                given: { result: 'unsat', conflict: ['spec: start is enabled', 'Given: print is available', 'Given: print is pending', 'When: start is enabled'] },
+                given: { result: 'unsat', conflict: ['spec: Printer is queued', 'spec: start is enabled', 'Given: the Printer is queued', 'When: start is enabled'] },
                 then: sat
             }
         ]);
     });
 
-    it("reads 'is enabled' in a Given as the action's enabledness", async () => {
-        expect((await scenario('print is enabled AND print is not available', 'start', 'reboot is pending')).given)
-            .toEqual({ result: 'unsat', conflict: ['spec: print is enabled', 'Given: print is not available', 'Given: print is enabled'] });
-        expect((await scenario('print is enabled AND start is not available', 'reboot', 'print is pending')).given).toEqual(sat);
+    it("reads 'is enabled' in a state's specification as the action's enabledness", async () => {
+        expect((await scenario('the Printer is ready AND the Printer is stopped', 'start', 'reboot is pending')).given).toEqual({
+            result: 'unsat',
+            conflict: ['spec: Printer is stopped', 'spec: Printer is ready', 'spec: print is enabled', 'Given: the Printer is ready', 'Given: the Printer is stopped']
+        });
+        expect((await scenario('the Printer is ready AND the Printer is locked', 'reboot', 'print is pending')).given).toEqual(sat);
     });
 
     it('needs the Then to hold, with the When action executed', async () => {
-        expect((await scenario('start is available', 'start', 'print is available AND print is not available')).then)
+        expect((await scenario("the Printer's jobs is empty", 'start', 'print is available AND print is not available')).then)
             .toEqual({ result: 'unsat', conflict: ['Then: print is available', 'Then: print is not available'] });
-        expect((await scenario('start is available', 'start', "the Printer's speed is set to 3 AND the Printer's speed is set to 5")).then)
+        expect((await scenario("the Printer's jobs is empty", 'start', "the Printer's speed is set to 3 AND the Printer's speed is set to 5")).then)
             .toEqual({ result: 'unsat', conflict: ["Then: the Printer's speed is set to 3", "Then: the Printer's speed is set to 5"] });
-        expect((await scenario('start is available', 'start', `"a" is added to the Printer's jobs AND the Printer's jobs is removed with "a"`)).then)
-            .toEqual({ result: 'unsat', conflict: [`Then: the Printer's jobs is added with "a"`, `Then: the Printer's jobs is removed with "a"`] });
+        // a list's effects one after the other: "a" can be added and then removed, but not removed from the empty jobs
+        expect((await scenario("the Printer's jobs is empty", 'start', `"a" is added to the Printer's jobs AND the Printer's jobs is removed with "a"`)).then)
+            .toEqual(sat);
+        expect((await scenario("the Printer's jobs is empty", 'start', `the Printer's jobs is removed with "a" AND "a" is added to the Printer's jobs`)).then)
+            .toEqual({ result: 'unsat', conflict: ["Given: the Printer's jobs is empty", `Then: the Printer's jobs is removed with "a"`] });
+    });
+
+    it("keeps a list's duplicates and a queue's order, and needs an element to remove or dequeue", async () => {
+        const then = async (given: string, effects: string) => (await scenario(given, 'start', effects)).then.result;
+        // two copies of "a": one is left after removing the other
+        expect(await then("the Printer's jobs is empty",
+            `"a" is added to the Printer's jobs AND "a" is added to the Printer's jobs AND the Printer's jobs is removed with "a" AND the Printer's jobs is removed with "a"`)).toBe('sat');
+        expect(await then("the Printer's jobs is empty",
+            `"a" is added to the Printer's jobs AND the Printer's jobs is removed with "a" AND the Printer's jobs is removed with "a"`)).toBe('unsat');
+        // the waiting gives its elements back in the order they came in, and none once it is empty
+        expect(await then("the Printer's waiting is empty",
+            `the Printer's waiting is enqueued with 1 AND the Printer's waiting is enqueued with 2 AND the Printer's waiting is dequeued as job AND the Printer's speed is set to job`))
+            .toBe('sat');
+        expect(await then("the Printer's waiting is empty", `the Printer's waiting is enqueued with 1 AND the Printer's waiting is dequeued AND the Printer's waiting is dequeued`))
+            .toBe('unsat');
+        // a list or queue holds the capacity at most (150 by default), also between two effects
+        expect(await then("the Printer's jobs is full", `"a" is added to the Printer's jobs AND the Printer's jobs is removed with "a"`)).toBe('unsat');
+        expect(await then("the Printer's jobs is full", `the Printer's jobs is removed with "a" AND "a" is added to the Printer's jobs`)).toBe('sat');
     });
 
     it('finds the Thens of the then-contradicts-itself example that cannot hold', async () => {
@@ -122,17 +156,17 @@ describe('checkScenarios', () => {
             { scenario: 'Set speed', given: sat, then: { result: 'unsat', conflict: ["Then: the Printer's speed is set to 3", "Then: the Printer's speed is set to 5"] } },
             {
                 scenario: 'Finish job', given: sat,
-                then: { result: 'unsat', conflict: [`Then: the Printer's jobs is removed with "report.pdf"`, `Then: the Printer's jobs is added with "report.pdf"`] }
+                then: { result: 'unsat', conflict: ["Then: the Printer's jobs is set to empty", `Then: the Printer's jobs is removed with "report.pdf"`] }
             }
         ]);
     });
 
     it('tells the Given\'s time and the Then\'s apart: a Then does not change what the Given says', async () => {
         // before: print is available; after: it is not
-        expect(await scenario('print is available AND start is not available', 'print', 'print is not available'))
+        expect(await scenario('the Printer is on AND the Printer is locked', 'print', 'print is not available'))
             .toEqual({ given: sat, then: sat });
         // the same for an action in no lifecycle, whose statuses belong to no instance
-        expect(await scenario('reboot is available', 'start', 'reboot is not available')).toEqual({ given: sat, then: sat });
+        expect(await scenario('the Printer is up', 'start', 'reboot is not available')).toEqual({ given: sat, then: sat });
     });
 });
 
@@ -162,7 +196,7 @@ describe('checkScenarios: the When, and properties without a value', () => {
     it('adds what the When says to the Given; the Then uses its inputs and outputs by name', async () => {
         expect(await register("the Person's name is undefined", ' with inputs name = "Ann", age, outputs is_adult = true AND age larger than 17',
             "the Person's name is set to name AND the Person's age is set to age")).toEqual({ given: sat, then: sat });
-        expect(await register('register is available', '', "the Person's age is set to 3")).toEqual({ given: sat, then: sat });   // any inputs
+        expect(await register("the Person's name is not undefined", '', "the Person's age is set to 3")).toEqual({ given: sat, then: sat });   // any inputs
     });
 
     it("needs the When to hold with the Given: an input that is data, the When's assertions about data", async () => {
@@ -177,16 +211,16 @@ describe('checkScenarios: the When, and properties without a value', () => {
 
     it("checks what the When says about its inputs with the Given, and about its outputs with the Then", async () => {
         // a scenario that can never apply: its Then is not checked
-        expect(await register('register is available', ' with inputs age AND age larger than 17 AND age smaller than 10', 'register is pending'))
+        expect(await register("the Person's name is not undefined", ' with inputs age AND age larger than 17 AND age smaller than 10', 'register is pending'))
             .toEqual({ given: { result: 'unsat', conflict: ['When: age larger than 17', 'When: age smaller than 10'] }, then: sat });
-        expect(await register('register is available', ' with outputs is_adult = true AND is_adult equal to false', 'register is pending'))
+        expect(await register("the Person's name is not undefined", ' with outputs is_adult = true AND is_adult equal to false', 'register is pending'))
             .toEqual({ given: sat, then: { result: 'unsat', conflict: ['When: is_adult = true', 'When: is_adult equal to false'] } });
     });
 
     it('knows in the Then what the When says about its inputs', async () => {
-        expect((await register('register is available', ' with inputs age = 2', "the Person's age is set to age AND the Person's age is set to 3")).then)
+        expect((await register("the Person's name is not undefined", ' with inputs age = 2', "the Person's age is set to age AND the Person's age is set to 3")).then)
             .toEqual({ result: 'unsat', conflict: ['When: age = 2', "Then: the Person's age is set to age", "Then: the Person's age is set to 3"] });
-        expect((await register('register is available', ' with inputs age = 3', "the Person's age is set to age AND the Person's age is set to 3")).then)
+        expect((await register("the Person's name is not undefined", ' with inputs age = 3', "the Person's age is set to age AND the Person's age is set to 3")).then)
             .toEqual(sat);
     });
 
@@ -221,8 +255,9 @@ describe('checkScenarios: the When, and properties without a value', () => {
     });
 
     it('empties a list or queue with set to empty', async () => {
-        expect((await register('register is available', '', `the Person's tags is set to empty AND "a" is added to the Person's tags`)).then)
-            .toEqual({ result: 'unsat', conflict: ["Then: the Person's tags is set to empty", `Then: the Person's tags is added with "a"`] });
+        expect((await register("the Person's name is not undefined", '', `the Person's tags is set to empty AND the Person's tags is removed with "a"`)).then)
+            .toEqual({ result: 'unsat', conflict: ["Then: the Person's tags is set to empty", `Then: the Person's tags is removed with "a"`] });
+        expect((await register("the Person's name is not undefined", '', `the Person's tags is set to empty AND "a" is added to the Person's tags`)).then).toEqual(sat);
     });
 });
 
@@ -254,11 +289,9 @@ describe('checkCrossScenarios', () => {
                 conflict: ["Submit: the Printer's jobs is added with job", `Submit draft: the Printer's jobs is removed with "draft"`]
             },
             {
-                action: 'take', scenarios: ['Take job', 'Drop job'], indices: [6, 7], inputs: [],    // aligned: job = next
-                conflict: [
-                    "Take job: the Printer's waiting is dequeued as job", "Take job: the Printer's jobs is added with job",
-                    "Drop job: the Printer's waiting is dequeued as next", "Drop job: the Printer's jobs is removed with next"
-                ]
+                // the jobs cannot be one longer and one shorter after the same step
+                action: 'take', scenarios: ['Take job', 'Drop job'], indices: [6, 7], inputs: [],
+                conflict: ["Take job: the Printer's jobs is added with job", "Drop job: the Printer's jobs is removed with next"]
             }
         ]);
         // and none for Slow job, whose Given cannot hold with Rush job's or Fast job's, nor for Resubmit and Submit draft,
@@ -269,11 +302,11 @@ describe('checkCrossScenarios', () => {
         // only an input of 3 lets both hold
         expect(await cross(`
             Scenario: Any speed
-            Given tune is available
+            Given the Printer's speed is not undefined
             When tune is executed with inputs level
             Then the Printer's speed is set to level.
             Scenario: Speed three
-            Given tune is available
+            Given the Printer's speed is not undefined
             When tune is executed
             Then the Printer's speed is set to 3.`)).toEqual([{
             scenarios: ['Any speed', 'Speed three'], inputs: ['level is an int other than 3'],
@@ -282,11 +315,11 @@ describe('checkCrossScenarios', () => {
         // for every input, the input can be in the jobs and the last of the waiting
         expect(await cross(`
             Scenario: Submit
-            Given submit is available
+            Given the Printer's jobs is not full
             When submit is executed with inputs job
             Then job is added to the Printer's jobs.
             Scenario: Queue it
-            Given submit is available
+            Given the Printer's jobs is not full
             When submit is executed with inputs job
             Then the Printer's waiting is enqueued with job.`)).toEqual([]);
     });
@@ -295,15 +328,15 @@ describe('checkCrossScenarios', () => {
         // Level one and Level three never apply together (the input cannot be 1 and 3), so their Thens (2, 4) do not matter
         expect(await cross(`
             Scenario: Any level
-            Given tune is available
+            Given the Printer's speed is not undefined
             When tune is executed with inputs level
             Then the Printer's speed is set to level.
             Scenario: Level one
-            Given tune is available
+            Given the Printer's speed is not undefined
             When tune is executed with inputs level = 1
             Then the Printer's speed is set to 2.
             Scenario: Level three
-            Given tune is available
+            Given the Printer's speed is not undefined
             When tune is executed with inputs level = 3
             Then the Printer's speed is set to 4.`)).toEqual([
             {
@@ -320,15 +353,15 @@ describe('checkCrossScenarios', () => {
     it('covers two inputs: their values, and other values, equal or not', async () => {
         expect(await cross(`
             Scenario: One three
-            Given pair is available
+            Given the Printer's speed is not undefined
             When pair is executed with inputs first = 1, second = 3
             Then the Printer's speed is set to 2.
             Scenario: First
-            Given pair is available
+            Given the Printer's speed is not undefined
             When pair is executed with inputs first, second
             Then the Printer's speed is set to first.
             Scenario: Second
-            Given pair is available
+            Given the Printer's speed is not undefined
             When pair is executed with inputs second, first
             Then the Printer's speed is set to second.`)).toEqual([
             {
@@ -357,11 +390,11 @@ describe('checkCrossScenarios', () => {
             When print is executed
             Then reboot is not available.
             Scenario: Three
-            Given tune is available
+            Given the Printer's speed is not undefined
             When tune is executed with inputs level = 3
             Then the Printer's speed is set to 3.
             Scenario: Four
-            Given tune is available
+            Given the Printer's speed is not undefined
             When tune is executed with inputs level = 4
             Then the Printer's speed is set to 4.`)).toEqual([]);   // busy means the jobs is not empty
     });
@@ -373,7 +406,7 @@ describe('checkCrossScenarios', () => {
             When print is executed
             Then reboot is pending.
             Scenario: Possible
-            Given print is available
+            Given the Printer's jobs is empty
             When print is executed
             Then reboot is not available.`)).toEqual([]);
     });
@@ -415,15 +448,15 @@ describe('checkCrossScenarios: the inputs and outputs of a step', () => {
     it('applies comparisons of the inputs: scenarios apply together only where all of theirs hold', async () => {
         expect(await cross(`
             Scenario: Adult age
-            Given register is available
+            Given the Person's name is not undefined
             When register is executed with inputs age AND age larger than 17
             Then the Person's age is set to 1.
             Scenario: Thirty
-            Given register is available
+            Given the Person's name is not undefined
             When register is executed with inputs age = 30
             Then the Person's age is set to 2.
             Scenario: Child age
-            Given register is available
+            Given the Person's name is not undefined
             When register is executed with inputs age AND age smaller than 10
             Then the Person's age is set to 3.`)).toEqual([{
             scenarios: ['Adult age', 'Thirty'], inputs: ['age = 30'],
@@ -435,11 +468,11 @@ describe('checkCrossScenarios: the inputs and outputs of a step', () => {
         // the Thens differ for every age but 5, and Five applies only at 5
         expect(await cross(`
             Scenario: Five
-            Given register is available
+            Given the Person's name is not undefined
             When register is executed with inputs age AND age equal to 5
             Then the Person's age is set to age.
             Scenario: Set five
-            Given register is available
+            Given the Person's name is not undefined
             When register is executed with inputs age
             Then the Person's age is set to 5.`)).toEqual([]);
     });
@@ -451,7 +484,7 @@ describe('checkCrossScenarios: the inputs and outputs of a step', () => {
             When register is executed with inputs age = the Person's age
             Then the Person's tags is set to empty.
             Scenario: Set age
-            Given register is available
+            Given the Person's name is not undefined
             When register is executed with inputs age = ${age}
             Then "minor" is added to the Person's tags.`);
         expect(await known(10)).toEqual([]);   // the Person's age is the input, which is 10: not larger than 17

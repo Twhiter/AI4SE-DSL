@@ -13,21 +13,24 @@ export interface Options {
     title?: string;
     /** The fixer: an action that no include relation goes to starts included (the DCR.js graph's). True by default. */
     fixInclusion?: boolean;
+    /** The most elements a list or queue holds: one holding that many is full (count(jobs) >= 150). DEFAULT_CAPACITY by default. */
+    capacity?: number;
     /**
-     * How the event of a data property, Data (their nesting) or an action (an activity or a form) starts; what it leaves
-     * out is false. An event in a form always starts included, neither executed nor pending. By default as the model
+     * How the event of a data property, Data (their nesting), a state, States or an action (an activity or a form)
+     * starts; what it leaves out is false. An event in a form always starts included, neither executed nor pending. By default as the model
      * says (DEFAULT_MARKING).
      */
     marking?: (event: SolutionEvent) => Partial<Marking>;
 }
 
 /**
- * As the model says: Data and the data properties' events start included, an action's as its Action … { … } says
- * (Initially available, Initially pending), or included by the fixer; none starts executed.
+ * As the model says: Data and the data properties' events start included, States and the states' included and pending,
+ * an action's as its Action … { … } says (Initially available, Initially pending), or included by the fixer; none starts
+ * executed.
  */
 export const DEFAULT_MARKING = ({ included, pending }: SolutionEvent): Partial<Marking> => ({ included, pending });
 
 /** The model of a document without errors (easy-language's buildModel) as DCR Solutions XML, laid out. */
-export async function toDcrSolutionXml(model: EasyModel.Model, { title = 'DCR graph', fixInclusion, marking = DEFAULT_MARKING }: Options = {}): Promise<string> {
-    return toXml(toDcrSolutionGraph(model, { fixInclusion }), title, marking);
+export async function toDcrSolutionXml(model: EasyModel.Model, { title = 'DCR graph', fixInclusion, capacity, marking = DEFAULT_MARKING }: Options = {}): Promise<string> {
+    return toXml(toDcrSolutionGraph(model, { fixInclusion, capacity }), title, marking);
 }

@@ -11,6 +11,17 @@
         "Programming Languages"
     ],
     "contributes": {
+        "configuration": {
+            "title": "DSL easy",
+            "properties": {
+                "easy.listCapacity": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "default": 150,
+                    "description": "The most elements a list or queue holds in the Z3 checks: one holding that many is full."
+                }
+            }
+        },
         "languages": [
             {
                 "id": "easy",

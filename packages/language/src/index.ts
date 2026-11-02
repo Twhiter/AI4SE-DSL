@@ -10,6 +10,3 @@ export * from './z3-vocabulary.js';
 export * from './consistency.js';
 export * from './scenario-consistency.js';
 export * from './dcr.js';
-// disconnected until its semantics follows the new model: the Given simplification and the old scenario checks are
-// left out of the build and their tests
-// export * from './scenario-check.js';

@@ -229,17 +229,24 @@ describe('Statuses', () => {
         }
     });
 
-    it("allows '<action> is enabled' as a condition only in a Declarative specification or a Given, without 'not'", async () => {
+    it("allows '<action> is enabled' as a condition only in a Declarative specification, without 'not'", async () => {
         const busy = (condition: string) => WITHOUT_BUSY + `Declarative specification Printer is busy means { it is online AND ${condition} }`;
         expect(await messages(busy('start is enabled AND reboot is enabled'))).toEqual([]);
         expect(await messages(busy('refill is enabled'))).toEqual(["'refill' is in the lifecycle of the Tray, not of the Printer."]);
-        const given = (condition: string) => `${DECLARATIONS}\nScenario: Check\nGiven ${condition}\nWhen print is executed\nThen print is pending.`;
-        expect(await messages(given('reboot is enabled AND the Printer is online'))).toEqual([]);
-        for (const text of [busy('start is not enabled'), given('reboot is not enabled')]) {
-            expect(await messages(text)).toEqual(["There is no 'not enabled': only <action> is enabled, in a Declarative specification or a Given."]);
-        }
+        expect(await messages(busy('start is not enabled'))).toEqual(["There is no 'not enabled': only <action> is enabled, in a Declarative specification."]);
         const [then] = await scenarioMessages('the Printer is online', 'print is enabled');   // not in a Then
         expect(then).toContain('This is not a valid Then effect.');
+    });
+
+    it('has no action statuses in a Given: only states and data', async () => {
+        expect(await scenarioMessages("the Printer is online AND the Printer's speed larger than 2 AND \"a\" is included in the Printer's jobs")).toEqual([]);
+        for (const status of ['reboot is enabled', 'reboot is not enabled', 'print is pending', 'print is not available', 'start was executed',
+            'start was not executed']) {
+            for (const given of [status, `the Printer is online AND ${status}`]) {
+                const [message] = await scenarioMessages(given);
+                expect(message).toMatch(/^This is not a valid Given condition\.[\s\S]*An action's status, such as <action> is pending, is not a Given condition/);
+            }
+        }
     });
 
     it('allows only <action> was executed or is not available and <action> is not pending or is not available, joined with AND', async () => {

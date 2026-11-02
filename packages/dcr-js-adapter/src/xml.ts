@@ -22,12 +22,14 @@ export interface Bounds extends Point { width: number, height: number }
 export async function toXml(graph: DcrJsGraph): Promise<string> {
     const { bounds, waypoints } = await layout(graph);
     const all = (element: Element): Element[] => [element, ...(element.kind === 'activity' ? [] : element.children.flatMap(all))];
+    /** The element of each variable, by its name. */
+    const variables = new Map(graph.elements.flatMap(all).flatMap(element => element.kind === 'activity' && element.variable ? [[element.variable.name, element.id] as const] : []));
 
     return [
         '<?xml version="1.0" encoding="UTF-8"?>',
         '<dcr:definitions xmlns:dcr="http://tk/schema/dcr" xmlns:dcrDi="http://tk/schema/dcrDi" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC">',
         ' <dcr:dcrGraph id="dcrGraph">',
-        ...graph.elements.flatMap(element => elementXml(element, '  ')),
+        ...graph.elements.flatMap(element => elementXml(element, '  ', variables)),
         ...graph.relations.map(({ id, type, source, target, guard, value }) =>
             `  <dcr:relation${attributes({ id, type, sourceRef: source, targetRef: target, guard, value })}/>`),
         ' </dcr:dcrGraph>',
@@ -141,17 +143,53 @@ async function place(graph: DcrJsGraph): Promise<{ bounds: Map<string, Bounds>, 
     };
 }
 
-function elementXml(element: Element, indent: string): string[] {
+function elementXml(element: Element, indent: string, variables: Map<string, string>): string[] {
     if (element.kind === 'activity') {
-        const { id, label, role, observers, included, pending, variable } = element;
+        const { id, label, role, observers, included, pending, variable, computation } = element;
         const start = `${indent}<dcr:event${attributes({
             id, label, role: role.join(', ') || undefined, observers: observers.join(', ') || undefined, included, executed: false, pending, enabled: false,
-            takesInput: variable ? true : undefined
+            // a computed value is no input
+            takesInput: variable ? computation === undefined : undefined,
+            computation: computation === undefined ? undefined : JSON.stringify(computationTokens(computation, variables))
         })}`;
         return [variable ? `${start}><dcr:eventData${attributes({ ...variable })}/></dcr:event>` : `${start}/>`];
     }
     const { id, label, children } = element;
-    return [`${indent}<dcr:nesting${attributes({ id, label })}>`, ...children.flatMap(child => elementXml(child, `${indent} `)), `${indent}</dcr:nesting>`];
+    return [`${indent}<dcr:nesting${attributes({ id, label })}>`, ...children.flatMap(child => elementXml(child, `${indent} `, variables)), `${indent}</dcr:nesting>`];
+}
+
+/**
+ * A state's computation (graph.ts: Activity.computation) as DCR.js holds one: the tokens that DCR.js's own import of a
+ * DCR Solutions expression gives (legal-dcr-frontend/modeler/lib/DCRSolutionImport.js), a variable its element's value
+ * ({ tuple: ['Event_2', 'data'] }), = as ==, and, or, not, numbers, strings and brackets as they are; and an action's
+ * status, which that import does not read, its element and the status ({ tuple: ['Event_3', 'executed'] }).
+ */
+function computationTokens(computation: string, variables: Map<string, string>): unknown[] {
+    const tokens = computation.match(/>=|<=|!=|==|[()=<>+\-*/,]|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\d+(?:\.\d+)?|[A-Za-z_]\w*(?:@\w+)?|\S/g) ?? [];
+    return tokens.map(token => {
+        const [name, status] = token.split('@');
+        const keyword = token.toLowerCase();
+        if (status !== undefined) {
+            return { tuple: [name, status] };
+        } else if (keyword === 'true' || keyword === 'false') {
+            return keyword === 'true';
+        } else if (keyword === 'null') {
+            return 'type(None)()';
+        } else if (['and', 'or', 'not'].includes(keyword)) {
+            return keyword;
+        } else if (token === '=') {
+            return '==';
+        } else if (/^\d/.test(token)) {
+            return Number(token);
+        } else if (/^[A-Za-z_]/.test(token)) {
+            const element = variables.get(token);
+            if (element === undefined) {
+                throw new Error(`A computation names '${token}', which no variable has.`);
+            }
+            return { tuple: [element, 'data'] };
+        }
+        return token;   // a string, an operator or a bracket
+    });
 }
 
 /** id="Event_1" label="print" …, leaving out what is undefined. */

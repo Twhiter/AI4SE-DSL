@@ -16,7 +16,9 @@ States: [flying, taking_off, landing, taxiing, stopped]
 
 
 ## Notes
-- States might not be exclusive to each other.- Build the states that are meaningful for domain modelling. Do not build states that are never engaged in the critical process of the system.
+- States might not be exclusive to each other.
+- A scenario's Given says only what states an entity is in and what its data is. When a scenario needs an action's status before its action (e.g. the payment is pending), model a state for that situation, whose specification says the status.
+- Build the states that are meaningful for domain modelling. Do not build states that are never engaged in the critical process of the system.
 
 ## Examples
 - [example 1](references/example1-states.md)

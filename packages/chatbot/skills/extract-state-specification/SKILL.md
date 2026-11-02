@@ -22,6 +22,7 @@ A state specification consists of the following, which can be connected with AND
 * Include every condition the text implies for this state, and nothing it does not
 * Ensure the actions referred to lie within the same lifecycle of the entity or from a global lifecycle-free action
 * Ensure the states and data properties asserted are within the entity's lifecycle.
+* A scenario's Given cannot say an action's status (executed, enabled, pending, available): it names a state, and the state's specification says the status. Write here every status a scenario starting in this state needs.
 
 
 ## How to write a state specification

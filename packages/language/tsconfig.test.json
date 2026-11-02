@@ -10,10 +10,9 @@
     "include": [
       "test/**/*.ts",
     ],
-    // disconnected until the semantics follows the new model: these tests check it with Z3 (see vitest.config.ts)
+    // disconnected until the semantics follows the new model: this test checks it with Z3 (see vitest.config.ts)
     "exclude": [
-      "test/model-z3.test.ts",
-      "test/scenario-check.test.ts"
+      "test/model-z3.test.ts"
     ]
   }
   

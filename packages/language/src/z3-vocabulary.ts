@@ -1,29 +1,32 @@
 // The Z3 sorts and functions of a Model, for turning conditions into formulas on instances.
 // Only types come from z3-solver; the context is passed in, so the web bundle stays free of Z3.
 
-import type { Arith, ArithSort, Bool, BoolSort, Context, DatatypeSort, Expr, Sort, SMTArray } from 'z3-solver';
+import type { Arith, ArithSort, Bool, Context, DatatypeSort, Expr, Sort, SMTArray } from 'z3-solver';
 import type { ActionStatus, DataProperty, Entity, Model, NamedConstant, Operand, ScalarType, Value } from './model.js';
 
 /** The context formulas are built in: `const { Context } = await init(); const z3 = new Context('main');` */
 export type Z3Context = Context<'main'>;
 /** An instance of an entity: a constant such as x. */
 export type Instance = Expr<'main'>;
-/** A list: a set of its elements (Z3 represents a set as an array from its elements to Bool). */
-export type List = SMTArray<'main', [Sort<'main'>], BoolSort<'main'>>;
 /** A value or named constant as a Z3 term of some type, with the condition under which the conversion to that type holds. */
 export interface Term {
     term: Expr<'main'>;
     /** Undefined when nothing needed converting. */
     guard?: Bool<'main'>;
 }
-/** A queue: its elements in the slots 0 … size − 1 of items, in order; slot 0 is the front. */
-export interface Queue {
+/**
+ * A list or queue: its elements in the slots head … head + size − 1 of items, a queue's in order from its front at head;
+ * a list's order is not kept, as nothing in the language reads it (a removal moves its last element into the slot it
+ * empties). Effects make another one from it (appended, removed, dequeued, emptied), not shifting any element.
+ */
+export interface Collection {
     items: SMTArray<'main', [ArithSort<'main'>], Sort<'main'>>;
+    head: Arith<'main'>;
     size: Arith<'main'>;
 }
 
 /** The capacity of a list or queue when none is given. */
-export const DEFAULT_CAPACITY = 9999;
+export const DEFAULT_CAPACITY = 150;
 
 export interface Z3VocabularyOptions {
     /** The most elements a list or queue can hold; one holding that many is full. Default: DEFAULT_CAPACITY. */
@@ -42,10 +45,10 @@ export interface Z3VocabularyOptions {
  *                          in constraints() (one with an enabled specification is enabled as that specification says)
  *   Any                    Value                       int(Int) | str(String) | bool(Bool)
  *   int / string / boolean speed(x)                    speed: Printer -> Int     (an Any property: -> Value)
- *   list                   jobs(x)                     jobs: Printer -> Set(Value), with size(jobs(x)) for 'full'
- *                                                      (a list of int: Set(Int); of string: Set(String); …)
- *   queue                  waiting items(x)            waiting items: Printer -> Array(Int, Value)   (of int: Array(Int, Int); …)
- *                          waiting size(x)             waiting size: Printer -> Int
+ *   list or queue          jobs items(x)               jobs items: Printer -> Array(Int, Value)   (of int: Array(Int, Int); …)
+ *                          jobs head(x), jobs size(x)  jobs head, jobs size: Printer -> Int: its elements are the slots
+ *                                                      head … head + size − 1 (Collection); between two effects of a
+ *                                                      Then, one with names of its own (between)
  *   has a value            defined speed(x)            defined speed: Printer -> Bool, for an int, string, boolean or Any
  *                                                      property (a list or queue always has a value: it starts empty)
  *   named constant         job                         a constant of its type: String for a queue of string, Value for Any
@@ -67,12 +70,13 @@ export class Z3Vocabulary {
         enumerations: Map<string, Map<string, Expr<'main'>>>;
         /** Named constants whose Z3 constant has another name than their own, set by nameConstant. */
         constantNames: Map<NamedConstant, string>;
-    } = { enumerations: new Map(), constantNames: new Map() };
+        /** How many lists and queues between two effects have been named (between). */
+        between: number;
+    } = { enumerations: new Map(), constantNames: new Map(), between: 0 };
     /** The state after a step (after()): the statuses of an action in no lifecycle are its own ones, 'pending after'. */
     private time: 'after' | undefined = undefined;
-    /** The lists and queues built so far, by the Z3 id of their term, for the size constraints. */
-    private readonly lists = new Map<number, List>();
-    private readonly queues = new Map<number, Queue>();
+    /** The lists and queues built so far, by the Z3 id of their size, for the size constraints. */
+    private readonly collections = new Map<number, Collection>();
     /** The enabled statuses built so far, by the Z3 id of their term, with their action and its available status. */
     private readonly enabledStatuses = new Map<number, { action: string, enabled: Bool<'main'>, available: Bool<'main'> }>();
 
@@ -198,51 +202,83 @@ export class Z3Vocabulary {
         }
     }
 
-    /** An element is included in the jobs: element ∈ jobs(x); in a queue: some slot 0 ≤ i < size holds it. */
+    /** An element is included in the jobs: some slot head ≤ i < head + size holds it. */
     includes(x: Instance, name: string, element: Expr<'main'>): Bool<'main'> {
-        if (this.property(x, name).type === 'list') {
-            return this.z3.Select(this.list(x, name), element);
-        }
-        const { items, size } = this.queue(x, name);
+        const { items, head, size } = this.collection(x, name);
         const slot = this.z3.Int.const('slot');
-        return this.z3.Exists([slot], this.z3.And(this.z3.GE(slot, 0), this.z3.LT(slot, size), items.select(slot).eq(element)));
+        return this.z3.Exists([slot], this.z3.And(this.z3.GE(slot, head), this.z3.LT(slot, head.add(size)), items.select(slot).eq(element)));
     }
 
-    /** jobs(x) = ∅ for a list, waiting size(x) = 0 for a queue. */
+    /** jobs size(x) = 0 */
     isEmpty(x: Instance, name: string): Bool<'main'> {
-        if (this.property(x, name).type === 'list') {
-            const list = this.list(x, name);
-            return list.eq(this.z3.EmptySet(list.sort.domain()));
-        }
-        return this.queue(x, name).size.eq(0);
+        return this.collection(x, name).size.eq(0);
     }
 
     /** Holding as many elements as the capacity: size ≥ capacity (with the size constraints, exactly the capacity). */
     isFull(x: Instance, name: string): Bool<'main'> {
-        const size = this.property(x, name).type === 'list' ? this.listSize(this.list(x, name)) : this.queue(x, name).size;
-        return this.z3.GE(size, this.capacity);
+        return this.z3.GE(this.collection(x, name).size, this.capacity);
     }
 
-    /** The last element of the queue is the element: size ≥ 1 and slot size − 1 holds it. */
-    isLast(x: Instance, name: string, element: Expr<'main'>): Bool<'main'> {
-        const { items, size } = this.queue(x, name);
-        return this.z3.And(this.z3.GE(size, 1), items.select(size.sub(1)).eq(element));
+    /** The list or queue `name` of x: jobs items(x), jobs head(x), jobs size(x). */
+    collection(x: Instance, name: string): Collection {
+        const element = this.sortOf(this.property(x, name).elementType ?? 'Any');
+        const part = (part: string, sort: Sort<'main'>) => this.z3.Function.declare(`${name} ${part}`, x.sort, sort).call(x);
+        return this.kept({
+            items: part('items', this.z3.Array.sort(this.z3.Int.sort(), element)) as Collection['items'],
+            head: part('head', this.z3.Int.sort()) as Arith<'main'>,
+            size: part('size', this.z3.Int.sort()) as Arith<'main'>
+        });
+    }
+
+    /** The list or queue `name` of x between two effects of a Then (Then.toZ3): one with names of its own, jobs items (1). */
+    between(x: Instance, name: string): Collection {
+        const element = this.sortOf(this.property(x, name).elementType ?? 'Any');
+        const n = ++this.shared.between;
+        return this.kept({
+            items: this.z3.Array.const(`${name} items (${n})`, this.z3.Int.sort(), element) as Collection['items'],
+            head: this.z3.Int.const(`${name} head (${n})`),
+            size: this.z3.Int.const(`${name} size (${n})`)
+        });
+    }
+
+    /** added with, enqueued with: after is before with the element in the slot after its last. */
+    appended(before: Collection, element: Expr<'main'>, after: Collection): Bool<'main'> {
+        const end = before.head.add(before.size);
+        return this.z3.And(after.items.eq(before.items.store(end, element)), after.head.eq(before.head), after.size.eq(before.size.add(1)));
+    }
+
+    /**
+     * removed with: some slot of before holds the element (so it has to be there), and after is before with its last
+     * element in that slot instead, one shorter. The slot is a constant of its own: an effect is asserted, never negated.
+     */
+    removed(before: Collection, element: Expr<'main'>, after: Collection): Bool<'main'> {
+        const slot = this.z3.Int.const(`removed slot (${++this.shared.between})`);
+        const end = before.head.add(before.size);
+        return this.z3.And(this.z3.GE(slot, before.head), this.z3.LT(slot, end), before.items.select(slot).eq(element),
+            after.items.eq(before.items.store(slot, before.items.select(end.sub(1)))), after.head.eq(before.head), after.size.eq(before.size.sub(1)));
+    }
+
+    /** dequeued (as job): before is not empty, job is its front, and after is before from its second element on. */
+    dequeued(before: Collection, front: Expr<'main'> | undefined, after: Collection): Bool<'main'> {
+        return this.z3.And(this.z3.GE(before.size, 1), ...(front ? [front.eq(before.items.select(before.head))] : []),
+            after.items.eq(before.items), after.head.eq(before.head.add(1)), after.size.eq(before.size.sub(1)));
+    }
+
+    /** set to empty: after has no elements. */
+    emptied(after: Collection): Bool<'main'> {
+        return after.size.eq(0);
     }
 
     /**
      * The rules of the language for every term built so far; add them to the solver together with the formulas,
      * after building those:
-     *   0 ≤ size ≤ capacity            for lists and queues
-     *   size = 0 ⇔ the list is ∅       for lists (a queue's elements are its slots 0 … size − 1, so it needs none)
+     *   0 ≤ size ≤ capacity            for lists and queues, also those between two effects
      *   enabled ⇔ available            for every enabled status of an action without an enabled specification (one
      *                                  with an enabled specification is enabled as that specification says)
-     * A list's size is not counted from its members; a queue's is, as its elements take its slots.
      */
     constraints(): Array<Bool<'main'>> {
-        const bounds = (size: Arith<'main'>) => [this.z3.GE(size, 0), this.z3.LE(size, this.capacity)];
         return [
-            ...[...this.lists.values()].flatMap(list => [...bounds(this.listSize(list)), this.listSize(list).eq(0).eq(list.eq(this.z3.EmptySet(list.sort.domain())))]),
-            ...[...this.queues.values()].flatMap(queue => bounds(queue.size)),
+            ...[...this.collections.values()].flatMap(({ size }) => [this.z3.GE(size, 0), this.z3.LE(size, this.capacity)]),
             ...[...this.enabledStatuses.values()]
                 .filter(({ action }) => !this.model.enabledSpecifications.some(spec => spec.action === action))
                 .map(({ enabled, available }) => this.z3.Iff(enabled, available))
@@ -334,24 +370,10 @@ export class Z3Vocabulary {
         return this.shared.valueSort;
     }
 
-    private list(x: Instance, name: string): List {
-        const element = this.sortOf(this.property(x, name).elementType ?? 'Any');
-        const list = this.z3.Function.declare(name, x.sort, this.z3.Set.sort(element)).call(x) as List;
-        this.lists.set(list.id(), list);
-        return list;
-    }
-
-    /** size(jobs(x)), an Int function on sets. */
-    private listSize(list: List): Arith<'main'> {
-        return this.z3.Function.declare('size', list.sort, this.z3.Int.sort()).call(list);
-    }
-
-    private queue(x: Instance, name: string): Queue {
-        const element = this.sortOf(this.property(x, name).elementType ?? 'Any');
-        const items = this.z3.Function.declare(`${name} items`, x.sort, this.z3.Array.sort(this.z3.Int.sort(), element)).call(x) as Queue['items'];
-        const size = this.z3.Function.declare(`${name} size`, x.sort, this.z3.Int.sort()).call(x);
-        this.queues.set(size.id(), { items, size });
-        return { items, size };
+    /** The list or queue, noted for the size constraints. */
+    private kept(collection: Collection): Collection {
+        this.collections.set(collection.size.id(), collection);
+        return collection;
     }
 
     // ---------- Looking up the model ----------

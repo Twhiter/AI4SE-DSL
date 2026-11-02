@@ -19,7 +19,7 @@ const AFTER_INPUTS = ['Output', 'Initially'];
 const ACTION_PARTS = 'An action specification has these parts, in this order, each at most once: Initiators, Observers, Input, Output, '
     + 'Initially available: true or false, Initially pending: true or false.';
 const NO_NOT_STATE = "A state has no 'not': only the <Entity> is <state> (it is <state> in a specification).";
-const NO_NOT_ENABLED = "There is no 'not enabled': only <action> is enabled, in a Declarative specification or a Given.";
+const NO_NOT_ENABLED = "There is no 'not enabled': only <action> is enabled, in a Declarative specification.";
 const ENABLING_CONDITIONS = [
     'An enabled specification can only have these conditions, joined with AND:',
     '  <action> was executed or is not available',
@@ -48,13 +48,13 @@ const SENTENCES: Record<string, string> = {
         `('the' or 'the <Entity>'s' can replace 'its'; ${VALUE})`
     ].join('\n'),
     GivenCondition: [
-        'This is not a valid Given condition. A condition is one of:',
+        'This is not a valid Given condition. A Given says only what state an entity is in and what its data is:',
         '  the <Entity> is <state>',
         "  the <Entity>'s <property> (not) equal to / larger than / smaller than <value>",
         "  <value> is (not) included in the <Entity>'s <list or queue>",
         "  the <Entity>'s <list or queue> is (not) empty / full",
-        '  <action> is (not) pending / available    |    <action> was (not) executed    |    <action> is enabled',
-        `(${VALUE})`
+        `(${VALUE}. An action's status, such as <action> is pending, is not a Given condition: a state's Declarative`,
+        'specification can say it, and the Given that state.)'
     ].join('\n'),
     Effect: [
         'This is not a valid Then effect. An effect is one of:',
@@ -110,7 +110,7 @@ export class EasyParserErrorMessageProvider extends LangiumParserErrorMessagePro
     override buildNoViableAltMessage(options: NoViableAltOptions): string {
         const [actual] = options.actual;
         if (ruleNameOf(options.ruleName) === 'ActionCondition' && actual.image === 'enabled') {
-            return NO_NOT_ENABLED;          // 'reboot is not enabled' in a Declarative specification or a Given
+            return NO_NOT_ENABLED;          // 'reboot is not enabled' in a Declarative specification
         }
         if (ruleNameOf(options.ruleName) === 'EnablingCondition') {
             return ENABLING_CONDITIONS;     // e.g. 'start is pending or …' in an enabled specification

@@ -1,12 +1,14 @@
 ---
 name: understand-dcr-dsl
-description: Rules for executed, enabled, pending, available and their corresponding DCR meaning and how to tell them apart. Use when unsure what executed, enabled, pending or available mean in a Given, a Then or a state specification.
+description: Rules for executed, enabled, pending, available and their corresponding DCR meaning and how to tell them apart. Use when unsure what executed, enabled, pending or available mean in a Then or a state specification.
 ---
 # DCR DSL
 
 In DSL, there are several ways to express whether some activities are in the marking or not:
 
-## DCR expression in Given & state specifications
+## DCR expression in state specifications
+A Given cannot say these itself: it gives a state, and the state's specification says them.
+
 * `<action> is available` means `<action>` is in the marking set *In*. If it is negated (not available), it asserts `<action>` is not in the marking set *In*
 * `<action> is (not) pending` indicates the `<action>` is in the marking set *Re* or not.
 

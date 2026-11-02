@@ -49,7 +49,7 @@ describe('buildModel', () => {
         expect(model?.enabledSpecifications).toEqual([{ action: 'print', conditions: ['start'], milestones: ['reboot'] }]);
     });
 
-    it("builds 'is enabled' in a Declarative specification and a Given", async () => {
+    it("builds 'is enabled' in a Declarative specification", async () => {
         const { model } = await build(`
             Entity Printer { Actions: start, print  States: busy }
             Role Operator.
@@ -59,13 +59,13 @@ describe('buildModel', () => {
             Declarative specification Printer is busy means { print is enabled AND reboot is enabled }
             Action print is enabled means { start was executed or is not available AND start is not pending or is not available }
             Scenario: Restart
-            Given reboot is enabled AND print is enabled
+            Given the Printer is busy
             When start is executed
             Then print is pending AND reboot is not available.`);
         expect(model!.stateSpecifications[0].enableds).toEqual(['print', 'reboot']);
         expect(model!.enabledSpecifications).toEqual([{ action: 'print', conditions: ['start'], milestones: ['start'] }]);
         const [restart] = model!.scenarios;
-        expect(restart.given).toMatchObject({ enableds: ['reboot', 'print'], enabledsCtx: [[], ['printer']] });   // reboot is in no lifecycle
+        expect(restart.given).toMatchObject({ states: [['Printer', 'busy']], statesCtx: [['printer']] });
         expect(restart.then).toMatchObject({ pendings: ['print'], pendingsCtx: [['printer']], notAvailables: ['reboot'], notAvailablesCtx: [[]] });
         // a Then records only pending, available, not available and its data constraints
         expect(Object.keys(restart.then)).toEqual(
@@ -108,7 +108,7 @@ describe('buildModel', () => {
             Role Operator.
             Action start { Initiators: Operator }
             Scenario: Next
-            Given start is available
+            Given the Printer's waiting is not empty
             When start is executed
             Then the Printer's waiting is dequeued as job AND job is added to the Printer's jobs AND the Printer's label is set to job.`);
         expect(model!.entities[0].dataProperties).toMatchObject([
@@ -135,11 +135,11 @@ describe('buildModel', () => {
             Role Operator.
             Action print { Initiators: Operator, Input: file: string, copies: int }
             Scenario: Submit
-            Given print is available
+            Given the Printer's names is not empty
             When print is executed with inputs copies = 2, file
             Then the Printer's names is dequeued as name AND the Printer's names is enqueued with file.
             Scenario: Any copies
-            Given print is available
+            Given the Printer's names is empty
             When print is executed with inputs file = "a.pdf"
             Then print is pending.`);
         const [submit, any] = model!.scenarios;
@@ -164,7 +164,7 @@ describe('buildModel', () => {
             When print is executed with inputs copies = the Printer's speed, outputs pages = 3 AND copies larger than 1 AND the Printer's jobs is empty
             Then the Printer's jobs is set to empty AND the Printer's speed is set to pages.
             Scenario: Plain
-            Given print is available
+            Given the Printer's jobs is empty
             When print is executed with inputs copies = 2
             Then print is pending.`);
         const [print, plain] = model!.scenarios;
@@ -224,7 +224,7 @@ describe('buildModel', () => {
         expect(submit.thens.map(then => then.dataAssignments[0].value)).toEqual([input, input, 'draft']);
         expect(submit.thens.slice(0, 2).every(then => then.dataAssignments[0].value === input)).toBe(true);
         expect(submit.givens.map(given => given.values)).toEqual([[], [], [[input, 'draft']]]);
-        expect(submit.givens.map(given => given.availables)).toEqual([['submit'], ['submit'], ['submit']]);
+        expect(submit.givens.map(given => given.dataAssertions.map(assertion => assertion.title))).toEqual(Array(3).fill(["the Printer's jobs is not full"]));
         expect(submit.constants).toEqual([[], [], []]);
         expect(submit.instances).toEqual({ printer: 'Printer' });
         // the other named constants stay with their scenario
@@ -232,36 +232,6 @@ describe('buildModel', () => {
         // the scenarios themselves keep their own variables and Givens
         expect(model!.scenarios[3].then.dataAssignments[0].value).toEqual(new NamedConstant('job', 'string'));
         expect(model!.scenarios[5].given.values).toEqual([]);
-    });
-
-    it('saturates a Given: each state replaced until only statuses and property assertions remain, then only the property assertions kept', async () => {
-        const { model, errors } = await build(`
-            Entity Printer {
-                Actions: print
-                Data properties: speed: int, ready: boolean, jobs: a list
-                States: online, busy, idle
-            }
-            Role Operator.
-            Action print { Initiators: Operator, Input: file: string }
-            Declarative specification Printer is online means { the ready equal to true AND print is available }
-            Declarative specification Printer is busy means { it is online AND the jobs is not empty AND it is idle }
-            Declarative specification Printer is idle means { it is busy AND the speed equal to 0 }
-            Scenario: Print
-            Given the Printer is busy AND the Printer's jobs is not empty AND print is pending AND print is enabled
-            When print is executed with inputs file = "a.pdf"
-            Then print is not available.`);
-        expect(errors).toBeUndefined();
-        const [rule] = model!.whenRules;
-        const given = rule.givens[0].saturated(model!.stateSpecifications);
-        // busy -> online (ready, not 'print is available') and idle (speed; its 'busy' is already replaced) and the jobs,
-        // which the Given says too; 'print is pending' and 'print is enabled' are left out
-        expect(given.dataAssertions.map(assertion => assertion.title))
-            .toEqual(["the Printer's ready equal to true", "the Printer's speed equal to 0", "the Printer's jobs is not empty"]);
-        expect(given.dataAssertionsCtx).toEqual([['printer'], ['printer'], ['printer']]);
-        expect(given.values).toEqual([[rule.parameters[0], 'a.pdf']]);
-        expect([given.states, given.availables, given.pendings, given.enableds, given.statusTitles()]).toEqual([[], [], [], [], []]);
-        // the Given itself is not changed
-        expect(rule.givens[0].states).toEqual([['Printer', 'busy']]);
     });
 
     it('returns the errors instead of a model when the document has errors', async () => {

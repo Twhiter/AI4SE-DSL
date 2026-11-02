@@ -20,14 +20,14 @@ Action tune { Initiators: Operator, Input: level: Any }
 
 // the first waiting job goes to the end of the scheduled jobs: both hold strings
 Scenario: Schedule job
-Given start is available
+Given the Printer's waiting jobs is not empty
 When start is executed
 Then the Printer's waiting jobs is dequeued as job
     AND the Printer's scheduled jobs is enqueued with job.
 
 // the inbox holds Any, so the item may or may not be an int
 Scenario: Untyped item
-Given start is available
+Given the Printer's inbox is not empty
 When start is executed
 Then the Printer's inbox is dequeued as item
     AND the Printer's speed is set to item
@@ -35,12 +35,12 @@ Then the Printer's inbox is dequeued as item
 
 // what the user inputs is a string, as the waiting jobs are
 Scenario: Submit job
-Given submit is available
+Given the Printer's waiting jobs is not full
 When submit is executed with inputs job
 Then the Printer's waiting jobs is enqueued with job.
 
 // tune takes any value, so the level may or may not be an int
 Scenario: Tune speed
-Given tune is available
+Given the Printer's speed equal to 0
 When tune is executed with inputs level
 Then the Printer's speed is set to level.

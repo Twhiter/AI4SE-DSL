@@ -1,24 +1,31 @@
 // A DSL easy model (easy-language's buildModel) as a DCR Solutions graph, before it is laid out and written (xml.ts):
 // the DCR.js adapter's graph (easy-dcr-js-adapter's toDcrJsGraph), as dcrgraphs.net says it:
 //   a data property                         an event in the nesting Data, initiated by its entity, with a value of its
-//                                           type (Any: text)
+//                                           type (Any: text; a list or queue: a list, starting as [])
+//   a state                                 an event in the nesting States, initiated by Robot, with a value of true or
+//                                           false that its computation gives: what the state's Declarative
+//                                           specification says (DCR computation.xml)
 //   an action                               an event with its initiators (roles) and observers (read roles); with one
 //                                           input and no output, with a value of the input's type
 //   an action with more inputs, no output   a form with its initiators and observers, holding an event per input
 //   an action with outputs                  a form with its initiators and observers, holding a nesting Input (an
 //                                           event per input) and Output (an event per output)
 //   (an event in a form has no roles or read roles: the form's are its)
-// Each event starts as in the DCR.js graph: Data and the data properties' events included, an action's event or form
+// Each event starts as in the DCR.js graph: Data and the data properties' events included, States and the states'
+// included and pending, an action's event or form
 // as its Action … { … } says (Initially available, Initially pending), or included when no include relation goes to it
 // (the fixer, unless it is turned off: fixInclusion).
-// Expressions name an event by its id: a data property's, input's or output's is its variable's name (speed; or
-// Printer_speed when two entities' data properties have the same, tune_speed when an input or output has the name of
+// Expressions name an event by its id: a data property's, state's, input's or output's is its variable's name (speed;
+// or Printer_speed when two entities' data properties have the same, tune_speed when an input or output has the name of
 // another variable); an action's or a form's is its name; a nesting's in a form the form's with
-// _input or _output after it; each with a number after it should another event have it already.
-// The relations are the DCR.js graph's (Data's condition to itself, and the Givens' conditions from Data, guarded by
-// not(…)), their guards and values as they are, with
-// 'is undefined' too, as DCR Solutions has null (DCR null.xml): label = null ('is not undefined': label != null); but
-// with strings in single quotes, as dcrgraphs.net writes them ('eco'), and
+// _input or _output after it; each with a number after it should another event have it already. A computation names
+// an action's status by the action's id: print@executed, print@pending, print@included (available).
+// The relations are the DCR.js graph's (Data's condition to itself, each state's response to itself, and the Givens'
+// conditions from Data, guarded by not(…)), their guards and values as they are, with
+// 'is undefined' too, as DCR Solutions has null (DCR null.xml): label = null ('is not undefined': label != null), and
+// lists, with its list functions: list contains(jobs, 'a'), count(jobs) = 0, count(jobs) >= 150 for full (the
+// capacity), a list's or queue's effects in a Then one update (append, remove, index of, index); but with strings in
+// single quotes, as dcrgraphs.net writes them ('eco'), and
 //   setValue a → p, value v, guarded by w       an update a → p, guarded by w, with value v
 //   the same relation, guarded differently      one, its guards joined with or: DCR Solutions has one of each type from
 //                                               an event to another; an update's value then `if w₁ then v₁ else …`,
@@ -26,8 +33,8 @@
 //                                               one (its update has no guard), else the last guarded one
 // ('dcr solution examples' at the root: DCR update.xml, an update with a guard and a value).
 
-import { identifier, INPUT, toDcrJsGraph, type Activity, type Box, type Element, type Options, type Variable } from 'easy-dcr-js-adapter';
-import type { EasyModel } from 'easy-language';
+import { identifier, INPUT, STATES, toDcrJsGraph, type Activity, type Box, type Element, type Options, type Variable } from 'easy-dcr-js-adapter';
+import { DEFAULT_CAPACITY, type EasyModel } from 'easy-language';
 
 /** An event: an activity, or a form or a nesting, holding events. */
 export interface SolutionEvent {
@@ -35,10 +42,10 @@ export interface SolutionEvent {
     label: string;
     type?: 'form' | 'nesting';
     /**
-     * What it stands for: a data property (or Data, the nesting of them), an action, or a part of an action's form (an
-     * input, an output, or a nesting of them).
+     * What it stands for: a data property (or Data, the nesting of them), a state (or States), an action, or a part of
+     * an action's form (an input, an output, or a nesting of them).
      */
-    kind: 'data' | 'action' | 'part';
+    kind: 'data' | 'state' | 'action' | 'part';
     /** Its initiators. */
     roles: string[];
     /** Its observers. */
@@ -48,6 +55,8 @@ export interface SolutionEvent {
     /** How the model starts it: whether it is included, and pending. */
     included: boolean;
     pending: boolean;
+    /** A state's: what its Declarative specification says, which its value is computed as; an expression, as `guard` is. */
+    computation?: string;
     children: SolutionEvent[];
 }
 
@@ -67,9 +76,10 @@ export interface DcrSolutionGraph {
     relations: SolutionRelation[];
 }
 
-export function toDcrSolutionGraph(model: EasyModel.Model, { fixInclusion }: Pick<Options, 'fixInclusion'> = {}): DcrSolutionGraph {
-    const graph = toDcrJsGraph(model, { noValue: 'null', fixInclusion });
-    const first = graph.elements.length - model.actions.length;   // the actions' elements come after Data's
+/** The model's graph, with the fixer unless `fixInclusion` is false; a list or queue holding `capacity` elements is full. */
+export function toDcrSolutionGraph(model: EasyModel.Model, { fixInclusion, capacity = DEFAULT_CAPACITY }: Pick<Options, 'fixInclusion'> & { capacity?: number } = {}): DcrSolutionGraph {
+    const graph = toDcrJsGraph(model, { noValue: 'null', fixInclusion, lists: { capacity } });
+    const first = graph.elements.length - model.actions.length;   // the actions' elements come after Data's and States'
     const activities = (element: Element): Activity[] => element.kind === 'activity' ? [element] : element.children.flatMap(activities);
     const used = new Set(graph.elements.flatMap(activities).flatMap(({ variable }) => variable ? [variable.name] : []));
     /** `name`, or with a number after it should another event have it. */
@@ -86,16 +96,17 @@ export function toDcrSolutionGraph(model: EasyModel.Model, { fixInclusion }: Pic
     const event = (activity: Activity, kind: SolutionEvent['kind'], roles: string[], readRoles: string[]): SolutionEvent => {
         const id = activity.variable?.name ?? unique(identifier(activity.label));
         ids.set(activity.id, id);
-        const { included, pending } = activity;
-        return { id, label: activity.label, kind, roles, readRoles, dataType: activity.variable?.type, included, pending, children: [] };
+        const { included, pending, computation } = activity;
+        return { id, label: activity.label, kind, roles, readRoles, dataType: activity.variable?.type, included, pending, computation, children: [] };
     };
 
-    const data = graph.elements.slice(0, first).map((nesting): SolutionEvent => {   // Data, should there be data properties
+    const boxes = graph.elements.slice(0, first).map((nesting): SolutionEvent => {   // Data and States, should there be data properties and states
+        const kind = nesting.label === STATES ? 'state' : 'data';
         const id = unique(identifier(nesting.label));
         ids.set(nesting.id, id);
         return {
-            id, label: nesting.label, type: 'nesting', kind: 'data', roles: [], readRoles: [], included: true, pending: false,
-            children: activities(nesting).map(activity => event(activity, 'data', activity.role, []))
+            id, label: nesting.label, type: 'nesting', kind, roles: [], readRoles: [], included: true, pending: false,
+            children: activities(nesting).map(activity => event(activity, kind, activity.role, []))
         };
     });
     const actions = graph.elements.slice(first).map((element, i): SolutionEvent => {
@@ -119,6 +130,10 @@ export function toDcrSolutionGraph(model: EasyModel.Model, { fixInclusion }: Pic
             included, pending, children
         };
     });
+    // a computation names an action's status by its element (Event_3@executed): by its event's id, now that each has one
+    for (const state of boxes.filter(({ kind }) => kind === 'state').flatMap(({ children }) => children)) {
+        state.computation = singleQuoted(state.computation?.replace(/\b((?:Event|Nesting)_\d+)@/g, (_, element: string) => `${ids.get(element)}@`));
+    }
 
     /** The relations of each type from an event to another, each guard (and an update's value) as the DCR.js graph's. */
     const merged = new Map<string, { type: SolutionRelation['type'], source: string, target: string, parts: Part[] }>();
@@ -138,7 +153,7 @@ export function toDcrSolutionGraph(model: EasyModel.Model, { fixInclusion }: Pic
     }
 
     return {
-        events: [...data, ...actions],
+        events: [...boxes, ...actions],
         relations: [...merged.values()].map(({ type, source, target, parts }) => ({
             type, source, target, guard: singleQuoted(guardOf(parts)), value: type === 'update' ? singleQuoted(valueOf(parts)) : undefined
         }))

@@ -14,6 +14,7 @@ import {
     checkConsistency, checkCrossScenarios, checkScenarios, isDeclarativeSpec, isEnabledSpec, isScenario,
     type ConsistencyResult, type CrossScenarioResult, type EasyModel, type Model as ModelNode, type ScenarioResult, type Z3Context
 } from 'easy-language';
+import { listCapacity, onListCapacity } from './capacity.js';
 import { crossOriginIsolation } from './cross-origin-isolation.js';
 import { toMonacoRange } from './ranges.js';
 
@@ -53,6 +54,9 @@ export function onChecked(listener: (model: EasyModel.Model) => void): void {
 /** The text of the latest request; a queued check of an older text is skipped, a running one is dropped. */
 let latest: string | undefined;
 let queue: Promise<void> = Promise.resolve();
+/** The latest request, checked again with another list capacity. */
+let request: Parameters<typeof checkWithZ3> | undefined;
+onListCapacity(() => request && !request[0].isDisposed() && checkWithZ3(...request));
 
 /**
  * Checks the content of an error-free document (`model`, built from `text`) and shows the problems as markers on
@@ -60,6 +64,7 @@ let queue: Promise<void> = Promise.resolve();
  * as the document is replaced by the next build.
  */
 export function checkWithZ3(editorModel: monaco.editor.ITextModel, text: string, document: LangiumDocument, model: EasyModel.Model): void {
+    request = [editorModel, text, document, model];
     const locations = locate(document, model);
     latest = text;
     const stale = () => latest !== text || editorModel.isDisposed();
@@ -87,6 +92,7 @@ export function checkWithZ3(editorModel: monaco.editor.ITextModel, text: string,
 /** Nothing is checked (the document has errors, or the checks are off), and the last results are out of date. */
 export function clearChecks(editorModel: monaco.editor.ITextModel, why = 'Not checked: fix the errors first'): void {
     latest = undefined;
+    request = undefined;
     monaco.editor.setModelMarkers(editorModel, OWNER, []);
     report({ state: 'not checked', text: why });
 }
@@ -171,21 +177,22 @@ async function runChecks(z3: Z3Context, model: EasyModel.Model, locations: Locat
     const markers: monaco.editor.IMarkerData[] = [];
     const lap = stopwatch();
 
-    const specifications = await checkConsistency(z3, model);
+    const options = { capacity: listCapacity() };
+    const specifications = await checkConsistency(z3, model, options);
     const consistency = lap();
     specifications.filter(({ result }) => result !== 'sat').forEach(result => markers.push(specificationMarker(result, locations, uri)));
 
     if (stale()) {
         return undefined;
     }
-    const scenarios = await checkScenarios(z3, model);
+    const scenarios = await checkScenarios(z3, model, options);
     const scenarioTime = lap();
     scenarios.forEach((result, i) => markers.push(...scenarioMarkers(result, i, locations, uri)));
 
     if (stale()) {
         return undefined;
     }
-    const groups = await checkCrossScenarios(z3, model, undefined, scenarios);
+    const groups = await checkCrossScenarios(z3, model, options, scenarios);
     const crossTime = lap();
     groups.forEach(group => markers.push(crossScenarioMarker(group, locations, uri)));
 

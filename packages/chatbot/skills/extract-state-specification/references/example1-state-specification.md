@@ -81,6 +81,28 @@ Declarative specification Order is shipped means {
 
 ---
 
+## Example 3: A State for a Scenario's Given
+
+### Correct Extraction
+
+```text
+Declarative specification Order is cancellation_pending means {
+    request Cancellation was executed
+    AND resolve Cancellation is pending
+}
+
+Scenario: Resolve Cancellation
+Given the Order is cancellation_pending
+When resolve Cancellation is executed
+Then the Order's paymentStatus is set to "Failed".
+```
+
+### Explanation
+- A scenario's Given cannot say "resolve Cancellation is pending": it names the state cancellation_pending, and the state's specification says that resolve Cancellation is pending.
+- So the specification includes every action status that a scenario starting in this state needs.
+
+---
+
 ## Anti-Example: Confusing Execution with Enabledness
 
 ### Incorrect Extraction

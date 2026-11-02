@@ -60,6 +60,6 @@ For how to write one, load the `extract-enableness` skill.
 For how to write one, load the `extract-state-specification` skill.
 
 ### Scenario
-`Scenario: <name> Given … When <action> is executed … Then … .`: the situation before (Given), exactly one action with its inputs and outputs (When), and its effects (Then). One instance per entity.
+`Scenario: <name> Given … When <action> is executed … Then … .`: the situation before (Given: states and data only, an action's status being said by a state's specification), exactly one action with its inputs and outputs (When), and its effects (Then). One instance per entity.
 
 For how to write one, load the `extract-scenario` skill.

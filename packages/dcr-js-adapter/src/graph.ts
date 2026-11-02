@@ -1,21 +1,27 @@
 // A DSL easy model (easy-language's buildModel) as a DCR.js graph, before it is laid out (xml.ts):
 //   a data property (int, string, boolean, Any)   an activity in the nesting Data, initiated by its entity, with a
-//                                                  variable of its type (Any: String)
+//                                                  variable of its type (Any: String); without any, an activity
+//                                                  'placeholder' in Data, should a Given need a condition from it
+//   a state of an entity                           an activity in the nesting States, initiated by Robot, with a Bool
+//                                                  variable, which its computation gives: what the state's Declarative
+//                                                  specification says (Activity.computation)
 //   an action                                      an activity, with its initiators and observers; with one input
 //                                                  and no output, also with a variable of the input's type
 //   an action with more inputs, or with outputs    a nesting, holding a nesting Input (with inputs) and one Output
 //                                                  (with outputs): an activity per input and output, with a variable
 //                                                  of its type and the action's initiators and observers
-//   (the data properties' activities are included at the start, and an action's, or its inputs' and outputs', when its
+//   (the data properties' activities are included at the start, the states' included and pending, and an action's, or
+//   its inputs' and outputs', when its
 //   Action … { … } says 'Initially available: true', or when no include relation goes to it (the fixer, which can be
 //   turned off: Options.fixInclusion), as it could otherwise never happen; they are pending at the start with
 //   'Initially pending: true')
 //   Action print is enabled means { start was executed or is not available }     condition start → print
 //                                 { reboot is not pending or is not available }  milestone reboot → print
 //   (Data has a condition to itself: its activities are never executed, their values change by setValues only, so a
-//   condition from it holds whenever its guard does)
-// and from the scenarios of each When rule, with action a, Givens g₁, g₂, … (each state replaced by what its
-// specification says) and Whens w₁, w₂, …:
+//   condition from it holds whenever its guard does; each state has a response to itself: it is pending again once it
+//   is computed)
+// and from the scenarios of each When rule, with action a, Givens g₁, g₂, … (each its states, busy = true, and its
+// data) and Whens w₁, w₂, …:
 //   the Givens     condition Data → a, guarded by not(g₁) (one scenario), or not(g₁ or g₂ or …) (several): a waits
 //                  while none of them holds; none when one of them always holds
 //   each Then      x is available       include a → x
@@ -23,9 +29,11 @@
 //                  x is pending         response a → x
 //                  each guarded by its When; the same relation from several Thens is one, its guards joined with or
 //                  p is set to v        setValue a → p, value v, guarded by its own When
-// Guards and values name variables (variableNames). Lists and queues are left out, with what the scenarios say about
-// them, and so is 'is undefined' (DCR.js has no null), but for a graph written in a language with a word for no value
-// (Options.noValue: DCR Solutions' null): both are future work.
+// Guards, values and computations name variables (variableNames). DCR.js has no list values, nor a word for no value,
+// so lists and queues are left out, with what the scenarios and the specifications say about them, and so is 'is
+// undefined'; but not from a graph written in a language that has them (Options.lists and Options.noValue: DCR
+// Solutions'): a list or queue is then an activity in Data with a list value, and its effects in a Then one setValue,
+// written with list functions (writer's effects).
 
 import type { EasyModel } from 'easy-language';
 
@@ -34,7 +42,8 @@ type Model = EasyModel.Model;
 /** A variable of DCR.js: its name (letters, digits and _) and type. */
 export interface Variable {
     name: string;
-    type: 'Int' | 'String' | 'Bool';
+    /** List: a list's or queue's, only with Options.lists. */
+    type: 'Int' | 'String' | 'Bool' | 'List';
 }
 
 /** An activity: a data property, an action (with its input, when it has one and no output), or an action's input or output. */
@@ -49,6 +58,13 @@ export interface Activity {
     included: boolean;
     pending: boolean;
     variable?: Variable;
+    /**
+     * A state's: what its Declarative specification says, which its variable is computed as; written as a guard
+     * (speed = 0, online = true), an action's status by its element (Event_3@executed, Event_3@pending, Event_3@included:
+     * available), not(…) for not (the writer's computation). None for a state without a specification, or with one
+     * about lists and queues only.
+     */
+    computation?: string;
 }
 
 /** Activities in a box, a nesting: Data, an action with more inputs or with outputs, or its Input or Output. */
@@ -76,8 +92,12 @@ export interface DcrJsGraph {
     relations: Relation[];
 }
 
-/** The nesting of the data properties' activities. */
+/** The nesting of the data properties' activities, and the activity in it of a model without any. */
 export const DATA = 'Data';
+export const PLACEHOLDER = 'placeholder';
+/** The nesting of the states' activities, and the role that computes them. */
+export const STATES = 'States';
+export const ROBOT = 'Robot';
 /** The nestings of an action's inputs and of its outputs. */
 export const INPUT = 'Input';
 export const OUTPUT = 'Output';
@@ -103,10 +123,15 @@ export interface Options {
      * do its inputs and outputs. True by default.
      */
     fixInclusion?: boolean;
+    /**
+     * What the graph will be written in can say, but DCR.js cannot: lists, with list functions (count, list contains,
+     * append, remove, index of, index); a list or queue holding `capacity` elements is full.
+     */
+    lists?: { capacity: number };
 }
 
 export function toDcrJsGraph(model: Model, options: Options = {}): DcrJsGraph {
-    const names = variableNames(model);
+    const names = variableNames(model, options.lists !== undefined);
     const write = writer(model, names, options);
     const counts = new Map<string, number>();
     const id = (prefix: string) => {
@@ -116,17 +141,33 @@ export function toDcrJsGraph(model: Model, options: Options = {}): DcrJsGraph {
     /** The element of each data property (propertyKey), action, and of Data. */
     const elementOf = new Map<string, string>();
 
-    const data = model.entities.flatMap(entity => entity.dataProperties.filter(isPrimitive).map((property): Activity => {
+    const data = model.entities.flatMap(entity => entity.dataProperties.filter(property => isPrimitive(property) || options.lists).map((property): Activity => {
         const key = propertyKey(entity.name, property.name);
         const activity: Activity = {
             kind: 'activity', id: id('Event'), label: property.name, role: [entity.name], observers: [], included: true, pending: false,
-            variable: { name: names.get(key)!, type: TYPES[property.type] }
+            variable: { name: names.get(key)!, type: isPrimitive(property) ? TYPES[property.type] : 'List' }
         };
         elementOf.set(key, activity.id);
         return activity;
     }));
+    // without data properties, a placeholder, should a Given need a condition from Data: one that is never executed
+    if (data.length === 0 && model.whenRules.some(rule => guardOf(rule.indices.map(index => write.given(model.scenarios[index]))) !== undefined)) {
+        data.push({ kind: 'activity', id: id('Event'), label: PLACEHOLDER, role: [], observers: [], included: true, pending: false });
+    }
     const nesting: Box[] = data.length > 0 ? [{ kind: 'nesting', id: id('Nesting'), label: DATA, children: data }] : [];
     nesting.forEach(({ id }) => elementOf.set(DATA, id));
+
+    /** The activity of each state, by stateKey. */
+    const states = new Map(model.entities.flatMap(entity => entity.states.map(state => {
+        const key = stateKey(entity.name, state);
+        const activity: Activity = {
+            kind: 'activity', id: id('Event'), label: state, role: [ROBOT], observers: [], included: true, pending: true,
+            variable: { name: names.get(key)!, type: 'Bool' }
+        };
+        elementOf.set(key, activity.id);
+        return [key, activity] as const;
+    })));
+    const statesNesting: Box[] = states.size > 0 ? [{ kind: 'nesting', id: id('Nesting'), label: STATES, children: [...states.values()] }] : [];
 
     const actions = model.actions.map((action): Element => {
         const role = model.initiators[action] ?? [];
@@ -156,11 +197,18 @@ export function toDcrJsGraph(model: Model, options: Options = {}): DcrJsGraph {
         elementOf.set(action, element.id);
         return element;
     });
+    for (const spec of model.stateSpecifications) {
+        const activity = states.get(stateKey(spec.entity, spec.state));
+        if (activity) {
+            activity.computation = write.computation(spec, action => elementOf.get(action)!);
+        }
+    }
 
     const relations: Array<Omit<Relation, 'id'>> = [];
     const relate = (type: Relation['type'], from: string, to: string, guard?: string, value?: string) =>
         relations.push({ type, source: elementOf.get(from)!, target: elementOf.get(to)!, guard, value });
     nesting.forEach(() => relate('condition', DATA, DATA));
+    states.forEach((_, key) => relate('response', key, key));
     for (const spec of model.enabledSpecifications) {
         spec.conditions.forEach(action => relate('condition', action, spec.action));
         spec.milestones.forEach(action => relate('milestone', action, spec.action));
@@ -182,12 +230,8 @@ export function toDcrJsGraph(model: Model, options: Options = {}): DcrJsGraph {
             then.availables.forEach(action => add('include', rule.action, action, when));
             then.notAvailables.forEach(action => add('exclude', rule.action, action, when));
             then.pendings.forEach(action => add('response', rule.action, action, when));
-            for (const assignment of then.dataAssignments.filter(({ operation }) => operation === 'set to')) {
-                const key = propertyKey(assignment.entity, assignment.property);
-                const value = write.value(rule, assignment);
-                if (elementOf.has(key) && value !== undefined) {
-                    setValues.push([key, when.join(AND) || undefined, value]);
-                }
+            for (const { key, needs, value } of write.effects(rule, i)) {
+                setValues.push([key, [...when, ...needs].join(AND) || undefined, value]);
             }
         });
         for (const { type, from, to, alternatives } of merged.values()) {
@@ -207,24 +251,39 @@ export function toDcrJsGraph(model: Model, options: Options = {}): DcrJsGraph {
     }
 
     const unique = relations.filter((relation, i) => relations.findIndex(other => sameRelation(relation, other)) === i);
-    return { elements: [...nesting, ...actions], relations: unique.map((relation, i) => ({ id: `Relation_${i + 1}`, ...relation })) };
+    return { elements: [...nesting, ...statesNesting, ...actions], relations: unique.map((relation, i) => ({ id: `Relation_${i + 1}`, ...relation })) };
 }
 
 /**
  * How guards and values write what the scenarios say, a property or an input or output by its variable's name
- * (`names`), as DCR.js writes a guard (speed > 2 and file = "a.pdf"); a part DCR.js cannot say yet, about a list or
- * queue, or 'is undefined' without options.noValue, is left out.
+ * (`names`), as DCR.js writes a guard (speed > 2 and file = "a.pdf"); a part the graph cannot say, about a list or
+ * queue without options.lists, or 'is undefined' without options.noValue, is left out.
  */
-function writer(model: Model, names: Map<string, string>, { noValue }: Options) {
+function writer(model: Model, names: Map<string, string>, { noValue, lists }: Options) {
     const variableOf = ({ entity, property }: { entity: string, property: string }) => names.get(propertyKey(entity, property));
-    /** A property assertion, its value as `operand` writes it: speed > 2; undefined for a part DCR.js cannot say yet. */
+    /**
+     * A property assertion, its value as `operand` writes it: speed > 2; a list's or queue's (options.lists) with list
+     * functions, list contains(jobs, "a") (= false, for not), count(jobs) = 0 (> 0), count(jobs) >= capacity (<);
+     * undefined for a part the graph cannot say.
+     */
     const assertion = (assertion: EasyModel.PropertyAssertion, operand: (operand: EasyModel.Operand) => string) => {
         const name = variableOf(assertion);
-        const operators = OPERATORS[assertion.operation];
-        if (name && assertion.operation === 'undefined') {
-            return noValue === undefined ? undefined : `${name} ${assertion.negated ? '!=' : '='} ${noValue}`;
+        const { negated, operation, value } = assertion;
+        if (name === undefined) {
+            return undefined;
         }
-        return name && operators && assertion.value !== undefined ? `${name} ${operators[assertion.negated ? 1 : 0]} ${operand(assertion.value)}` : undefined;
+        switch (operation) {
+            case 'undefined':
+                return noValue === undefined ? undefined : `${name} ${negated ? '!=' : '='} ${noValue}`;
+            case 'included in':
+                return value === undefined ? undefined : `list contains(${name}, ${operand(value)})${negated ? ' = false' : ''}`;
+            case 'empty':
+                return `count(${name}) ${negated ? '>' : '='} 0`;
+            case 'full':
+                return `count(${name}) ${negated ? '<' : '>='} ${lists?.capacity}`;
+            default:
+                return value === undefined ? undefined : `${name} ${OPERATORS[operation]![negated ? 1 : 0]} ${operand(value)}`;
+        }
     };
     /** An input or output of the rule's action (one of its parameters) by its variable's name; another constant by its own. */
     const constant = (rule: EasyModel.WhenRule, constant: EasyModel.NamedConstant) => {
@@ -233,7 +292,7 @@ function writer(model: Model, names: Map<string, string>, { noValue }: Options) 
     };
 
     return {
-        /** What a scenario's Given says about data, its states replaced by what their specifications say, as the parts of a guard. */
+        /** What a scenario's Given says, its states (busy = true) and its data, as the parts of a guard. */
         given(scenario: EasyModel.Scenario): string[] {
             const parameters = [...(model.inputs[scenario.when] ?? []), ...(model.outputs[scenario.when] ?? [])];
             const operand = (operand: EasyModel.Operand) => {
@@ -243,7 +302,49 @@ function writer(model: Model, names: Map<string, string>, { noValue }: Options) 
                 const i = parameters.findIndex(({ name }) => name === operand.name);
                 return i >= 0 ? names.get(parameterKey(scenario.when, i))! : identifier(operand.name);
             };
-            return scenario.given.saturated(model.stateSpecifications).dataAssertions.map(part => assertion(part, operand)).filter(isDefined);
+            return [
+                ...scenario.given.states.map(([entity, state]) => `${names.get(stateKey(entity, state))} = true`),
+                ...scenario.given.dataAssertions.map(part => assertion(part, operand)).filter(isDefined)
+            ];
+        },
+
+        /**
+         * What a state's Declarative specification says, as the parts of its computation joined with and
+         * (Activity.computation), each action's status by its element (`element`); undefined when it says nothing that a
+         * computation can (only about lists and queues):
+         *   print is (not) available    Event_3@included       (not(Event_3@included))
+         *   print is (not) pending      Event_3@pending        (not(Event_3@pending))
+         *   print was (not) executed    Event_3@executed       (not(Event_3@executed))
+         *   print is enabled            what its enabled specification says, and that it is available:
+         *                               (Event_1@executed or not(Event_1@included)) and … and Event_3@included;
+         *                               Event_3@included without one
+         *   it is online                online = true
+         *   the speed larger than 2     speed > 2
+         */
+        computation(spec: EasyModel.StateSpecification, element: (action: string) => string): string | undefined {
+            const status = (action: string, marking: 'included' | 'pending' | 'executed', negated = false) =>
+                negated ? `not(${element(action)}@${marking})` : `${element(action)}@${marking}`;
+            const enabled = (action: string) => {
+                const specification = model.enabledSpecifications.find(other => other.action === action);
+                return [
+                    ...(specification?.conditions ?? []).map(other => `(${status(other, 'executed')} or ${status(other, 'included', true)})`),
+                    ...(specification?.milestones ?? []).map(other => `(${status(other, 'pending', true)} or ${status(other, 'included', true)})`),
+                    status(action, 'included')
+                ];
+            };
+            const parts = [
+                ...spec.availables.map(action => status(action, 'included')),
+                ...spec.notAvailables.map(action => status(action, 'included', true)),
+                ...spec.pendings.map(action => status(action, 'pending')),
+                ...spec.notPendings.map(action => status(action, 'pending', true)),
+                ...spec.executed.map(action => status(action, 'executed')),
+                ...spec.notExecuted.map(action => status(action, 'executed', true)),
+                ...spec.enableds.flatMap(enabled),
+                ...spec.states.map(state => `${names.get(stateKey(spec.entity, state))} = true`),
+                ...spec.dataAssertions.map(part => assertion(part, operand => typeof operand === 'object' ? identifier(operand.name) : valueText(operand)))
+                    .filter(isDefined)
+            ];
+            return parts.length > 0 ? parts.join(AND) : undefined;
         },
 
         /**
@@ -273,35 +374,85 @@ function writer(model: Model, names: Map<string, string>, { noValue }: Options) 
             ];
         },
 
-        /** What a Then's 'is set to' sets its property to; undefined for an element dequeued from a queue (left out with it). */
-        value(rule: EasyModel.WhenRule, { value }: EasyModel.PropertyAssignment): string | undefined {
-            if (value === undefined || typeof value !== 'object') {
-                return value === undefined ? undefined : valueText(value);
+        /**
+         * What the rule's i-th Then sets, each property once, in the order of its first effect: 'is set to' its value; a
+         * list's or queue's effects (options.lists) one after the other, as one value, with what each needs to hold:
+         *   the jobs is added with "a" (enqueued)   append(jobs, "a")
+         *   the jobs is removed with "a"            remove(jobs, index(index of(jobs, "a"), 1)), needing list contains(jobs, "a")
+         *   the waiting is dequeued (as job)        remove(waiting, 1), needing count(waiting) > 0; job is index(waiting, 1)
+         *   the jobs is set to empty                []
+         * A later effect on the same list or queue works on its value so far: append(remove(waiting, 1), "a"). A
+         * property whose value names what the graph does not have (an element dequeued from a queue without
+         * options.lists) is left out.
+         */
+        effects(rule: EasyModel.WhenRule, i: number): Array<{ key: string, needs: string[], value: string }> {
+            const values = new Map<string, { needs: string[], value: string | undefined }>();
+            const dequeued = new Map<EasyModel.NamedConstant, string>();
+            const operand = (operand: EasyModel.Operand | undefined) => operand === undefined ? undefined
+                : typeof operand !== 'object' ? valueText(operand)
+                : dequeued.get(operand) ?? (rule.parameters.includes(operand) ? constant(rule, operand) : undefined);
+            for (const { entity, property, operation, value, constant: as } of rule.thens[i].dataAssignments) {
+                const key = propertyKey(entity, property);
+                const name = names.get(key);
+                if (name === undefined) {
+                    continue;   // a list or queue without options.lists
+                }
+                const effect = values.get(key) ?? { needs: [], value: name };
+                const [list, element] = [effect.value, operand(value)];
+                switch (operation) {
+                    case 'set to':
+                        effect.value = element;
+                        break;
+                    case 'added with':
+                    case 'enqueued with':
+                        effect.value = list && element && `append(${list}, ${element})`;
+                        break;
+                    case 'removed with':
+                        effect.value = list && element && `remove(${list}, index(index of(${list}, ${element}), 1))`;
+                        effect.needs.push(...(list && element ? [`list contains(${list}, ${element})`] : []));
+                        break;
+                    case 'dequeued':
+                        effect.value = list && `remove(${list}, 1)`;
+                        effect.needs.push(...(list ? [`count(${list}) > 0`] : []));
+                        if (list && as) {
+                            dequeued.set(as, `index(${list}, 1)`);
+                        }
+                        break;
+                    case 'set to empty':
+                        effect.value = '[]';
+                        break;
+                }
+                values.set(key, effect);
             }
-            return rule.parameters.includes(value) ? constant(rule, value) : undefined;
+            return [...values].flatMap(([key, { needs, value }]) => value === undefined ? [] : [{ key, needs, value }]);
         }
     };
 }
 
 /**
- * The variables' names, by propertyKey for a data property and parameterKey for an input or output: its name, each
- * space an _ (max speed: max_speed). A data property keeps it, unless another entity's data property has it too: then
- * each has its entity's before it (Printer_speed). An input or output keeps it, unless any other variable has it: then
- * it has its action's before it (tune_speed), and the data property keeps it (child_age, submit_child_age). A number
- * comes after a name that is still not unique.
+ * The variables' names, by propertyKey for a data property, stateKey for a state and parameterKey for an input or
+ * output: its name, each space an _ (max speed: max_speed). A data property keeps it, unless another entity's data
+ * property has it too: then each has its entity's before it (Printer_speed). A state keeps it, unless another entity's
+ * state, a data property or an action has it: then it has its entity's before it (Printer_idle). An input or output
+ * keeps it, unless any other variable has it: then it has its action's before it (tune_speed), and the data property
+ * keeps it (child_age, submit_child_age). A number comes after a name that is still not unique.
  */
-function variableNames(model: Model): Map<string, string> {
-    const owned = [
-        ...model.entities.flatMap(entity => entity.dataProperties.filter(isPrimitive)
-            .map(property => ({ key: propertyKey(entity.name, property.name), owner: entity.name, name: property.name, property: true }))),
+function variableNames(model: Model, lists: boolean): Map<string, string> {
+    const owned: Array<{ key: string, owner: string, name: string, kind: 'property' | 'state' | 'parameter' }> = [
+        ...model.entities.flatMap(entity => entity.dataProperties.filter(property => lists || isPrimitive(property))
+            .map(property => ({ key: propertyKey(entity.name, property.name), owner: entity.name, name: property.name, kind: 'property' as const }))),
+        ...model.entities.flatMap(entity => entity.states.map(state => ({ key: stateKey(entity.name, state), owner: entity.name, name: state, kind: 'state' as const }))),
         ...model.actions.flatMap(action => [...(model.inputs[action] ?? []), ...(model.outputs[action] ?? [])]
-            .map((parameter, i) => ({ key: parameterKey(action, i), owner: action, name: parameter.name, property: false })))
+            .map((parameter, i) => ({ key: parameterKey(action, i), owner: action, name: parameter.name, kind: 'parameter' as const })))
     ];
     const plain = owned.map(({ name }) => identifier(name));
+    const actions = new Set(model.actions.map(identifier));
     const used = new Set<string>();
-    return new Map(owned.map(({ key, owner, property }, i) => {
-        // a data property clashes only with another data property; an input or output with any other variable
-        const clashes = owned.filter((other, j) => j !== i && plain[j] === plain[i] && (other.property || !property)).length > 0;
+    return new Map(owned.map(({ key, owner, kind }, i) => {
+        // a data property clashes only with another data property; a state with a data property, another state or an
+        // action; an input or output with any other variable
+        const clashes = (kind === 'state' && actions.has(plain[i])) || owned.some((other, j) => j !== i && plain[j] === plain[i]
+            && (kind === 'parameter' || other.kind === 'property' || (kind === 'state' && other.kind === 'state')));
         const wanted = clashes ? `${identifier(owner)}_${plain[i]}` : plain[i];
         let name = wanted;
         for (let n = 2; used.has(name); n++) {
@@ -337,6 +488,11 @@ function activitiesOf(element: Element): Activity[] {
 /** 'Printer.speed' */
 function propertyKey(entity: string, property: string): string {
     return `${entity}.${property}`;
+}
+
+/** 'Printer is busy' */
+function stateKey(entity: string, state: string): string {
+    return `${entity} is ${state}`;
 }
 
 /** 'print#0': the action's i-th input, or output after its inputs. */

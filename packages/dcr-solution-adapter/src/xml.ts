@@ -1,7 +1,8 @@
 // A DCR Solutions graph (graph.ts) as dcrgraphs.net exports one (the root's 'dcr solution examples'): each event where
-// it is (place; dcrgraphs.net sizes it), with its roles, read roles, value and label; the relations, with their guards
-// and an update's value (DCR update.xml); and how each event starts, a data property's with no value: null (DCR
-// null.xml), as a property has none until it is set.
+// it is (place; dcrgraphs.net sizes it), with its roles, read roles, value and label, and a state's computation (DCR
+// computation.xml); the relations, with their guards and an update's value (DCR update.xml); and how each event starts,
+// a data property's with no value: null (DCR null.xml), as a property has none until it is set, but a list's or queue's
+// empty: [] (DCR list.xml).
 
 import { layout, type Element, type Point, type Relation } from 'easy-dcr-js-adapter';
 import type { DcrSolutionGraph, SolutionEvent, SolutionRelation } from './graph.ts';
@@ -19,7 +20,7 @@ const CONSTRAINTS = ['conditions', 'responses', 'coresponses', 'includes', 'excl
 const FORM = { type: 'form', cancelText: '', sendText: '', hideCancel: false, formShowInitialPhase: 1 };
 const COLORS = { bg: '#f9f7ed', textStroke: '#000000', stroke: '#cccccc' };
 
-/** A data property's event, as dcrgraphs.net draws it; the room between two of them, and below Data, over the actions. */
+/** A data property's or state's event, as dcrgraphs.net draws it; the room between two of them, and below Data and States. */
 const DATA = { width: 130, height: 150 };
 const DATA_GAP = 30;
 const BELOW_DATA = 150;
@@ -44,12 +45,14 @@ export async function toXml(graph: DcrSolutionGraph, title: string, marking: (ev
     /** The ids of a relation's guard and value, as dcrgraphs.net gives them: print-path-speed--update(--value). */
     const guardId = ({ type, source, target, guard }: SolutionRelation) => guard === undefined ? undefined : `${source}-path-${target}--${type}`;
     const valueId = (relation: SolutionRelation) => relation.value === undefined ? undefined : `${relation.source}-path-${relation.target}--${relation.type}--value`;
+    /** The id of a state's computation, as dcrgraphs.net gives it: processed-computation. */
+    const computationId = ({ id, computation }: SolutionEvent) => computation === undefined ? undefined : `${id}-computation`;
 
     let sequence = 0;
     const eventXml = (event: SolutionEvent): string[] => {
         const n = ++sequence;
         const { x, y } = places.get(event.id)!;
-        return tag('event', { id: event.id, ...(event.type === 'form' ? FORM : { type: event.type }) }, [
+        return tag('event', { computation: computationId(event), id: event.id, ...(event.type === 'form' ? FORM : { type: event.type }) }, [
             ...tag('precondition', { message: '' }),
             ...tag('custom', {}, [
                 ...tag('visualization', {}, [...tag('location', { xLoc: Math.round(x), yLoc: Math.round(y) }), ...tag('colors', COLORS)]),
@@ -84,8 +87,10 @@ export async function toXml(graph: DcrSolutionGraph, title: string, marking: (ev
                 ...tag('subProcesses'),
                 ...tag('labels', {}, [...new Set(events.map(([{ label }]) => label))].flatMap(label => tag('label', { id: label }))),
                 ...tag('labelMappings', {}, events.flatMap(([{ id, label }]) => tag('labelMapping', { eventId: id, labelId: label }))),
-                ...tag('expressions', {}, graph.relations.flatMap(relation => [[guardId(relation), relation.guard], [valueId(relation), relation.value]]
-                    .flatMap(([id, value]) => id === undefined ? [] : tag('expression', { id, value })))),
+                ...tag('expressions', {}, [
+                    ...graph.relations.flatMap(relation => [[guardId(relation), relation.guard], [valueId(relation), relation.value]]),
+                    ...events.map(([event]) => [computationId(event), event.computation])
+                ].flatMap(([id, value]) => id === undefined ? [] : tag('expression', { id, value }))),
                 ...tag('variables'),
                 ...tag('variableAccesses', {}, tag('writeAccesses')),
                 ...tag('custom', {}, [
@@ -110,7 +115,7 @@ export async function toXml(graph: DcrSolutionGraph, title: string, marking: (ev
             ...tag('custom', {}, tag('globalMarking', {}, ['enabled', 'enabledSubprocesses', 'executed', 'pending', 'included'].flatMap(name => tag(name)))),
             ...tag('marking', {}, [
                 ...tag('globalStore', {}, events.filter(([{ kind, dataType }]) => kind === 'data' && dataType !== undefined)
-                    .flatMap(([{ id }]) => tag('variable', { id, value: 'null', isNull: false, type: 'expr' }))),
+                    .flatMap(([{ id, dataType }]) => tag('variable', { id, value: dataType === 'List' ? '[]' : 'null', isNull: false, type: 'expr' }))),
                 ...tag('executed', {}, marked('executed')),
                 ...tag('included', {}, marked('included')),
                 ...tag('pendingResponses', {}, marked('pending'))
@@ -120,17 +125,18 @@ export async function toXml(graph: DcrSolutionGraph, title: string, marking: (ev
 }
 
 /**
- * Where each event is (its top left corner): Data above the actions, its data properties' a row for each entity's (as
- * many in a row as the actions are wide, at least four); the actions' as the DCR.js adapter lays out a graph, with the
- * relations between them only, so that those from Data and to the data properties do not pull them apart.
+ * Where each event is (its top left corner): Data and then States above the actions, their events in rows (a data
+ * property's a row for each entity's; as many in a row as the actions are wide, at least four); the actions' as the
+ * DCR.js adapter lays out a graph, with the relations between them only, so that those from Data and to the data
+ * properties do not pull them apart.
  */
 async function place(graph: DcrSolutionGraph): Promise<Map<string, Point>> {
     const element = (event: SolutionEvent): Element => event.type
         ? { kind: 'nesting', id: event.id, label: event.label, children: event.children.map(element) }
         : { kind: 'activity', id: event.id, label: event.label, role: event.roles, observers: event.readRoles, included: true, pending: false };
     const ids = (event: SolutionEvent): string[] => [event.id, ...event.children.flatMap(ids)];
-    const data = graph.events.find(({ kind }) => kind === 'data');
-    const actions = graph.events.filter(({ kind }) => kind !== 'data');
+    const boxes = graph.events.filter(({ kind }) => kind === 'data' || kind === 'state');
+    const actions = graph.events.filter(({ kind }) => kind === 'action');
     const inActions = new Set(actions.flatMap(ids));
     const { bounds } = await layout({
         elements: actions.map(element),
@@ -141,19 +147,23 @@ async function place(graph: DcrSolutionGraph): Promise<Map<string, Point>> {
 
     const width = Math.max(0, ...[...bounds.values()].map(({ x, width }) => x + width));
     const perRow = Math.max(4, Math.floor((width - NESTING.left + DATA_GAP) / (DATA.width + DATA_GAP)));
-    const entities = new Map<string, SolutionEvent[]>();
-    data?.children.forEach(event => entities.set(event.roles[0], [...entities.get(event.roles[0]) ?? [], event]));
-    const rows = [...entities.values()].flatMap(events =>
-        Array.from({ length: Math.ceil(events.length / perRow) }, (_, i) => events.slice(i * perRow, (i + 1) * perRow)));
-    const places = new Map<string, Point>(data ? [[data.id, { x: 0, y: 0 }]] : []);
-    rows.forEach((row, r) => row.forEach((event, c) =>
-        places.set(event.id, { x: NESTING.left + c * (DATA.width + DATA_GAP), y: NESTING.top + r * (DATA.height + DATA_GAP) })));
-    const top = data ? NESTING.top + rows.length * (DATA.height + DATA_GAP) - DATA_GAP + NESTING.bottom + BELOW_DATA : 0;
+    const places = new Map<string, Point>();
+    let top = 0;
+    for (const box of boxes) {
+        const owners = new Map<string, SolutionEvent[]>();   // by role: a data property's entity; Robot, for the states
+        box.children.forEach(event => owners.set(event.roles[0], [...owners.get(event.roles[0]) ?? [], event]));
+        const rows = [...owners.values()].flatMap(events =>
+            Array.from({ length: Math.ceil(events.length / perRow) }, (_, i) => events.slice(i * perRow, (i + 1) * perRow)));
+        places.set(box.id, { x: 0, y: top });
+        rows.forEach((row, r) => row.forEach((event, c) =>
+            places.set(event.id, { x: NESTING.left + c * (DATA.width + DATA_GAP), y: top + NESTING.top + r * (DATA.height + DATA_GAP) })));
+        top += NESTING.top + rows.length * (DATA.height + DATA_GAP) - DATA_GAP + NESTING.bottom + BELOW_DATA;
+    }
     bounds.forEach(({ x, y }, id) => places.set(id, { x, y: y + top }));
     return places;
 }
 
-/** How dcrgraphs.net says the type of an event's value (int, text, or a choice of true or false), with no rules for it. */
+/** How dcrgraphs.net says the type of an event's value (int, text, list, or a choice of true or false), with no rules for it. */
 function dataXml(type: SolutionEvent['dataType'], sequence: number): string[] {
     if (type === undefined) {
         return [];
@@ -163,7 +173,9 @@ function dataXml(type: SolutionEvent['dataType'], sequence: number): string[] {
             ...tag('dataType', { sequence, width: 'small', placeholder: '', hinttext: '', dataSetList: '', radio: 'horizontal', multiple: false, format: 'bool' }, 'choice'),
             ...tag('dictionary', {}, [...tag('item', { label: 'True', value: true }), ...tag('item', { label: 'False', value: false })])
         ]
-        : tag('dataType', { sequence, width: 'small', min: 'NaN', max: 'NaN', placeholder: '', hinttext: '' }, type === 'Int' ? 'int' : 'text');
+        : type === 'List'
+            ? tag('dataType', { sequence, width: 'small', min: '', max: '', placeholder: '', hinttext: '' }, 'list')
+            : tag('dataType', { sequence, width: 'small', min: 'NaN', max: 'NaN', placeholder: '', hinttext: '' }, type === 'Int' ? 'int' : 'text');
     return [...dataType, ...tag('validationRules')];
 }
 

@@ -12,7 +12,7 @@ const DECLARATIONS = `
 Entity Printer {
     Actions: start, print
     Data properties: speed: int, ready: boolean, jobs: a list of string
-    States: online, busy
+    States: online, busy, idle
 }
 Entity Tray {
     Actions: refill
@@ -25,6 +25,7 @@ Action print { Initiators: Operator, Input: file: string, copies: int, Output: p
 Action reboot { Initiators: Operator, Viewer }
 Declarative specification Printer is online means { the ready equal to true }
 Declarative specification Printer is busy means { it is online AND the speed larger than 5 AND print is pending }
+Declarative specification Printer is idle means { print is not pending }
 `;
 
 let api: Awaited<ReturnType<typeof init>>;
@@ -46,30 +47,80 @@ async function graphOf(text: string, declarations = DECLARATIONS): Promise<DcrGr
     return toDcrGraph(z3, model!);
 }
 
-/** The relations of the graph of `text`, as [relation, from, to, guard], but Data's condition to itself. */
-async function relationsOf(text: string): Promise<Array<[string, string, string, string | undefined]>> {
-    return (await graphOf(text)).relations.filter(({ from, to }) => from !== 'Data' || to !== 'Data')
+/**
+ * The relations of the graph of `text` (after the declarations, unless `declarations` says otherwise), as [relation,
+ * from, to, guard], but Data's condition to itself and each state's response to itself.
+ */
+async function relationsOf(text: string, declarations = DECLARATIONS): Promise<Array<[string, string, string, string | undefined]>> {
+    const graph = await graphOf(text, declarations);
+    const states = new Set(graph.groups.find(({ name }) => name === 'States')?.events);
+    return graph.relations.filter(({ relation, from, to }) => from !== to || (from !== 'Data' && !(relation === 'response' && states.has(from))))
         .map(({ relation, from, to, guard }) => [relation, from, to, guard]);
 }
 
 describe('toDcrGraph', () => {
 
-    it('makes an activity of every data property, initiated by its entity, in the group Data, which has a condition to itself, and of every action, with its inputs and outputs; only the data included', async () => {
+    it('makes an activity of every data property, initiated by its entity, in the group Data, which has a condition to itself, of every state, in the group States, and of every action, with its inputs and outputs; only the data and the states included', async () => {
         const none = { observers: [], inputs: [], outputs: [], defaultIncluded: false, defaultPending: false };
         const data = { ...none, defaultIncluded: true };
+        const state = { ...none, initiators: ['Robot'], defaultIncluded: true, defaultPending: true };
         const graph = await graphOf('');
         expect(graph.events).toEqual([
             { name: 'speed', initiators: ['Printer'], ...data },
             { name: 'ready', initiators: ['Printer'], ...data },
             { name: 'jobs', initiators: ['Printer'], ...data },
             { name: 'level', initiators: ['Tray'], ...data },
+            { ...state, name: 'online', computation: 'ready = true' },
+            { ...state, name: 'busy', computation: 'print@pending and online = true and speed > 5' },
+            { ...state, name: 'idle', computation: 'not(print@pending)' },
             { ...none, name: 'start', initiators: ['Operator'], observers: ['Viewer'] },
             { ...none, name: 'print', initiators: ['Operator'], inputs: [{ name: 'file', type: 'string' }, { name: 'copies', type: 'int' }], outputs: [{ name: 'pages', type: 'int' }] },
             { ...none, name: 'refill', initiators: [] },   // no 'Action refill { … }'
             { ...none, name: 'reboot', initiators: ['Operator', 'Viewer'] }
         ]);
-        expect(graph.groups).toEqual([{ name: 'Data', events: ['speed', 'ready', 'jobs', 'level'] }]);
-        expect(graph.relations.map(({ relation, from, to, guard }) => [relation, from, to, guard])).toEqual([['condition', 'Data', 'Data', undefined]]);
+        expect(graph.groups).toEqual([{ name: 'Data', events: ['speed', 'ready', 'jobs', 'level'] }, { name: 'States', events: ['online', 'busy', 'idle'] }]);
+        expect(graph.relations.map(({ relation, from, to, guard }) => [relation, from, to, guard])).toEqual([
+            ['condition', 'Data', 'Data', undefined],
+            ...['online', 'busy', 'idle'].map(state => ['response', state, state, undefined])
+        ]);
+    });
+
+    it("computes a state from its specification: an action's status as its marking, 'enabled' as its enabled specification and its availability, a state as its value, data as a guard says it", async () => {
+        const graph = await graphOf('', `
+            Entity Printer {
+                Actions: start, print, reboot
+                Data properties: speed: int, jobs: a list of string
+                States: ready, waiting, working, plain
+            }
+            Role Operator.
+            Action start { Initiators: Operator }
+            Action print { Initiators: Operator }
+            Action reboot { Initiators: Operator }
+            Action print is enabled means { start was executed or is not available AND reboot is not pending or is not available }
+            Declarative specification Printer is ready means { print is enabled AND reboot is enabled }
+            Declarative specification Printer is waiting means { start is available AND reboot is not available AND print is pending AND start was not executed }
+            Declarative specification Printer is working means { it is waiting AND the jobs is not empty AND reboot was executed AND print is not pending }
+        `);
+        expect(graph.events.filter(({ initiators }) => initiators.includes('Robot')).map(({ name, computation }) => [name, computation])).toEqual([
+            ['ready', '(start@executed or not(start@included)) and (not(reboot@pending) or not(reboot@included)) and print@included and reboot@included'],
+            ['waiting', 'start@included and not(reboot@included) and print@pending and not(start@executed)'],
+            ['working', 'not(print@pending) and reboot@executed and waiting = true and count(jobs) > 0'],
+            ['plain', undefined]   // no specification
+        ]);
+    });
+
+    it('names the activity of a state Entity.state when another entity has a state of that name, or another activity or an input or output has it', async () => {
+        const graph = await graphOf('', `
+            Entity Printer {
+                Actions: print
+                Data properties: speed: int
+                States: idle, speed, print, file, on
+            }
+            Entity Tray { States: idle }
+            Role Operator.
+            Action print { Initiators: Operator, Input: file: string }
+        `);
+        expect(graph.groups.find(({ name }) => name === 'States')?.events).toEqual(['Printer.idle', 'Printer.speed', 'Printer.print', 'Printer.file', 'on', 'Tray.idle']);
     });
 
     it("starts an action included and pending as its Action … { … } says; one without the lines, or without one, neither", async () => {
@@ -77,7 +128,7 @@ describe('toDcrGraph', () => {
             .replace('Observers: Viewer }', 'Observers: Viewer, Initially available: true }')
             .replace('Output: pages: int }', 'Output: pages: int, Initially available: false, Initially pending: true }');
         const graph = await graphOf('', declarations);
-        expect(graph.events.map(({ name, defaultIncluded, defaultPending }) => [name, defaultIncluded, defaultPending]).slice(4)).toEqual([
+        expect(graph.events.filter(({ initiators }) => !initiators.includes('Robot')).map(({ name, defaultIncluded, defaultPending }) => [name, defaultIncluded, defaultPending]).slice(4)).toEqual([
             ['start', true, false],
             ['print', false, true],
             ['refill', false, false],
@@ -94,17 +145,17 @@ describe('toDcrGraph', () => {
         ]);
     });
 
-    it('one scenario: a condition from Data guarded by not its saturated Given, and its Then from the When, guarded by what its When says', async () => {
-        // busy -> online (ready) and the speed, not 'print is pending'; 'print is available' and 'start was executed' are left out
+    it('one scenario: a condition from Data guarded by not its Given, its states and data, and its Then from the When, guarded by what its When says', async () => {
+        // the state itself, whose activity computes what its specification says
         const inputs = 'file = "report.pdf"';
         expect(await relationsOf(`
             Scenario: Print report
-            Given the Printer is busy AND "report.pdf" is included in the Printer's jobs AND print is available AND start was executed
+            Given the Printer is busy AND "report.pdf" is included in the Printer's jobs
             When print is executed with inputs file = "report.pdf", copies
             Then the Printer's jobs is removed with "report.pdf" AND reboot is pending AND print is not available AND start is available
                 AND the Printer's speed is set to copies.
         `)).toEqual([
-            ['condition', 'Data', 'print', 'not(ready = true and speed > 5 and list contains(jobs, "report.pdf"))'],
+            ['condition', 'Data', 'print', 'not(busy = true and list contains(jobs, "report.pdf"))'],
             ['include', 'print', 'start', inputs],
             ['exclude', 'print', 'print', inputs],
             ['response', 'print', 'reboot', inputs],
@@ -124,7 +175,7 @@ describe('toDcrGraph', () => {
             When start is executed
             Then the Printer's speed is set to 1 AND reboot is pending AND print is available.
         `)).toEqual([
-            ['condition', 'Data', 'start', 'not((ready = true and speed > 5) or (speed < 3 and ready = true))'],
+            ['condition', 'Data', 'start', 'not(busy = true or (speed < 3 and ready = true))'],
             ['response', 'start', 'reboot', undefined],   // the Whens say nothing
             ['include', 'start', 'speed', undefined],
             ['include', 'start', 'print', undefined]
@@ -145,20 +196,24 @@ describe('toDcrGraph', () => {
         ]);
     });
 
-    it('has no condition from Data when a Given says nothing about data, or when the Givens together always hold', async () => {
-        expect(await relationsOf(`
-            Scenario: Plain
-            Given print is available
-            When print is executed with inputs file = "a", copies = 1
-            Then reboot is pending.
-            Scenario: Any time
-            Given start is available
-            When start is executed
-            Then reboot is pending.
-        `)).toEqual([
-            ['response', 'print', 'reboot', 'file = "a" and copies = 1'],
-            ['response', 'start', 'reboot', undefined]
-        ]);
+    it('has a placeholder in Data for the condition from it without data properties, and no condition when the Givens together always hold', async () => {
+        const machine = [`
+            Scenario: Run
+            Given the Machine is off
+            When run is executed
+            Then stop is available.
+        `, `
+            Entity Machine {
+                Actions: run, stop
+                States: off
+            }
+            Role Operator.
+            Action run { Initiators: Operator }
+            Action stop { Initiators: Operator }
+            Declarative specification Machine is off means { run is available }
+        `] as const;
+        expect((await graphOf(...machine)).groups).toEqual([{ name: 'Data', events: ['placeholder'] }, { name: 'States', events: ['off'] }]);
+        expect(await relationsOf(...machine)).toEqual([['condition', 'Data', 'run', 'not(off = true)'], ['include', 'run', 'stop', undefined]]);
         expect(await relationsOf(`
             Scenario: Fast
             Given the Printer's speed larger than 3
@@ -177,11 +232,12 @@ describe('toDcrGraph', () => {
             When print is executed with inputs copies = 1, file = "a"
             Then reboot is pending.
             Scenario: Also ready
-            Given start is available
+            Given the Printer is idle
             When print is executed with inputs file = "b", copies = 2
             Then reboot is pending.
         `)).toEqual([
             ['response', 'start', 'reboot', undefined],   // speed > 3 or speed < 4 or no speed at all always holds
+            ['condition', 'Data', 'print', 'not(ready = true or idle = true)'],
             ['response', 'print', 'reboot', '(file = "a" and copies = 1) or (file = "b" and copies = 2)']   // in the order print declares them
         ]);
     });
@@ -217,18 +273,19 @@ describe('toDcrGraph', () => {
     it('writes an input or output the When gives a value or data as that value or data, and one it gives nothing by its name', async () => {
         expect(await relationsOf(`
             Scenario: Two copies
-            Given print is available
+            Given the Printer is idle
             When print is executed with inputs file, copies = 2, outputs pages AND pages larger than copies AND the Printer's speed smaller than copies
             Then reboot is pending.
             Scenario: Copies from speed
-            Given print is available
+            Given the Printer is idle
             When print is executed with inputs file, copies = the Printer's speed AND copies larger than 1 AND "a" is included in the Printer's jobs
             Then start is available.
             Scenario: Any copies
-            Given print is available
+            Given the Printer is idle
             When print is executed with inputs file, copies AND the Printer's speed equal to copies AND file not equal to "b"
             Then start is pending.
         `)).toEqual([
+            ['condition', 'Data', 'print', 'not(idle = true)'],
             ['response', 'print', 'reboot', 'copies = 2 and pages > 2 and speed < 2'],
             ['include', 'print', 'start', 'copies = speed and speed > 1 and list contains(jobs, "a")'],
             ['response', 'print', 'start', 'file != "b" and speed = copies']
@@ -270,7 +327,7 @@ describe('guardText', () => {
             [assertion('smaller than', 5), 'speed < 5', 'speed >= 5'],
             [assertion('included in', 'a.pdf'), 'list contains(jobs, "a.pdf")', 'list contains(jobs, "a.pdf") = false'],
             [assertion('empty'), 'count(jobs) = 0', 'count(jobs) > 0'],
-            [assertion('full'), 'count(jobs) >= max_capacity', 'count(jobs) < max_capacity']
+            [assertion('full'), 'count(jobs) >= 150', 'count(jobs) < 150']   // the capacity
         ];
         for (const [positive, expected, negatedExpected] of cases) {
             expect(guardText([positive])).toBe(expected);

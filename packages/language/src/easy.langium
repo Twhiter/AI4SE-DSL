@@ -70,7 +70,7 @@ type Action = LifecycleAction | ActionParticipants;
 //   its <property> / the <property> / the <Entity>'s <property>   one of its data properties
 //   it is <state>                                                  one of its states
 // An enabled specification says what an action needs to be enabled; it uses only actions in that action's lifecycle,
-// or in none. 'enabled' is a condition only in a Declarative specification or a Given, and without 'not': print is enabled.
+// or in none. 'enabled' is a condition only in a Declarative specification, and without 'not': print is enabled.
 
 DeclarativeSpec:
     'Declarative' 'specification' entity=[Entity:Name] 'is' state=[State:Name] 'means'
@@ -91,7 +91,7 @@ EnablingCondition:
 SpecCondition:
     ActionCondition | EnabledCondition | SelfStateCondition | SelfAssertion;
 
-// print is enabled (no 'not'): only in a Declarative specification or a Given
+// print is enabled (no 'not'): only in a Declarative specification
 EnabledCondition:
     action=[Action:Name] 'is' status='enabled';
 
@@ -107,7 +107,7 @@ SelfAssertion:
 SelfPath:
     ('its' | 'the' (entity=[Entity:Name] POSSESSIVE)?) property=[DataProperty:Name];
 
-// print is (not) pending / available, print was (not) executed: in a Declarative specification or a Given
+// print is (not) pending / available, print was (not) executed: only in a Declarative specification
 ActionCondition:
     action=[Action:Name]
     ( 'is'  negated?='not'? status=('pending' | 'available')
@@ -135,8 +135,10 @@ ScenarioName returns string:
     | 'Then' | 'equal' | 'to' | 'larger' | 'than' | 'smaller' | 'included' | 'in' | 'empty' | 'full' | 'set' | 'added'
     | 'removed' | 'enqueued' | 'from' | 'dequeued' | 'true' | 'false' | 'undefined' )+;
 
+// A Given says only what states the entities are in and what their data is. An action's status (pending, available,
+// executed, enabled) is not a Given condition: a state's Declarative specification can say it, and the Given that state.
 GivenCondition:
-    StateCondition | ActionCondition | EnabledCondition | PropertyAssertion;
+    StateCondition | PropertyAssertion;
 
 // the Printer is idle (no 'not')
 StateCondition:

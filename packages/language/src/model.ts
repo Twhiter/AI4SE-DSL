@@ -5,7 +5,7 @@
 // and passes x on to every condition.
 
 import type { Arith, Bool } from 'z3-solver';
-import type { Instance, Z3Vocabulary } from './z3-vocabulary.js';
+import type { Collection, Instance, Z3Vocabulary } from './z3-vocabulary.js';
 
 /** Any is any value: an int, a string or a boolean. */
 export type ScalarType = 'int' | 'string' | 'boolean' | 'Any';
@@ -145,7 +145,7 @@ export class StateSpecification {
     }
 
     /** Its conditions on x, each on its own. */
-    conditions(v: Z3Vocabulary, x: Instance): Condition[] {
+    conditions(v: Z3Vocabulary, x: Instance): TitledFormula[] {
         return specificationConditions(v, x, this);
     }
 
@@ -182,11 +182,11 @@ export class EnabledSpecification {
      *   reboot is not pending or is not available  ->  ¬pending(reboot) ∨ ¬available(reboot)   (reboot in no lifecycle)
      *   (an enabled action is available)           ->  available(x, print)
      */
-    conjuncts(v: Z3Vocabulary, x?: Instance): Condition[] {
+    conjuncts(v: Z3Vocabulary, x?: Instance): TitledFormula[] {
         return [
             ...this.conditions.map(action => orNotAvailable(v, action, 'executed', x)),
             ...this.milestones.map(action => orNotAvailable(v, action, 'pending', x)),
-            statusCondition(v, STATUS_LISTS[0], this.action, x, x ? [v.nameOf(x)] : [])
+            statusCondition(v, STATUS_LISTS[0], this.action, x)
         ];
     }
 
@@ -253,10 +253,9 @@ export class PropertyAssertion {
      *   the label not equal to "a"         ->  defined label(x) ∧ ¬(label(x) = "a")
      *   the age equal to age               ->  defined age(x) ∧ age(x) = age             (age a named constant)
      *   the age is (not) undefined         ->  ¬defined age(x)   (defined age(x))
-     *   "a" is included in the jobs        ->  str("a") ∈ jobs(x)    (a list of Any; "a" for a list of string; a list or
-     *                                                               queue always has a value)
-     *   3 is included in the waiting       ->  some slot 0 ≤ i < size of waiting(x) holds int(3)
-     *   the jobs is empty / full           ->  jobs(x) = ∅ / size(jobs(x)) ≥ capacity
+     *   "a" is included in the jobs        ->  some slot head ≤ i < head + size of jobs(x) holds str("a")   (a list of
+     *                                          Any; "a" for a list of string; a list or queue always has a value)
+     *   the jobs is empty / full           ->  size of jobs(x) = 0 / ≥ capacity
      */
     toZ3(v: Z3Vocabulary, x: Instance): Bool {
         const defined = v.hasValue(x, this.property);
@@ -379,43 +378,46 @@ export class PropertyAssignment {
         return `${path} is ${this.operation}${what}`;
     }
 
+    /** Whether it changes a list or queue, from what it was before it (step), rather than setting a value (toZ3). */
+    get changesCollection(): boolean {
+        return this.operation !== 'set to';
+    }
+
     /**
-     * What holds once it is done, on x, an instance of the entity; a value or named constant is a term of the type the
-     * property takes, under the guard of that conversion (see Z3Vocabulary.operand):
-     *   the speed is set to 5             ->  speed(x) = 5
-     *   the speed is set to job (Any)     ->  job is an int ∧ speed(x) = the int of job
-     *   the jobs is added with "a"        ->  str("a") ∈ jobs(x)
-     *   the jobs is removed with "a"      ->  str("a") ∉ jobs(x)
-     *   the waiting is enqueued with "a"  ->  the last element of waiting(x) is str("a")
-     *   the waiting is dequeued (as job)  ->  the waiting is not full (it lost an element); without time, job is not
-     *                                         constrained here: that it was the first element is a fact of the state before
-     *   the jobs is set to empty          ->  jobs(x) = ∅ (a queue: its size is 0)
-     * Afterwards the property has a value: the speed is set to 5 -> defined speed(x) ∧ speed(x) = 5 (a list or queue
-     * always has one).
+     * 'set to': what holds once it is done, on x, an instance of the entity; a value or named constant is a term of the
+     * type the property takes, under the guard of that conversion (see Z3Vocabulary.operand). Afterwards the property
+     * has a value:
+     *   the speed is set to 5             ->  defined speed(x) ∧ speed(x) = 5
+     *   the speed is set to job (Any)     ->  defined speed(x) ∧ job is an int ∧ speed(x) = the int of job
      */
     toZ3(v: Z3Vocabulary, x: Instance): Bool {
-        const effect = this.effect(v, x);
+        const { term, guard } = v.operand(x, this.property, operandOf(this));
+        const effect = guarded(v, guard, v.dataProperty(x, this.property).eq(term));
         const defined = v.hasValue(x, this.property);
         return defined ? v.z3.And(defined, effect) : effect;
     }
 
-    private effect(v: Z3Vocabulary, x: Instance): Bool {
-        if (this.operation === 'dequeued') {
-            return v.z3.Not(v.isFull(x, this.property));
-        }
-        if (this.operation === 'set to empty') {
-            return v.isEmpty(x, this.property);
-        }
-        const { term, guard } = v.operand(x, this.property, operandOf(this));
+    /**
+     * A list's or queue's effect on x, an instance of the entity, from what it is before the effect (`before`) to what it
+     * is after it (`after`); an element is a term of the element type, under the guard of that conversion:
+     *   the jobs is added with "a"        ->  after is before with str("a") after its last element
+     *   the jobs is removed with "a"      ->  before holds str("a"), and after is before without it (Z3Vocabulary.removed)
+     *   the waiting is enqueued with "a"  ->  after is before with str("a") after its last element
+     *   the waiting is dequeued (as job)  ->  before is not empty (job is its front), and after is before from its second element
+     *   the jobs is set to empty          ->  after is empty
+     */
+    step(v: Z3Vocabulary, x: Instance, before: Collection, after: Collection): Bool {
         switch (this.operation) {
-            case 'set to':
-                return guarded(v, guard, v.dataProperty(x, this.property).eq(term));
-            case 'added with':
-                return guarded(v, guard, v.includes(x, this.property, term));
-            case 'removed with':
-                return guarded(v, guard, v.z3.Not(v.includes(x, this.property, term)));
-            case 'enqueued with':
-                return guarded(v, guard, v.isLast(x, this.property, term));
+            case 'set to empty':
+                return v.emptied(after);
+            case 'dequeued': {
+                const front = this.constant && v.operand(x, this.property, this.constant);
+                return guarded(v, front?.guard, v.dequeued(before, front?.term, after));
+            }
+            default: {
+                const { term, guard } = v.operand(x, this.property, operandOf(this));
+                return guarded(v, guard, this.operation === 'removed with' ? v.removed(before, term, after) : v.appended(before, term, after));
+            }
         }
     }
 }
@@ -428,23 +430,10 @@ export interface TitledFormula {
     formula: Bool;
 }
 
-/**
- * A specification applied to instances, like a function to its arguments:
- * 'Printer is busy' on [printer], 'reboot is available' on [] (an action in no lifecycle).
- */
-export interface SpecificationCall {
-    /** The title of the specification. */
-    specification: string;
-    /** The names of the instances it is applied to. */
-    parameters: Context;
-}
-
-/** A condition of a specification or a Given. A state or action status names the specification that has it as head. */
-export interface Condition extends TitledFormula {
-    /** That specification, on the instance in the condition's context. */
-    head?: SpecificationCall;
-    /** Puts it into a Given, in its list and with its context. */
-    addTo(given: Given): void;
+/** A time of a step, before it or after it: its vocabulary, and its instances by name (printer, or printer′ after it). */
+export interface Time {
+    v: Z3Vocabulary;
+    instances: Record<string, Instance>;
 }
 
 type SpecificationBody = Pick<StateSpecification,
@@ -458,24 +447,20 @@ const STATUS_LISTS = [
 ] as const;
 
 type StatusList = typeof STATUS_LISTS[number];
-/** The status lists, and their context lists, of a Given, or of a Then (which has only some of them). */
+/** The status lists, and their context lists, of a Then (which has only some of them). */
 type StatusParts = Partial<Record<StatusList[0], string[]> & Record<`${StatusList[0]}Ctx`, Context[]>>;
 
 /** head means { condition₁ AND condition₂ … }: head ⇒ condition₁ ∧ condition₂ ∧ … */
-function means(v: Z3Vocabulary, head: Bool, conditions: Condition[]): Bool {
+function means(v: Z3Vocabulary, head: Bool, conditions: TitledFormula[]): Bool {
     const formulas = conditions.map(condition => condition.formula);
     return v.z3.Implies(head, formulas.length === 1 ? formulas[0] : v.z3.And(...formulas));
 }
 
-/**
- * The conditions of a specification on x, the instance named in their context: statuses (enabled last), then
- * states, then property assertions.
- */
-function specificationConditions(v: Z3Vocabulary, x: Instance | undefined, spec: SpecificationBody): Condition[] {
-    const ctx: Context = x ? [v.nameOf(x)] : [];
+/** The conditions of a specification on x: statuses (enabled last), then states, then property assertions. */
+function specificationConditions(v: Z3Vocabulary, x: Instance | undefined, spec: SpecificationBody): TitledFormula[] {
     const statuses = [
-        ...STATUS_LISTS.flatMap(list => spec[list[0]].map(action => statusCondition(v, list, action, x, v.lifecycleOf(action) ? ctx : []))),
-        ...spec.enableds.map(action => enabledCondition(v, action, x, v.lifecycleOf(action) ? ctx : []))
+        ...STATUS_LISTS.flatMap(list => spec[list[0]].map(action => statusCondition(v, list, action, x))),
+        ...spec.enableds.map(action => enabledCondition(v, action, x))
     ];
     if (spec.states.length + spec.dataAssertions.length === 0) {
         return statuses;
@@ -485,84 +470,53 @@ function specificationConditions(v: Z3Vocabulary, x: Instance | undefined, spec:
     }
     return [
         ...statuses,
-        ...spec.states.map(state => stateCondition(v, state, x, ctx)),
-        ...spec.dataAssertions.map(assertion => dataCondition(v, assertion, x, ctx))
+        ...spec.states.map(state => stateCondition(v, state, x)),
+        ...spec.dataAssertions.map(assertion => dataCondition(v, assertion, x))
     ];
 }
 
-/** The statuses of a Given or Then, each on the instance in its context (none for an action in no lifecycle). */
-function statusConditions(v: Z3Vocabulary, part: StatusParts, instances: Record<string, Instance>): Condition[] {
+/** The statuses of a Then, each on the instance in its context (none for an action in no lifecycle). */
+function statusConditions(v: Z3Vocabulary, part: StatusParts, instances: Record<string, Instance>): TitledFormula[] {
     return STATUS_LISTS.flatMap(list => (part[list[0]] ?? []).map((action, i) => {
         const ctx = (part[`${list[0]}Ctx`] ?? [])[i];   // a list and its context list come together
-        return statusCondition(v, list, action, instanceOf(instances, ctx), ctx);
+        return statusCondition(v, list, action, instanceOf(instances, ctx));
     }));
 }
 
-/** print is (not) pending -> (¬)pending(x, print); its head is the specification 'print is (not) pending'. */
-function statusCondition(v: Z3Vocabulary, [list, status, negated]: StatusList, action: string, x: Instance | undefined, ctx: Context): Condition {
+/** print is (not) pending -> (¬)pending(x, print) */
+function statusCondition(v: Z3Vocabulary, [, status, negated]: StatusList, action: string, x: Instance | undefined): TitledFormula {
     const formula = v.status(status, action, x);
-    const title = statusTitle(action, status, negated);
-    return {
-        title, formula: negated ? v.z3.Not(formula) : formula, head: { specification: title, parameters: ctx },
-        addTo: given => {
-            given[list].push(action);
-            given[`${list}Ctx`].push(ctx);
-        }
-    };
+    return { title: statusTitle(action, status, negated), formula: negated ? v.z3.Not(formula) : formula };
 }
 
 /**
  * print is enabled -> enabled(x, print): what its enabled specification says, or that it is available without one
- * (the vocabulary's constraints()); its head is the specification 'print is enabled'.
+ * (the vocabulary's constraints()).
  */
-function enabledCondition(v: Z3Vocabulary, action: string, x: Instance | undefined, ctx: Context): Condition {
-    const title = `${action} is enabled`;
-    return {
-        title, formula: v.status('enabled', action, x), head: { specification: title, parameters: ctx },
-        addTo: given => {
-            given.enableds.push(action);
-            given.enabledsCtx.push(ctx);
-        }
-    };
+function enabledCondition(v: Z3Vocabulary, action: string, x: Instance | undefined): TitledFormula {
+    return { title: `${action} is enabled`, formula: v.status('enabled', action, x) };
 }
 
 /**
  * start was executed or is not available -> executed(x, start) ∨ ¬available(x, start)
  * start is not pending or is not available -> ¬pending(x, start) ∨ ¬available(x, start)
- * No specification has it as head, and a Given cannot hold it.
  */
-function orNotAvailable(v: Z3Vocabulary, action: string, status: 'executed' | 'pending', x: Instance | undefined): Condition {
+function orNotAvailable(v: Z3Vocabulary, action: string, status: 'executed' | 'pending', x: Instance | undefined): TitledFormula {
     const first = status === 'executed' ? v.status('executed', action, x) : v.z3.Not(v.status('pending', action, x));
-    const title = `${action} ${status === 'executed' ? 'was executed' : 'is not pending'} or is not available`;
     return {
-        title, formula: v.z3.Or(first, v.z3.Not(v.status('available', action, x))),
-        addTo: () => {
-            throw new Error(`'${title}' cannot be put into a Given.`);
-        }
+        title: `${action} ${status === 'executed' ? 'was executed' : 'is not pending'} or is not available`,
+        formula: v.z3.Or(first, v.z3.Not(v.status('available', action, x)))
     };
 }
 
-/** the Printer is online -> inState(x, online); its head is the specification 'Printer is online'. */
-function stateCondition(v: Z3Vocabulary, state: string, x: Instance, ctx: Context): Condition {
-    const entity = v.entityOf(x).name;
-    return {
-        title: `the ${entity} is ${state}`, formula: v.inState(x, state), head: { specification: `${entity} is ${state}`, parameters: ctx },
-        addTo: given => {
-            given.states.push([entity, state]);
-            given.statesCtx.push(ctx);
-        }
-    };
+/** the Printer is online -> inState(x, online) */
+function stateCondition(v: Z3Vocabulary, state: string, x: Instance): TitledFormula {
+    return { title: `the ${v.entityOf(x).name} is ${state}`, formula: v.inState(x, state) };
 }
 
-/** the Printer's speed larger than 2 -> speed(x) > 2 (no specification has it as head). */
-function dataCondition(v: Z3Vocabulary, assertion: PropertyAssertion, x: Instance, ctx: Context): Condition {
-    return {
-        title: assertion.title, formula: assertion.toZ3(v, x),
-        addTo: given => {
-            given.dataAssertions.push(assertion);
-            given.dataAssertionsCtx.push(ctx);
-        }
-    };
+/** the Printer's speed larger than 2 -> speed(x) > 2 */
+function dataCondition(v: Z3Vocabulary, assertion: PropertyAssertion, x: Instance): TitledFormula {
+    return { title: assertion.title, formula: assertion.toZ3(v, x) };
 }
 
 /** print is (not) available, print was (not) executed */
@@ -709,25 +663,14 @@ export class WhenRule {
     }
 }
 
+/**
+ * What a Given says: states and data. What its states say about the actions (available, pending, executed, enabled:
+ * the DCR marking) is in their Declarative specifications, which the Z3 checks add as rules (consistency.ts).
+ */
 export class Given {
     /** the Printer is idle -> ['Printer', 'idle'] */
     states: Array<[entity: string, state: string]> = [];
     statesCtx: Context[] = [];
-    availables: string[] = [];
-    availablesCtx: Context[] = [];
-    notAvailables: string[] = [];
-    notAvailablesCtx: Context[] = [];
-    pendings: string[] = [];
-    pendingsCtx: Context[] = [];
-    notPendings: string[] = [];
-    notPendingsCtx: Context[] = [];
-    executed: string[] = [];
-    executedCtx: Context[] = [];
-    notExecuted: string[] = [];
-    notExecutedCtx: Context[] = [];
-    /** print is enabled -> 'print' */
-    enableds: string[] = [];
-    enabledsCtx: Context[] = [];
     dataAssertions: PropertyAssertion[] = [];
     dataAssertionsCtx: Context[] = [];
     /** In a When rule: the values the When gives its inputs and outputs, as conditions on the parameters (job = "draft"); none in a scenario. */
@@ -738,38 +681,24 @@ export class Given {
     /**
      * Each condition on the instance in its context (instance name -> its Z3 constant):
      *   the Printer is busy                ->  inState(printer, busy)
-     *   print is pending                   ->  pending(printer, print)
-     *   print is enabled                   ->  enabled(printer, print)
      *   the Printer's speed larger than 2  ->  speed(printer) > 2
      *   job = "draft", age larger than 17  ->  job = "draft", age > 17      (in a When rule)
      */
-    conditions(v: Z3Vocabulary, instances: Record<string, Instance>): Condition[] {
+    conditions(v: Z3Vocabulary, instances: Record<string, Instance>): TitledFormula[] {
         const on = (ctx: Context) => required(instanceOf(instances, ctx));
         return [
-            ...this.states.map(([, state], i) => stateCondition(v, state, on(this.statesCtx[i]), this.statesCtx[i])),
-            ...statusConditions(v, this, instances),
-            ...this.enableds.map((action, i) => enabledCondition(v, action, instanceOf(instances, this.enabledsCtx[i]), this.enabledsCtx[i])),
-            ...this.dataAssertions.map((assertion, i) => dataCondition(v, assertion, on(this.dataAssertionsCtx[i]), this.dataAssertionsCtx[i])),
+            ...this.states.map(([, state], i) => stateCondition(v, state, on(this.statesCtx[i]))),
+            ...this.dataAssertions.map((assertion, i) => dataCondition(v, assertion, on(this.dataAssertionsCtx[i]))),
             ...this.valueConditions(v),
-            ...this.comparisons.map(comparison => ({
-                title: comparison.title, formula: comparison.toZ3(v),
-                addTo: (given: Given) => {
-                    given.comparisons.push(comparison);
-                }
-            }))
+            ...this.comparisons.map(comparison => ({ title: comparison.title, formula: comparison.toZ3(v) }))
         ];
     }
 
     /** Its values of the parameters: job is "draft" -> job = "draft" (as a term of the parameter's type). */
-    valueConditions(v: Z3Vocabulary): Condition[] {
+    valueConditions(v: Z3Vocabulary): TitledFormula[] {
         return this.values.map(([parameter, value]) => {
             const { term, guard } = v.convert(value, parameter.type);
-            return {
-                title: `${parameter.name} is ${operandTitle(value)}`, formula: guarded(v, guard, v.constant(parameter).eq(term)),
-                addTo: given => {
-                    given.values.push([parameter, value]);
-                }
-            };
+            return { title: `${parameter.name} is ${operandTitle(value)}`, formula: guarded(v, guard, v.constant(parameter).eq(term)) };
         });
     }
 
@@ -786,48 +715,6 @@ export class Given {
         given.comparisons = this.comparisons.map(comparison => comparison.renamed(renaming));
         return given;
     }
-
-    /**
-     * Only its property assertions, and what the When says about the parameters. Each state is replaced by what its Declarative specification
-     * says, and a state there by what its own says, until only action statuses and property assertions remain; a state
-     * met again (a cycle of specifications, which the editor warns about) is left out. Then the action statuses are
-     * left out, with the Given's own (available, pending, executed, enabled). An assertion said twice is kept once.
-     *   the Printer is busy AND the Printer's speed larger than 2
-     *   (busy means { it is online AND the jobs is not empty AND print is pending }, online means { the ready equal to true })
-     *   -> the Printer's ready equal to true AND the Printer's jobs is not empty AND the Printer's speed larger than 2
-     */
-    saturated(specifications: StateSpecification[]): Given {
-        const given = new Given();
-        given.values = [...this.values];
-        given.comparisons = [...this.comparisons];
-        const add = (assertion: PropertyAssertion, ctx: Context) => {
-            if (!given.dataAssertions.some((other, i) => other.title === assertion.title && given.dataAssertionsCtx[i][0] === ctx[0])) {
-                given.dataAssertions.push(assertion);
-                given.dataAssertionsCtx.push(ctx);
-            }
-        };
-        const replaced = new Set<string>();
-        const replace = (entity: string, state: string, ctx: Context) => {
-            if (!replaced.has(`${ctx[0]} ${state}`)) {
-                replaced.add(`${ctx[0]} ${state}`);
-                for (const spec of specifications.filter(spec => spec.entity === entity && spec.state === state)) {
-                    spec.states.forEach(other => replace(entity, other, ctx));
-                    spec.dataAssertions.forEach(assertion => add(assertion, ctx));
-                }
-            }
-        };
-        this.states.forEach(([entity, state], i) => replace(entity, state, this.statesCtx[i]));
-        this.dataAssertions.forEach((assertion, i) => add(assertion, this.dataAssertionsCtx[i]));
-        return given;
-    }
-
-    /** Its action statuses as titles, list by list: 'print is pending', 'reboot was not executed', 'print is enabled'. */
-    statusTitles(): string[] {
-        return [
-            ...STATUS_LISTS.flatMap(([list, status, negated]) => this[list].map(action => statusTitle(action, status, negated))),
-            ...this.enableds.map(action => `${action} is enabled`)
-        ];
-    }
 }
 
 /** What a Then says: which actions are pending, available or not available, and its data constraints. */
@@ -842,16 +729,34 @@ export class Then {
     dataAssignmentsCtx: Context[] = [];
 
     /**
-     * What holds once the When action is done, each on the instance in its context; a named constant is the
-     * same Z3 constant in every effect that names it:
-     *   print is not available               ->  ¬available(printer, print)
-     *   the Printer's jobs is added with 42  ->  int(42) ∈ jobs(printer)
+     * What holds once the When action is done, at the time after the step (`after`), each item on the instance in its
+     * context; a list's or queue's effects one after the other, in the order they are written, from what it is before
+     * the step (`before`) to what it is after it, those in between with names of their own (Z3Vocabulary.between); a
+     * named constant is the same Z3 constant in every effect that names it:
+     *   print is not available               ->  ¬available(printer′, print)
+     *   the Printer's speed is set to 3      ->  speed(printer′) = 3
+     *   the Printer's jobs is added with 42  ->  jobs(printer′) is jobs(printer) with int(42) after its last element
+     *   … AND the Printer's jobs is removed with 7  ->  jobs (1) is jobs(printer) with int(42) …; jobs(printer′) is
+     *                                                   jobs (1) without int(7)
      */
-    toZ3(v: Z3Vocabulary, instances: Record<string, Instance>): TitledFormula[] {
+    toZ3(before: Time, after: Time): TitledFormula[] {
+        /** Each list or queue as the effects so far leave it, by its instance and name. */
+        const changed = new Map<string, Collection>();
         return [
-            ...statusConditions(v, this, instances),
-            ...this.dataAssignments.map((assignment, i) =>
-                ({ title: assignment.title, formula: assignment.toZ3(v, required(instanceOf(instances, this.dataAssignmentsCtx[i]))) }))
+            ...statusConditions(after.v, this, after.instances),
+            ...this.dataAssignments.map((assignment, i) => {
+                const ctx = this.dataAssignmentsCtx[i];
+                const x = required(instanceOf(after.instances, ctx));
+                if (!assignment.changesCollection) {
+                    return { title: assignment.title, formula: assignment.toZ3(after.v, x) };
+                }
+                const key = `${ctx[0]} ${assignment.property}`;
+                const from = changed.get(key) ?? before.v.collection(required(instanceOf(before.instances, ctx)), assignment.property);
+                const last = !this.dataAssignments.some((other, k) => k > i && other.property === assignment.property && this.dataAssignmentsCtx[k][0] === ctx[0]);
+                const to = last ? after.v.collection(x, assignment.property) : after.v.between(x, assignment.property);
+                changed.set(key, to);
+                return { title: assignment.title, formula: assignment.step(after.v, x, from, to) };
+            })
         ];
     }
 

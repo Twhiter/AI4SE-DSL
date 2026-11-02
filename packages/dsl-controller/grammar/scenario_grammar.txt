@@ -3,10 +3,9 @@ scenario:          "Scenario:" scenario_name
                    "When" action "is" "executed" with_part? ("AND" property_assertion)*
                    "Then" then_effect ("AND" then_effect)* "."
 
+// a Given says only states and data: an action's status (pending, available, executed, enabled) is not a
+// given_condition; a state's Declarative specification can say it, and the Given that state
 given_condition:   "the" entity "is" state                          // no "not"
-                 | action "is" "not"? ("pending" | "available")
-                 | action "was" "not"? "executed"
-                 | action "is" "enabled"                            // no "not"
                  | property_assertion
 
 // ---- the When's inputs and outputs, by their names in the action's Input and Output ----
@@ -28,9 +27,12 @@ property_assertion:
                  | property "not"? "equal" "to" operand                     // string, boolean, Any
                  | property "is" "not"? "undefined"                         // int, string, boolean, Any: has no value
                  | operand "is" "not"? "included" "in" property             // list, queue
-                 | property "is" "not"? ("empty" | "full")                  // list, queue
+                 | property "is" "not"? ("empty" | "full")                  // list, queue; full: holds its capacity
 
 // ---- property assignments, by type ----
+// a Then's effects on one list or queue happen in the order written; a list keeps duplicates (removing a value takes
+// out one of them), a queue its order (dequeued: the element enqueued first); removing or dequeuing needs an element
+// there, and adding to a full list or queue is impossible
 property_assignment:
                    property "is" "set" "to" operand                         // int, string, boolean, Any
                  | property "is" ("added" | "removed") "with" operand       // list

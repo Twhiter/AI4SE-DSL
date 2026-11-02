@@ -2,6 +2,7 @@
 // Z3 checks) with its position, most severe first; clicking one moves the cursor there. Its top edge can be dragged.
 
 import * as monaco from 'monaco-editor';
+import { capacityField } from './capacity.js';
 import { onCheckStatus } from './checks.js';
 
 const ICONS: Record<number, string> = {
@@ -21,6 +22,7 @@ export function createProblemsPanel(panel: HTMLElement, editor: monaco.editor.IS
             <div class="check-status"></div>
         </div>
         <div class="panel-body"></div>`;
+    panel.querySelector('.panel-header')!.append(capacityField('capacity'));
     const badge = panel.querySelector<HTMLElement>('.badge')!;
     const status = panel.querySelector<HTMLElement>('.check-status')!;
     const body = panel.querySelector<HTMLElement>('.panel-body')!;

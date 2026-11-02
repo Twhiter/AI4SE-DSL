@@ -20,14 +20,12 @@ Then
 
 `Given` describes the situation before the action is executed.
 
-A Given condition can be:
+A Given condition can only be:
 
 - state assertion
 - data property assertion
-- (not) executed
-- enabledness
-- relevant / irrelevant (a.k.a. (not) available)
-- (not) pending
+
+An action's status ((not) executed, enabledness, relevant / irrelevant (a.k.a. (not) available), (not) pending) is not a Given condition: say it in the Declarative specification of a state, and give that state in the Given. The state specification expands to the DCR marking.
 
 
 ## When
@@ -62,7 +60,7 @@ A Then condition can be:
 * Mentioning an `action` of an entity implies the entity instance in the scenario.
 * The data assertions in when becomes the guard of the activity in dcr graph.
 * Ensure the Given & data assertion in when is consistent:
-  * No contradiction of dcr marking assertions (e.g., action is both available and not available)
+  * No contradiction of dcr marking assertions in the specifications of the Given's states (e.g., one state says an action is available, another that it is not available)
   * No data assertion contradiction
 * Ensure the data assignment and actions in Then consistent (e.g., a can not be set to 1 while set to 2, ...etc)
 
@@ -82,9 +80,6 @@ When <action> is executed [with inputs <arg> (, <arg>)*] [, outputs <arg> (, <ar
 Then <then spec> (AND <then spec>)* .
 
 <given>:  the <Entity> is <state>
-        | <action> was [not] executed
-        | <action> is [not] (pending | available)
-        | <action> is enabled
         | <data assertion>
 
 <then spec>: <action> is pending

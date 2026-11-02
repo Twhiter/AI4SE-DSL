@@ -18,7 +18,7 @@ property_assertion:      property "not"? int_operation value              // int
                        | property "not"? "equal" "to" value               // string, boolean, Any
                        | property "is" "not"? "undefined"                 // int, string, boolean, Any: has no value
                        | value "is" "not"? "included" "in" property       // list, queue
-                       | property "is" "not"? ("empty" | "full")          // list, queue
+                       | property "is" "not"? ("empty" | "full")          // list, queue; full: holds its capacity
 
 int_operation:           "equal" "to" | "larger" "than" | "smaller" "than"
 

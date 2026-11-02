@@ -7,8 +7,8 @@
 //           one Then adds it to the jobs and the other removes it;
 //           an error for 'Submit' and 'Submit draft': when the user inputs "draft", both apply, but one Then adds it
 //           to the jobs and the other removes it;
-//           an error for 'Take job' and 'Drop job': both Thens dequeue the waiting as a variable, so the two are
-//           aligned (job = next), but one Then adds it to the jobs and the other removes it;
+//           an error for 'Take job' and 'Drop job': both Thens dequeue the front of the waiting (job, next), but one
+//           Then adds it to the jobs and the other removes it: the jobs cannot be one longer and one shorter;
 //           no error for 'Slow job': its Given cannot hold together with the Given of 'Rush job' or 'Fast job';
 //           no error for 'Resubmit' and 'Submit draft': both Thens remove the input from the jobs.
 
@@ -44,26 +44,26 @@ When print is executed
 Then the Printer's speed is set to 1.
 
 Scenario: Submit
-Given submit is available
+Given the Printer's jobs is not full
 When submit is executed with inputs job
 Then job is added to the Printer's jobs.
 
 Scenario: Resubmit
-Given submit is available
+Given the Printer's jobs is not full
 When submit is executed with inputs job
 Then the Printer's jobs is removed with job.
 
 Scenario: Submit draft
-Given submit is available
+Given the Printer's jobs is not full
 When submit is executed with inputs job = "draft"
 Then "draft" is removed from the Printer's jobs.
 
 Scenario: Take job
-Given take is available
+Given the Printer's waiting is not empty
 When take is executed
 Then the Printer's waiting is dequeued as job AND job is added to the Printer's jobs.
 
 Scenario: Drop job
-Given take is available
+Given the Printer's waiting is not empty
 When take is executed
 Then the Printer's waiting is dequeued as next AND the Printer's jobs is removed with next.

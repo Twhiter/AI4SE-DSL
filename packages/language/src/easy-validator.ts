@@ -140,8 +140,8 @@ export class EasyValidator {
 
     /**
      * A state should in the end be specified by data and actions, not by itself: a warning on the 'it is <state>' of a
-     * Declarative specification that leads back to its own state, with the cycle (busy → idle → busy). A saturated
-     * When rule leaves such a state out (Given.saturated).
+     * Declarative specification that leads back to its own state, with the cycle (busy → idle → busy). In a DCR graph
+     * each state is computed from its specification, so their computations would go round in that cycle too.
      */
     checkStateCycle(spec: DeclarativeSpec, accept: ValidationAcceptor): void {
         const [entity, state] = [spec.entity?.ref, spec.state?.ref];

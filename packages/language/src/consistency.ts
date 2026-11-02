@@ -2,7 +2,7 @@
 // Declarative specifications and the enabled specifications together?
 
 import type { Bool, Solver } from 'z3-solver';
-import type { Condition, Context, Model, TitledFormula } from './model.js';
+import type { Model, TitledFormula } from './model.js';
 import { Z3Vocabulary, type Instance, type Z3Context, type Z3VocabularyOptions } from './z3-vocabulary.js';
 
 export interface CheckResult {
@@ -17,12 +17,9 @@ export interface ConsistencyResult extends CheckResult {
     specification: string;
 }
 
-/** A specification as a rule on an instance: head ⇒ conditions, with its head and its conditions on their own. */
+/** A specification as a rule on an instance: head ⇒ conditions, with its head on its own. */
 export interface Rule extends TitledFormula {
-    /** The names of the instances it is applied to: [Printer], or [] for an action in no lifecycle. */
-    parameters: Context;
     head: Bool;
-    conditions: Condition[];
 }
 
 /**
@@ -59,14 +56,14 @@ export function specificationRules(v: Z3Vocabulary, model: Model, instances: Map
     for (const spec of model.stateSpecifications) {
         const x = instances.get(spec.entity);
         if (x) {
-            rules.push({ title: spec.title, parameters: [v.nameOf(x)], head: spec.head(v, x), formula: spec.toZ3(v, x), conditions: spec.conditions(v, x) });
+            rules.push({ title: spec.title, head: spec.head(v, x), formula: spec.toZ3(v, x) });
         }
     }
     for (const spec of model.enabledSpecifications) {
         const lifecycle = v.lifecycleOf(spec.action);
         const x = lifecycle && instances.get(lifecycle.name);
         if (!lifecycle || x) {
-            rules.push({ title: spec.title, parameters: x ? [v.nameOf(x)] : [], head: spec.head(v, x), formula: spec.toZ3(v, x), conditions: spec.conjuncts(v, x) });
+            rules.push({ title: spec.title, head: spec.head(v, x), formula: spec.toZ3(v, x) });
         }
     }
     return rules;
