@@ -2,12 +2,20 @@ import { defineConfig, type Plugin } from 'vite';
 import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
+import { parseEnv } from 'node:util';
 
 // The DCR page of legal-dcr-frontend (dcr-pane.ts), as `npm run dcr-page` builds it
 const DCR_PAGE = path.resolve(import.meta.dirname, '../../legal-dcr-frontend/app/dist-component');
 if (!existsSync(path.join(DCR_PAGE, 'dcr-page.js'))) {
     throw new Error(`The DCR page is not built (${DCR_PAGE}): run npm run dcr-page in the root folder first.`);
 }
+
+// The ports, from the chatbot's .env (or the environment): another, for a second checkout beside this one. Only these
+// two are read from it.
+const ENV_FILE = path.resolve(import.meta.dirname, '../chatbot/.env');
+const env = { ...(existsSync(ENV_FILE) ? parseEnv(readFileSync(ENV_FILE, 'utf8')) : {}), ...process.env };
+const WEB_PORT = Number(env.WEB_PORT ?? 5174);
+const DOCUMENT_PORT = Number(env.DOCUMENT_PORT ?? 1234);
 
 // Z3's threads share memory (SharedArrayBuffer), which browsers only allow on a cross-origin isolated page. On a web
 // server that does not send these headers, the page's service worker adds them (src/cross-origin-isolation.ts).
@@ -20,6 +28,8 @@ export default defineConfig({
     // relative asset paths, so the built dist/ folder works from any static web server path
     base: './',
     plugins: [z3Files()],
+    // the document server's port, for main.ts
+    define: { 'import.meta.env.DOCUMENT_PORT': JSON.stringify(DOCUMENT_PORT) },
     resolve: {
         alias: [
             // y-monaco imports Monaco by its path before Monaco 0.5x (esm/vs/editor/editor.api.js, now editor/editor.api.js);
@@ -37,7 +47,7 @@ export default defineConfig({
         format: 'es'
     },
     server: {
-        port: 5174,
+        port: WEB_PORT,
         strictPort: true,
         headers: CROSS_ORIGIN_ISOLATION
     },

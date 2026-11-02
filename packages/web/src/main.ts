@@ -12,8 +12,8 @@ import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 import { MonacoBinding } from 'y-monaco';
 
-/** The server that holds each session's document (packages/chatbot: npm run documents). */
-const DOCUMENT_SERVER = 'ws://localhost:1234';
+/** The server that holds each session's document (packages/chatbot: npm run documents), at its port (vite.config.ts). */
+const DOCUMENT_SERVER = `ws://localhost:${import.meta.env.DOCUMENT_PORT}`;
 
 // Monaco's own background work (e.g. word positions) runs in a worker
 self.MonacoEnvironment = { getWorker: () => new EditorWorker() };

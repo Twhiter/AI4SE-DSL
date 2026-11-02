@@ -5,7 +5,8 @@
 // in it (chat-session.ts).
 // It speaks y-websocket's protocol (sync and awareness, from y-protocols) itself: y-websocket's own server
 // (@y/websocket-server) loads LevelDB, a native module, even when it stores nothing.
-// Run it with `npm run documents`; a tab connects to ws://localhost:1234/<its session>.
+// Run it with `npm run documents`; a tab connects to ws://localhost:1234/<its session> (DOCUMENT_PORT in .env: another
+// port, for a second checkout beside this one).
 
 import { WebSocketServer, type WebSocket } from 'ws';
 import * as Y from 'yjs';
@@ -15,7 +16,8 @@ import * as encoding from 'lib0/encoding';
 import * as decoding from 'lib0/decoding';
 import { connectAgents } from './chat-session.ts';
 
-const PORT = 1234;
+// agent.ts has loaded .env by now
+const PORT = Number(process.env.DOCUMENT_PORT ?? 1234);
 /** The DSL text in a session's document. */
 const TEXT = 'dsl';
 /** How long a session is kept after its last tab has gone, for a reload or a lost connection to come back to it. */

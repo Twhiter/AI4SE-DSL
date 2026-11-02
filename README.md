@@ -27,6 +27,8 @@ After the setup above:
    OPENAI_MODEL=…      # optional: gpt-5.4 by default; a claude-… model works too
    SKILLS=on          # optional: no skills, and no Docker
    OPTIONS=on         # optional: no buttons for the choices that are not changes
+   WEB_PORT=5174      # optional: the browser editor's port, and
+   DOCUMENT_PORT=1234 # the document server's: others, for a second checkout (a worktree) beside this one
    ```
 3. Build the DCR page once, and again after changing `legal-dcr-frontend` (it needs Yarn):
    ```bash
