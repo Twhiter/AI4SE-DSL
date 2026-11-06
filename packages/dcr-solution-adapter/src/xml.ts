@@ -4,7 +4,7 @@
 // a data property's with no value: null (DCR null.xml), as a property has none until it is set, but a list's or queue's
 // empty: [] (DCR list.xml).
 
-import { layout, type Element, type Point, type Relation } from 'easy-dcr-js-adapter';
+import { layout, ROBOT, type Element, type Point, type Relation } from 'easy-dcr-js-adapter';
 import type { DcrSolutionGraph, SolutionEvent, SolutionRelation } from './graph.ts';
 
 /** How an event starts. */
@@ -17,6 +17,12 @@ export interface Marking {
 /** The relations of each type, in the order dcrgraphs.net writes them: conditions, of condition elements, … */
 const CONSTRAINTS = ['conditions', 'responses', 'coresponses', 'includes', 'excludes', 'milestones', 'spawns', 'templateSpawns', 'updates'];
 
+/**
+ * A role that no event has, in the graph's roles beside Robot:Terminator: without it, dcrgraphs.net does not let Robot:Terminator
+ * execute its events (the states and the end state).
+ */
+const UNUSED_ROBOT = 'Robot';
+
 const FORM = { type: 'form', cancelText: '', sendText: '', hideCancel: false, formShowInitialPhase: 1 };
 const COLORS = { bg: '#f9f7ed', textStroke: '#000000', stroke: '#cccccc' };
 
@@ -26,17 +32,19 @@ const DATA_GAP = 30;
 const BELOW_DATA = 150;
 /** Where the events in a nesting begin, and the room below them, as dcrgraphs.net places them (DCR test2.xml). */
 const NESTING = { left: 30, top: 50, bottom: 30 };
+/** The room between States and the end state beside it, for the relations between them. */
+const BESIDE_STATES = 120;
 
 /**
  * The XML of `graph`, its events starting as `marking` says (what it leaves out: false), but those in a form: those
- * start included.
+ * start included, and an input or output also pending, as it must be filled in.
  */
 export async function toXml(graph: DcrSolutionGraph, title: string, marking: (event: SolutionEvent) => Partial<Marking>): Promise<string> {
     const places = await place(graph);
 
     /** Each event, with how it starts. */
     const all = (event: SolutionEvent, inForm: boolean): Array<[SolutionEvent, Marking]> => [
-        [event, { included: false, executed: false, pending: false, ...(inForm ? { included: true } : marking(event)) }],
+        [event, { included: false, executed: false, pending: false, ...(inForm ? { included: true, pending: event.type !== 'nesting' } : marking(event)) }],
         ...event.children.flatMap(child => all(child, inForm || event.type === 'form'))
     ];
     const events = graph.events.flatMap(event => all(event, false));
@@ -95,7 +103,7 @@ export async function toXml(graph: DcrSolutionGraph, title: string, marking: (ev
                 ...tag('variableAccesses', {}, tag('writeAccesses')),
                 ...tag('custom', {}, [
                     ...tag('keywords'),
-                    ...roles('role', [...new Set(events.flatMap(([event]) => [...event.roles, ...event.readRoles]))]),
+                    ...roles('role', [...new Set(events.flatMap(([event]) => [...event.roles, ...event.readRoles, ...(event.roles.includes(ROBOT) ? [UNUSED_ROBOT] : [])]))]),
                     ...['groups', 'phases', 'eventTypes', 'eventParameters'].flatMap(name => tag(name)),
                     ...tag('graphDetails', {}, 'DCR Process'),
                     ...tag('graphDocumentation'),
@@ -126,7 +134,8 @@ export async function toXml(graph: DcrSolutionGraph, title: string, marking: (ev
 
 /**
  * Where each event is (its top left corner): Data and then States above the actions, their events in rows (a data
- * property's a row for each entity's; as many in a row as the actions are wide, at least four); the actions' as the
+ * property's a row for each entity's; as many in a row as the actions are wide, at least four), the end state beside
+ * States, level with its first row; the actions' as the
  * DCR.js adapter lays out a graph, with the relations between them only, so that those from Data and to the data
  * properties do not pull them apart.
  */
@@ -136,6 +145,7 @@ async function place(graph: DcrSolutionGraph): Promise<Map<string, Point>> {
         : { kind: 'activity', id: event.id, label: event.label, role: event.roles, observers: event.readRoles, included: true, pending: false };
     const ids = (event: SolutionEvent): string[] => [event.id, ...event.children.flatMap(ids)];
     const boxes = graph.events.filter(({ kind }) => kind === 'data' || kind === 'state');
+    const ends = graph.events.filter(({ kind }) => kind === 'end');
     const actions = graph.events.filter(({ kind }) => kind === 'action');
     const inActions = new Set(actions.flatMap(ids));
     const { bounds } = await layout({
@@ -150,13 +160,17 @@ async function place(graph: DcrSolutionGraph): Promise<Map<string, Point>> {
     const places = new Map<string, Point>();
     let top = 0;
     for (const box of boxes) {
-        const owners = new Map<string, SolutionEvent[]>();   // by role: a data property's entity; Robot, for the states
+        const owners = new Map<string, SolutionEvent[]>();   // by role: a data property's entity; Robot:Terminator, for the states
         box.children.forEach(event => owners.set(event.roles[0], [...owners.get(event.roles[0]) ?? [], event]));
         const rows = [...owners.values()].flatMap(events =>
             Array.from({ length: Math.ceil(events.length / perRow) }, (_, i) => events.slice(i * perRow, (i + 1) * perRow)));
         places.set(box.id, { x: 0, y: top });
         rows.forEach((row, r) => row.forEach((event, c) =>
             places.set(event.id, { x: NESTING.left + c * (DATA.width + DATA_GAP), y: top + NESTING.top + r * (DATA.height + DATA_GAP) })));
+        if (box.kind === 'state') {
+            const right = 2 * NESTING.left + Math.max(...rows.map(row => row.length)) * (DATA.width + DATA_GAP) - DATA_GAP;
+            ends.forEach(end => places.set(end.id, { x: right + BESIDE_STATES, y: top + NESTING.top }));
+        }
         top += NESTING.top + rows.length * (DATA.height + DATA_GAP) - DATA_GAP + NESTING.bottom + BELOW_DATA;
     }
     bounds.forEach(({ x, y }, id) => places.set(id, { x, y: y + top }));

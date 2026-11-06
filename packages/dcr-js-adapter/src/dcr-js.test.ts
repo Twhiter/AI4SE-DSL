@@ -93,7 +93,7 @@ async function dcrJs(text: string, fixInclusion = false) {
 /**
  *   speed [Printer] speed: Int                                  an activity: its role, observers, variable (or excluded),
  *                                                               pending or not, and its computation, each token with a
- *   busy [Robot] busy: Bool pending = ready == true and …       space between, an element's value by its label (ready),
+ *   busy [Robot:Terminator] busy: Bool pending = ready == true and …       space between, an element's value by its label (ready),
  *                                                               its status as print@pending
  *   { 'nesting print': [ … ] }                                   a nesting (or a sub-process), and what it holds
  */
@@ -299,15 +299,22 @@ describe('toDcrJsXml', () => {
 
         expect(outline).toEqual([
             { 'nesting Data': ['placeholder'] },   // never executed, as Data has a condition to itself
-            { 'nesting States': ['off [Robot] off: Bool pending = start@included'] },
+            { 'nesting States': ['off [Robot:Terminator] off: Bool pending = start@included'] },
+            'end state [Robot:Terminator]',
             'start [Operator] excluded',
             'stop [Operator] excluded',
             { 'nesting move': [{ 'nesting Input': ['x [Operator] x: Int excluded', 'y [Operator] y: Int excluded'] }] }
         ]);
-        expect(relations).toEqual(['condition Data → Data', 'response off → off', 'condition Data → start [not(off = true)]', 'include start → stop']);
+        expect(relations).toEqual([
+            'condition Data → Data',
+            'milestone States → end state',
+            'response end state → States',
+            'condition Data → start [not(off = true)]',
+            'include start → stop'
+        ]);
     });
 
-    it("gives every state an activity in the nesting States, initiated by Robot, with a Bool variable, included and pending, a response to itself and its specification as its computation; a Given names its states", async () => {
+    it("gives every state an activity in the nesting States, initiated by Robot:Terminator, with a Bool variable, included and pending, its specification as its computation, after the states it names (a milestone from each), and an end state beside States, after all of them, which makes them pending; a Given names its states", async () => {
         const { outline, relations, elements } = await dcrJs(`
             Entity Printer {
                 Actions: start, print, reboot
@@ -332,24 +339,27 @@ describe('toDcrJsXml', () => {
             {
                 'nesting States': [
                     // what its enabled specification says, and that print is available
-                    'ready [Robot] ready: Bool pending = ( start@executed or not ( start@included ) ) and print@included and label == "eco"',
-                    'busy [Robot] busy: Bool pending = not ( reboot@pending ) and ready == true and speed > 2',
-                    'clear [Robot] clear: Bool pending',   // only about a list, which DCR.js has not yet
-                    'plain [Robot] plain: Bool pending'    // no specification
+                    'ready [Robot:Terminator] ready: Bool pending = ( start@executed or not ( start@included ) ) and print@included and label == "eco"',
+                    'busy [Robot:Terminator] busy: Bool pending = not ( reboot@pending ) and ready == true and speed > 2',
+                    'clear [Robot:Terminator] clear: Bool pending',   // only about a list, which DCR.js has not yet
+                    'plain [Robot:Terminator] plain: Bool pending'    // no specification
                 ]
             },
+            'end state [Robot:Terminator]',
             'start [Operator] excluded',
             'print [Operator] copies: Int excluded',
             'reboot [Operator] excluded'
         ]);
         expect(relations).toEqual([
             'condition Data → Data',
-            ...['ready', 'busy', 'clear', 'plain'].map(state => `response ${state} → ${state}`),
+            'milestone ready → busy',   // busy is computed after ready, which its specification names
+            'milestone States → end state',   // once no state is pending
+            'response end state → States',    // which makes them all pending again
             'condition start → print',
             'condition Data → print [not(busy = true and speed < 9)]',
             'setValue print → speed := copies'
         ]);
-        // a computed value is no input; a state without a computation's is Robot's
+        // a computed value is no input; a state without a computation's is Robot:Terminator's
         expect(['busy', 'plain'].map(state => elements.find(({ label }) => label === state)!.takesInput)).toEqual([false, true]);
         // as DCR.js's own import of a DCR Solutions expression gives it, an action's status the action's element and the status
         const id = (label: string) => elements.find(element => element.label === label && element.$type === 'dcr:Event')!.id;
@@ -371,9 +381,10 @@ describe('toDcrJsXml', () => {
         expect(outline).toEqual([
             { 'nesting Data': ['speed [Printer] speed: Int'] },
             {
-                'nesting States': ['idle [Robot] Printer_idle: Bool pending', 'speed [Robot] Printer_speed: Bool pending', 'start [Robot] Printer_start: Bool pending',
-                    'on [Robot] on: Bool pending', 'idle [Robot] Tray_idle: Bool pending']
+                'nesting States': ['idle [Robot:Terminator] Printer_idle: Bool pending', 'speed [Robot:Terminator] Printer_speed: Bool pending', 'start [Robot:Terminator] Printer_start: Bool pending',
+                    'on [Robot:Terminator] on: Bool pending', 'idle [Robot:Terminator] Tray_idle: Bool pending']
             },
+            'end state [Robot:Terminator]',
             'start [Operator] start_on: Bool excluded'   // an input after its action, when any other variable has its name
         ]);
     });
@@ -424,6 +435,24 @@ describe('toDcrJsXml', () => {
         ]);
     });
 
+    it('names a variable that an expression would read as one of its words with its owner before it, in any case', async () => {
+        const { outline } = await dcrJs(`
+            Entity Printer {
+                Actions: start
+                Data properties: count: int
+                States: remove, Null
+            }
+            Role Operator.
+            Action start { Initiators: Operator, Input: index: int }`);
+
+        expect(outline).toEqual([
+            { 'nesting Data': ['count [Printer] Printer_count: Int'] },
+            { 'nesting States': ['remove [Robot:Terminator] Printer_remove: Bool pending', 'Null [Robot:Terminator] Printer_Null: Bool pending'] },
+            'end state [Robot:Terminator]',
+            'start [Operator] start_index: Int excluded'
+        ]);
+    });
+
     it('puts the parts of a graph that no relation connects in rows, wider than high, not in one column', async () => {
         const { boxes } = await dcrJs(`
             Entity Machine { States: off }
@@ -446,7 +475,10 @@ describe('toDcrJsXml', () => {
         const [left, top] = [Math.min(...boxes.map(({ x }) => x)), Math.min(...boxes.map(({ y }) => y))];
         const width = Math.max(...boxes.map(({ x, width }) => x + width)) - left;
         const height = Math.max(...boxes.map(({ y, height }) => y + height)) - top;
-        expect(new Set(boxes.map(({ y }) => y)).size).toBeLessThan(boxes.length / 2);
+        /** The rows of boxes: a box below all the boxes of the row before it starts the next. */
+        const rows = [...boxes].sort((a, b) => a.y - b.y).reduce<number[]>((bottoms, { y, height }) =>
+            bottoms.length > 0 && y < bottoms.at(-1)! ? [...bottoms.slice(0, -1), Math.max(bottoms.at(-1)!, y + height)] : [...bottoms, y + height], []);
+        expect(rows.length).toBeLessThan(boxes.length / 2);
         expect(height).toBeLessThan(width);
     });
 

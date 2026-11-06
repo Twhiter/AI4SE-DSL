@@ -49,21 +49,22 @@ async function graphOf(text: string, declarations = DECLARATIONS): Promise<DcrGr
 
 /**
  * The relations of the graph of `text` (after the declarations, unless `declarations` says otherwise), as [relation,
- * from, to, guard], but Data's condition to itself and each state's response to itself.
+ * from, to, guard], but Data's condition to itself and the relations of the states: between them, and between States and
+ * the end state.
  */
 async function relationsOf(text: string, declarations = DECLARATIONS): Promise<Array<[string, string, string, string | undefined]>> {
     const graph = await graphOf(text, declarations);
-    const states = new Set(graph.groups.find(({ name }) => name === 'States')?.events);
-    return graph.relations.filter(({ relation, from, to }) => from !== to || (from !== 'Data' && !(relation === 'response' && states.has(from))))
+    const states = new Set(['States', 'end state', ...graph.groups.find(({ name }) => name === 'States')?.events ?? []]);
+    return graph.relations.filter(({ from, to }) => !(from === 'Data' && to === 'Data') && !(states.has(from) && states.has(to)))
         .map(({ relation, from, to, guard }) => [relation, from, to, guard]);
 }
 
 describe('toDcrGraph', () => {
 
-    it('makes an activity of every data property, initiated by its entity, in the group Data, which has a condition to itself, of every state, in the group States, and of every action, with its inputs and outputs; only the data and the states included', async () => {
+    it('makes an activity of every data property, initiated by its entity, in the group Data, which has a condition to itself, of every state, in the group States, with an end state beside it, and of every action, with its inputs and outputs; only the data and the states included', async () => {
         const none = { observers: [], inputs: [], outputs: [], defaultIncluded: false, defaultPending: false };
         const data = { ...none, defaultIncluded: true };
-        const state = { ...none, initiators: ['Robot'], defaultIncluded: true, defaultPending: true };
+        const state = { ...none, initiators: ['Robot:Terminator'], defaultIncluded: true, defaultPending: true };
         const graph = await graphOf('');
         expect(graph.events).toEqual([
             { name: 'speed', initiators: ['Printer'], ...data },
@@ -73,6 +74,7 @@ describe('toDcrGraph', () => {
             { ...state, name: 'online', computation: 'ready = true' },
             { ...state, name: 'busy', computation: 'print@pending and online = true and speed > 5' },
             { ...state, name: 'idle', computation: 'not(print@pending)' },
+            { ...none, name: 'end state', initiators: ['Robot:Terminator'], defaultIncluded: true },
             { ...none, name: 'start', initiators: ['Operator'], observers: ['Viewer'] },
             { ...none, name: 'print', initiators: ['Operator'], inputs: [{ name: 'file', type: 'string' }, { name: 'copies', type: 'int' }], outputs: [{ name: 'pages', type: 'int' }] },
             { ...none, name: 'refill', initiators: [] },   // no 'Action refill { … }'
@@ -81,7 +83,9 @@ describe('toDcrGraph', () => {
         expect(graph.groups).toEqual([{ name: 'Data', events: ['speed', 'ready', 'jobs', 'level'] }, { name: 'States', events: ['online', 'busy', 'idle'] }]);
         expect(graph.relations.map(({ relation, from, to, guard }) => [relation, from, to, guard])).toEqual([
             ['condition', 'Data', 'Data', undefined],
-            ...['online', 'busy', 'idle'].map(state => ['response', state, state, undefined])
+            ['milestone', 'online', 'busy', undefined],   // busy is computed after online, which its specification names
+            ['milestone', 'States', 'end state', undefined],   // the round ends once no state is pending
+            ['response', 'end state', 'States', undefined]     // and makes them all pending again
         ]);
     });
 
@@ -101,11 +105,12 @@ describe('toDcrGraph', () => {
             Declarative specification Printer is waiting means { start is available AND reboot is not available AND print is pending AND start was not executed }
             Declarative specification Printer is working means { it is waiting AND the jobs is not empty AND reboot was executed AND print is not pending }
         `);
-        expect(graph.events.filter(({ initiators }) => initiators.includes('Robot')).map(({ name, computation }) => [name, computation])).toEqual([
+        expect(graph.events.filter(({ initiators }) => initiators.includes('Robot:Terminator')).map(({ name, computation }) => [name, computation])).toEqual([
             ['ready', '(start@executed or not(start@included)) and (not(reboot@pending) or not(reboot@included)) and print@included and reboot@included'],
             ['waiting', 'start@included and not(reboot@included) and print@pending and not(start@executed)'],
             ['working', 'not(print@pending) and reboot@executed and waiting = true and count(jobs) > 0'],
-            ['plain', undefined]   // no specification
+            ['plain', undefined],   // no specification
+            ['end state', undefined]
         ]);
     });
 
@@ -123,12 +128,24 @@ describe('toDcrGraph', () => {
         expect(graph.groups.find(({ name }) => name === 'States')?.events).toEqual(['Printer.idle', 'Printer.speed', 'Printer.print', 'Printer.file', 'on', 'Tray.idle']);
     });
 
+    it("names the end state 'end state 2' when another activity has its name", async () => {
+        const graph = await graphOf('', `
+            Entity Printer {
+                Actions: end state
+                States: idle
+            }
+            Role Operator.
+            Action end state { Initiators: Operator }
+        `);
+        expect(graph.events.filter(({ initiators }) => initiators.includes('Robot:Terminator')).map(({ name }) => name)).toEqual(['idle', 'end state 2']);
+    });
+
     it("starts an action included and pending as its Action … { … } says; one without the lines, or without one, neither", async () => {
         const declarations = DECLARATIONS
             .replace('Observers: Viewer }', 'Observers: Viewer, Initially available: true }')
             .replace('Output: pages: int }', 'Output: pages: int, Initially available: false, Initially pending: true }');
         const graph = await graphOf('', declarations);
-        expect(graph.events.filter(({ initiators }) => !initiators.includes('Robot')).map(({ name, defaultIncluded, defaultPending }) => [name, defaultIncluded, defaultPending]).slice(4)).toEqual([
+        expect(graph.events.filter(({ initiators }) => !initiators.includes('Robot:Terminator')).map(({ name, defaultIncluded, defaultPending }) => [name, defaultIncluded, defaultPending]).slice(4)).toEqual([
             ['start', true, false],
             ['print', false, true],
             ['refill', false, false],

@@ -1,11 +1,13 @@
 Entity Printer {
-    Actions: start, print
+    Actions: power on, submit, start, print
     Data properties: speed: int, ready: boolean, jobs: a list, waiting: a queue
     States: online, idle, busy
 }
 
 Role Operator.
 
+Action power on { Initiators: Operator }
+Action submit { Initiators: Operator, Input: job: string }
 Action start { Initiators: Operator }
 Action print { Initiators: Operator, Observers: Printer, Input: file: string, copies: int }
 Action reboot { Initiators: Operator }
@@ -32,6 +34,17 @@ Action print is enabled means {
     AND reboot is not pending or is not available
 }
 
+Scenario: Power on
+Given the Printer's ready is undefined
+When power on is executed
+Then the Printer's ready is set to true
+    AND the Printer's speed is set to 3.
+
+Scenario: Submit job
+Given the Printer's waiting is not full
+When submit is executed with inputs job
+Then the Printer's waiting is enqueued with job.
+
 Scenario: Print job
 Given the Printer is busy
     AND "report.pdf" is included in the Printer's jobs
@@ -44,6 +57,6 @@ Then the Printer's jobs is removed with "report.pdf"
 Scenario: Next job
 Given the Printer is idle AND the Printer's waiting is not empty
 When start is executed
-Then the Printer's waiting is dequeued
-    AND 42 is added to the Printer's jobs
+Then the Printer's waiting is dequeued as job
+    AND job is added to the Printer's jobs
     AND print is pending.

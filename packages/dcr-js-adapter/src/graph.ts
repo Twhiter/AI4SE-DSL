@@ -2,9 +2,11 @@
 //   a data property (int, string, boolean, Any)   an activity in the nesting Data, initiated by its entity, with a
 //                                                  variable of its type (Any: String); without any, an activity
 //                                                  'placeholder' in Data, should a Given need a condition from it
-//   a state of an entity                           an activity in the nesting States, initiated by Robot, with a Bool
-//                                                  variable, which its computation gives: what the state's Declarative
-//                                                  specification says (Activity.computation)
+//   a state of an entity                           an activity in the nesting States, initiated by Robot:Terminator, with a
+//                                                  Bool variable, which its computation gives: what the state's
+//                                                  Declarative specification says (Activity.computation)
+//   (and with states, an activity 'end state' beside States, initiated by Robot:Terminator: the end of a round of
+//   computing them)
 //   an action                                      an activity, with its initiators and observers; with one input
 //                                                  and no output, also with a variable of the input's type
 //   an action with more inputs, or with outputs    a nesting, holding a nesting Input (with inputs) and one Output
@@ -18,8 +20,14 @@
 //   Action print is enabled means { start was executed or is not available }     condition start → print
 //                                 { reboot is not pending or is not available }  milestone reboot → print
 //   (Data has a condition to itself: its activities are never executed, their values change by setValues only, so a
-//   condition from it holds whenever its guard does; each state has a response to itself: it is pending again once it
-//   is computed)
+//   condition from it holds whenever its guard does)
+//   Declarative specification Printer is busy means { it is online … }   milestone online → busy: busy is computed
+//                                                                        after online, the states in the order their
+//                                                                        specifications name each other
+//   States                                                               milestone States → end state, response end
+//                                                                        state → States: the round ends once no state
+//                                                                        is pending, and makes each pending, to be
+//                                                                        computed again
 // and from the scenarios of each When rule, with action a, Givens g₁, g₂, … (each its states, busy = true, and its
 // data) and Whens w₁, w₂, …:
 //   the Givens     condition Data → a, guarded by not(g₁) (one scenario), or not(g₁ or g₂ or …) (several): a waits
@@ -95,12 +103,26 @@ export interface DcrJsGraph {
 /** The nesting of the data properties' activities, and the activity in it of a model without any. */
 export const DATA = 'Data';
 export const PLACEHOLDER = 'placeholder';
-/** The nesting of the states' activities, and the role that computes them. */
+/** The nesting of the states' activities, the role that computes them, and the activity that ends a round of computing them. */
 export const STATES = 'States';
-export const ROBOT = 'Robot';
+export const ROBOT = 'Robot:Terminator';
+export const END_STATE = 'end state';
 /** The nestings of an action's inputs and of its outputs. */
 export const INPUT = 'Input';
 export const OUTPUT = 'Output';
+
+/**
+ * The words of the expressions the graph is written in: FEEL's keywords (DCR Solutions') and the list functions the
+ * graph writes; DCR.js's computations read and, or, not, true, false and null in any case. A variable, or an event of
+ * DCR Solutions, named one would be read as the word (count = true and count(jobs) > 0): it is named otherwise (reserved).
+ */
+const WORDS = new Set(['and', 'or', 'not', 'if', 'then', 'else', 'for', 'in', 'return', 'some', 'every', 'satisfies', 'instance', 'of',
+    'function', 'external', 'between', 'true', 'false', 'null', 'count', 'list', 'contains', 'append', 'remove', 'index']);
+
+/** Whether an expression would read `name` as one of its words (WORDS), in any case. */
+export function reserved(name: string): boolean {
+    return WORDS.has(name.toLowerCase());
+}
 
 const TYPES: Record<EasyModel.ScalarType, Variable['type']> = { int: 'Int', string: 'String', boolean: 'Bool', Any: 'String' };
 
@@ -168,6 +190,7 @@ export function toDcrJsGraph(model: Model, options: Options = {}): DcrJsGraph {
         return [key, activity] as const;
     })));
     const statesNesting: Box[] = states.size > 0 ? [{ kind: 'nesting', id: id('Nesting'), label: STATES, children: [...states.values()] }] : [];
+    const end = statesNesting.map((): Activity => ({ kind: 'activity', id: id('Event'), label: END_STATE, role: [ROBOT], observers: [], included: true, pending: false }));
 
     const actions = model.actions.map((action): Element => {
         const role = model.initiators[action] ?? [];
@@ -208,7 +231,11 @@ export function toDcrJsGraph(model: Model, options: Options = {}): DcrJsGraph {
     const relate = (type: Relation['type'], from: string, to: string, guard?: string, value?: string) =>
         relations.push({ type, source: elementOf.get(from)!, target: elementOf.get(to)!, guard, value });
     nesting.forEach(() => relate('condition', DATA, DATA));
-    states.forEach((_, key) => relate('response', key, key));
+    for (const spec of model.stateSpecifications) {
+        spec.states.forEach(state => relate('milestone', stateKey(spec.entity, state), stateKey(spec.entity, spec.state)));
+    }
+    statesNesting.forEach(({ id: box }) => end.forEach(({ id: last }) =>
+        relations.push({ type: 'milestone', source: box, target: last }, { type: 'response', source: last, target: box })));
     for (const spec of model.enabledSpecifications) {
         spec.conditions.forEach(action => relate('condition', action, spec.action));
         spec.milestones.forEach(action => relate('milestone', action, spec.action));
@@ -251,7 +278,7 @@ export function toDcrJsGraph(model: Model, options: Options = {}): DcrJsGraph {
     }
 
     const unique = relations.filter((relation, i) => relations.findIndex(other => sameRelation(relation, other)) === i);
-    return { elements: [...nesting, ...statesNesting, ...actions], relations: unique.map((relation, i) => ({ id: `Relation_${i + 1}`, ...relation })) };
+    return { elements: [...nesting, ...statesNesting, ...end, ...actions], relations: unique.map((relation, i) => ({ id: `Relation_${i + 1}`, ...relation })) };
 }
 
 /**
@@ -435,7 +462,8 @@ function writer(model: Model, names: Map<string, string>, { noValue, lists }: Op
  * property has it too: then each has its entity's before it (Printer_speed). A state keeps it, unless another entity's
  * state, a data property or an action has it: then it has its entity's before it (Printer_idle). An input or output
  * keeps it, unless any other variable has it: then it has its action's before it (tune_speed), and the data property
- * keeps it (child_age, submit_child_age). A number comes after a name that is still not unique.
+ * keeps it (child_age, submit_child_age). A name that an expression would read as one of its words has its owner's
+ * before it too (Printer_count, submit_index: reserved). A number comes after a name that is still not unique.
  */
 function variableNames(model: Model, lists: boolean): Map<string, string> {
     const owned: Array<{ key: string, owner: string, name: string, kind: 'property' | 'state' | 'parameter' }> = [
@@ -450,8 +478,8 @@ function variableNames(model: Model, lists: boolean): Map<string, string> {
     const used = new Set<string>();
     return new Map(owned.map(({ key, owner, kind }, i) => {
         // a data property clashes only with another data property; a state with a data property, another state or an
-        // action; an input or output with any other variable
-        const clashes = (kind === 'state' && actions.has(plain[i])) || owned.some((other, j) => j !== i && plain[j] === plain[i]
+        // action; an input or output with any other variable; each with the expressions' words
+        const clashes = reserved(plain[i]) || (kind === 'state' && actions.has(plain[i])) || owned.some((other, j) => j !== i && plain[j] === plain[i]
             && (kind === 'parameter' || other.kind === 'property' || (kind === 'state' && other.kind === 'state')));
         const wanted = clashes ? `${identifier(owner)}_${plain[i]}` : plain[i];
         let name = wanted;

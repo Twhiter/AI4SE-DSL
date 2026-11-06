@@ -66,6 +66,8 @@ describe('checkScenarios', () => {
     it('finds the scenarios of the example consistent', async () => {
         const results = await checkScenarios(z3, await modelOf(readFileSync('../../examples/sample.easy', 'utf8')));
         expect(results).toEqual([
+            { scenario: 'Power on', given: sat, then: sat },
+            { scenario: 'Submit job', given: sat, then: sat },
             { scenario: 'Print job', given: sat, then: sat },
             { scenario: 'Next job', given: sat, then: sat }
         ]);

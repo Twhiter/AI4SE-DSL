@@ -6,7 +6,7 @@ import { toDcrJsGraph, type Options } from './graph.ts';
 import { toXml } from './xml.ts';
 
 // for the other adapters, which say the same graph in another format (easy-dcr-solution-adapter)
-export { DATA, INPUT, OUTPUT, PLACEHOLDER, ROBOT, STATES, identifier, toDcrJsGraph, type Activity, type Box, type DcrJsGraph, type Element, type Options, type Relation, type Variable } from './graph.ts';
+export { DATA, END_STATE, INPUT, OUTPUT, PLACEHOLDER, ROBOT, STATES, identifier, reserved, toDcrJsGraph, type Activity, type Box, type DcrJsGraph, type Element, type Options, type Relation, type Variable } from './graph.ts';
 export { layout, type Bounds, type Point } from './xml.ts';
 
 /**

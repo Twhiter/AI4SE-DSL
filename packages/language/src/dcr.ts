@@ -1,7 +1,8 @@
 // The model as a DCR graph, built from its When rules. An activity for every data property, in a group called Data, for
 // every state, in a group called States, its value computed from the state's Declarative specification, and for every
-// action, included and pending at the start as its Action … { … } says; Data has a condition to itself, and each state
-// a response to itself; relations from the enabled specifications, and from each When rule: a condition from Data to
+// action, included and pending at the start as its Action … { … } says; Data has a condition to itself; the states are
+// computed in rounds, each after the states its specification names, then an end state; relations from the enabled
+// specifications, and from each When rule: a condition from Data to
 // its action, guarded by not what its Givens say (their states and data), and what its Thens do, each guarded by what
 // its When says. Guards and computations are written as DCR Solutions writes them: speed > 2 and count(jobs) > 0,
 // print@executed.
@@ -17,15 +18,16 @@ export type DcrRelationType = 'condition' | 'milestone' | 'response' | 'include'
 /** The name of the group of the data activities, and of the activity in it of a model without any. */
 export const DATA_GROUP = 'Data';
 export const PLACEHOLDER = 'placeholder';
-/** The name of the group of the states' activities, and the role that computes them. */
+/** The name of the group of the states' activities, the role that computes them, and the activity that ends a round of computing them. */
 export const STATES_GROUP = 'States';
-export const ROBOT = 'Robot';
+export const ROBOT = 'Robot:Terminator';
+export const END_STATE = 'end state';
 
 /** An activity: an action, a data property, or a state. */
 export class DcrEvent {
     /** The action, the property or the state: 'speed' ('Printer.speed' when another activity has that name too). */
     name: string;
-    /** Who initiates it: the roles and entities of an action, the entity of a data property, Robot for a state. */
+    /** Who initiates it: the roles and entities of an action, the entity of a data property, Robot:Terminator for a state and the end state. */
     initiators: string[];
     observers: string[];
     /** An action's inputs and outputs, by their names, as a guard names them, and types; none for a data property. */
@@ -62,7 +64,7 @@ export class DcrGroup {
     }
 }
 
-/** A relation from an activity or a group to an activity, or Data's to itself, which only holds while its guard does. */
+/** A relation from an activity or a group to an activity or a group (Data's to itself, the end state's to States), which only holds while its guard does. */
 export class DcrRelation {
     from: string;
     to: string;
@@ -88,14 +90,19 @@ export class DcrGraph {
  * The model as a DCR graph:
  *   every data property of an entity      an activity named after it, initiated by the entity, in the group Data;
  *                                         without any, an activity 'placeholder' in Data, should a Given name a state
- *   every state of an entity              an activity named after it (stateActivities), initiated by Robot, in the group
- *                                         States, its value what the state's Declarative specification says (computationOf)
+ *   every state of an entity              an activity named after it (stateActivities), initiated by Robot:Terminator, in the
+ *                                         group States, its value what the state's Declarative specification says
+ *                                         (computationOf); beside States, an activity 'end state' of Robot:Terminator
  *   every action                          an activity, with its initiators, observers, inputs and outputs
  *   (the data properties' activities are included at the start, the states' included and pending, and an action's when
  *   its Action … { … } says 'Initially available: true'; it is pending at the start with 'Initially pending: true')
  *   Data                                  condition  Data → Data: its activities are never executed, their values change
  *                                         by the actions only, so a condition from Data holds whenever its guard does
- *   each state s                          response   s → s: it is pending again once it is computed
+ *   each state s, named by the specification of a state t
+ *                                         milestone  s → t: t is computed after s
+ *   States                                milestone  States → end state, response  end state → States: a round of
+ *                                         computing the states ends once none is pending, and makes each pending, to be
+ *                                         computed again
  *   Action print is enabled means { start was executed or is not available }     condition  start → print
  *                                 { reboot is not pending or is not available }  milestone  reboot → print
  * and from each When rule, with action a and its scenarios' Givens g₁, g₂, … and Whens w₁, w₂, …:
@@ -119,6 +126,11 @@ export async function toDcrGraph(z3: Z3Context, model: Model, options?: Z3Vocabu
         placeholder = `${PLACEHOLDER} ${n}`;
     }
     const data = placeholder ? [placeholder] : [...activities.values()];
+    let endName = END_STATE;
+    for (let n = 2; taken.has(endName) || data.includes(endName); n++) {
+        endName = `${END_STATE} ${n}`;
+    }
+    const end = states.size > 0 ? endName : undefined;
     const computation = (entity: string, state: string) => {
         const spec = model.stateSpecifications.find(spec => spec.entity === entity && spec.state === state);
         return spec && computationOf(model, spec, activities, states, options?.capacity ?? DEFAULT_CAPACITY);
@@ -128,6 +140,7 @@ export async function toDcrGraph(z3: Z3Context, model: Model, options?: Z3Vocabu
         ...(placeholder ? [new DcrEvent(placeholder, [], [], [], [], true)] : []),
         ...model.entities.flatMap(entity => entity.states.map(state =>
             new DcrEvent(states.get(propertyKey(entity.name, state))!, [ROBOT], [], [], [], true, true, computation(entity.name, state)))),
+        ...(end ? [new DcrEvent(end, [ROBOT], [], [], [], true)] : []),
         ...model.actions.map(action => new DcrEvent(action, model.initiators[action] ?? [], model.observers[action] ?? [], model.inputs[action] ?? [],
             model.outputs[action] ?? [], model.initiallyAvailable.includes(action), model.initiallyPending.includes(action)))
     ];
@@ -137,7 +150,9 @@ export async function toDcrGraph(z3: Z3Context, model: Model, options?: Z3Vocabu
     ];
     const relations: DcrRelation[] = [
         ...(data.length > 0 ? [new DcrRelation(DATA_GROUP, DATA_GROUP, undefined, 'condition')] : []),
-        ...[...states.values()].map(state => new DcrRelation(state, state, undefined, 'response'))
+        ...model.stateSpecifications.flatMap(spec => spec.states.map(state =>
+            new DcrRelation(states.get(propertyKey(spec.entity, state))!, states.get(propertyKey(spec.entity, spec.state))!, undefined, 'milestone'))),
+        ...(end ? [new DcrRelation(STATES_GROUP, end, undefined, 'milestone'), new DcrRelation(end, STATES_GROUP, undefined, 'response')] : [])
     ];
     for (const spec of model.enabledSpecifications) {
         relations.push(

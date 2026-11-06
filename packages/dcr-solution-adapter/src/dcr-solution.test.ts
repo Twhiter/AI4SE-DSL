@@ -164,8 +164,8 @@ describe('toDcrSolutionXml', () => {
             'stop "stop" [Resident] excluded',
             {
                 'form adjust "adjust" [Resident; observers Heater] excluded': [
-                    { 'nesting adjust_input "Input"': ['degrees "degrees": int', 'level "level": text'] },
-                    { 'nesting adjust_output "Output"': ['accepted "accepted": bool'] }
+                    { 'nesting adjust_input "Input"': ['degrees "degrees": int pending', 'level "level": text pending'] },
+                    { 'nesting adjust_output "Output"': ['accepted "accepted": bool pending'] }
                 ]
             }
         ]);
@@ -175,8 +175,11 @@ describe('toDcrSolutionXml', () => {
             'condition Data → start [not(running = false)]',
             'condition Data → adjust [not(running = true)]',
             'response start → adjust',
+            'response adjust → adjust_input',   // the form's fields: pending again once it is executed
+            'response adjust → adjust_output',
             'include start → stop',
             'milestone adjust → stop',
+            'milestone adjust_input → adjust_output',   // the outputs wait for the inputs
             'update start → running := true',
             'update adjust → target := degrees',
             "update adjust → mode [level = 'eco'] := 'eco'"
@@ -206,14 +209,17 @@ describe('toDcrSolutionXml', () => {
 
         expect(outline.at(-1)).toEqual({
             'form print "print" [Operator; observers Printer] excluded': [
-                { 'nesting print_input "Input"': ['copies "copies": int'] },
-                { 'nesting print_output "Output"': ['pages "pages": int'] }
+                { 'nesting print_input "Input"': ['copies "copies": int pending'] },
+                { 'nesting print_output "Output"': ['pages "pages": int pending'] }
             ]
         });
         const given = '(speed > 5 and ready = true) or speed < 2 or speed = 3';
         expect(relations).toEqual([
             'condition Data → Data',
             `condition Data → print [not(${given})]`,
+            'response print → print_input',
+            'response print → print_output',
+            'milestone print_input → print_output',
             'update print → speed := if copies = 1 then 10 else if copies = 100 then 1 else copies',
             "update print → quality [(copies = 1) or (copies = 100)] := if copies = 1 then 'draft' else 'fine'"
         ]);
@@ -248,7 +254,26 @@ describe('toDcrSolutionXml', () => {
         ]);
     });
 
-    it('puts the inputs of an action without outputs in its form, and starts every event in a form included, whatever the marking', async () => {
+    it('names an event that an expression would read as one of its words otherwise: a variable with its owner before it, an action with a number after it', async () => {
+        const { outline } = await dcrSolution(`
+            Entity Printer {
+                Actions: append
+                Data properties: count: int
+                States: remove
+            }
+            Role Operator.
+            Action append { Initiators: Operator }
+            Declarative specification Printer is remove means { append was executed AND the count larger than 1 }`);
+
+        expect(outline).toEqual([
+            { 'nesting Data "Data"': ['Printer_count "count" [Printer]: int'] },
+            { 'nesting States "States"': ['Printer_remove "remove" [Robot:Terminator]: bool pending = append_2@executed and Printer_count > 1'] },
+            'end_state "end state" [Robot:Terminator]',
+            'append_2 "append" [Operator] excluded'
+        ]);
+    });
+
+    it('puts the inputs of an action without outputs in its form, and starts every event in a form included, its fields pending, whatever the marking', async () => {
         const text = `
             Entity Office {
                 Data properties: open: boolean
@@ -262,8 +287,8 @@ describe('toDcrSolutionXml', () => {
             Given the Office's open equal to true
             When check insurance is executed with inputs id = 3
             Then approve is available.`;
-        const submit = ['text "text": text', 'age "age": int'];
-        const check = [{ 'nesting check_insurance_input "Input"': ['id "id": int'] }, { 'nesting check_insurance_output "Output"': ['result "result": int'] }];
+        const submit = ['text "text": text pending', 'age "age": int pending'];
+        const check = [{ 'nesting check_insurance_input "Input"': ['id "id": int pending'] }, { 'nesting check_insurance_output "Output"': ['result "result": int pending'] }];
 
         const byDefault = await dcrSolution(text);
         expect(byDefault.outline).toEqual([
@@ -273,7 +298,16 @@ describe('toDcrSolutionXml', () => {
             { 'form check_insurance "check insurance" [Clerk] excluded': check },
             'approve "approve" [Clerk] excluded'
         ]);
-        expect(byDefault.relations).toEqual(['condition Data → Data', 'condition Data → check_insurance [not(open = true)]', 'include check_insurance → approve [id = 3]']);
+        expect(byDefault.relations).toEqual([
+            'condition Data → Data',
+            'condition Data → check_insurance [not(open = true)]',
+            'response submit → text',   // inputs only: in the form itself
+            'response submit → age',
+            'response check_insurance → check_insurance_input',
+            'response check_insurance → check_insurance_output',
+            'include check_insurance → approve [id = 3]',
+            'milestone check_insurance_input → check_insurance_output'
+        ]);
 
         const asked: string[] = [];
         const marking = (event: SolutionEvent) => {
@@ -301,8 +335,8 @@ describe('toDcrSolutionXml', () => {
         expect(outline).toEqual([
             'start "start" [Clerk] pending',
             'stop "stop" [Clerk] excluded',
-            { 'form submit "submit" [Clerk]': ['text "text": text', 'age "age": int'] },
-            { 'form check "check" [Clerk] excluded pending': [{ 'nesting check_output "Output"': ['result "result": int'] }] }
+            { 'form submit "submit" [Clerk]': ['text "text": text pending', 'age "age": int pending'] },
+            { 'form check "check" [Clerk] excluded pending': [{ 'nesting check_output "Output"': ['result "result": int pending'] }] }
         ]);
     });
 
@@ -321,7 +355,7 @@ describe('toDcrSolutionXml', () => {
             When start is executed
             Then stop is available.`;
         const data = { 'nesting Data "Data"': ['running "running" [Heater]: bool'] };
-        const adjust = [{ 'nesting adjust_input "Input"': ['degrees "degrees": int'] }, { 'nesting adjust_output "Output"': ['accepted "accepted": bool'] }];
+        const adjust = [{ 'nesting adjust_input "Input"': ['degrees "degrees": int pending'] }, { 'nesting adjust_output "Output"': ['accepted "accepted": bool pending'] }];
 
         expect((await dcrSolution(text, { fixInclusion: true })).outline).toEqual([
             data,
@@ -419,7 +453,7 @@ describe('toDcrSolutionXml', () => {
         expect(update(root)).toEqual(update(example));
     });
 
-    it('writes a state as an event of Robot in the nesting States, its value its computation, included, pending and a response to itself, as dcrgraphs.net does (DCR computation.xml)', async () => {
+    it('writes a state as an event of Robot:Terminator in the nesting States, its value its computation, included and pending, and an end state beside States, after the states, which makes them pending, as dcrgraphs.net does (DCR computation.xml)', async () => {
         const example = parse(readFileSync(new URL('../../../dcr solution examples/DCR computation.xml', import.meta.url), 'utf8'));
         const { root, outline, relations } = await dcrSolution(`
             Entity Case {
@@ -439,16 +473,22 @@ describe('toDcrSolutionXml', () => {
 
         expect(outline).toEqual([
             { 'nesting Data "Data"': ['somedata "somedata" [Case]: int'] },
-            { 'nesting States "States"': ['processed "processed" [Robot]: bool pending = submit@executed', 'Submitted "Submitted" [Robot]: bool pending = process@pending'] },
+            {
+                'nesting States "States"': [
+                    'processed "processed" [Robot:Terminator]: bool pending = submit@executed',
+                    'Submitted "Submitted" [Robot:Terminator]: bool pending = process@pending'
+                ]
+            },
+            'end_state "end state" [Robot:Terminator]',
             'submit "submit" [someone]',
             'process "process" [someone]'
         ]);
         expect(relations).toEqual([
             'condition Data → Data',
             'condition Data → process [not(processed = true and somedata > 10)]',
-            'response processed → processed',
-            'response Submitted → Submitted',
-            'response process → submit'
+            'response end_state → States',   // the end state makes the states pending again
+            'response process → submit',
+            'milestone States → end_state'    // once none of them is pending
         ]);
         const keys = (node: Node) => Object.keys(node.attributes).sort();
         const names = (node: Node) => node.children.map(({ name }) => name);
@@ -470,12 +510,15 @@ describe('toDcrSolutionXml', () => {
             return find(graph, 'specification', 'resources', 'expressions').children.map(({ attributes }) => `${named(attributes.id)}: ${named(attributes.value)}`).sort();
         };
         expect(expressions(root)).toEqual(expressions(example));
-        const selfResponses = (graph: Node) => find(graph, 'specification', 'constraints', 'responses').children
-            .filter(({ attributes }) => attributes.sourceId === attributes.targetId).map(keys);
-        expect(selfResponses(root)).toEqual(selfResponses(example));
-        /** The labels of the events that start included, and pending. */
-        const marking = (graph: Node) => ['included', 'pendingResponses'].map(name =>
-            find(graph, 'runtime', 'marking', name).children.map(({ attributes }) => labelsOf(graph).get(attributes.id)).sort());
+        // the example's states have a response to themselves, where these have the end state's: written the same
+        // the graph has a role Robot that no event has: without it, dcrgraphs.net does not let Robot:Terminator execute its events
+        expect(find(root, 'specification', 'resources', 'custom', 'roles').children.map(({ text }) => text)).toEqual(['Case', 'Robot:Terminator', 'Robot', 'someone']);
+        expect(JSON.stringify(outline)).not.toMatch(/\bRobot\b(?!:)/);
+        const responses = (graph: Node) => [...new Set(find(graph, 'specification', 'constraints', 'responses').children.map(keys).map(String))];
+        expect(responses(root)).toEqual(responses(example));
+        /** The labels of the events that start included, and pending, but the end state's, which the example has not. */
+        const marking = (graph: Node) => ['included', 'pendingResponses'].map(name => find(graph, 'runtime', 'marking', name).children
+            .map(({ attributes }) => labelsOf(graph).get(attributes.id)).filter(label => label !== 'end state').sort());
         expect(marking(root)).toEqual(marking(example));
     });
 
@@ -553,13 +596,14 @@ describe('toDcrSolutionXml', () => {
             When clear is executed
             Then the Printer's jobs is set to empty.`, { capacity: 20 });
 
-        expect(outline[1]).toEqual({ 'nesting States "States"': ['busy "busy" [Robot]: bool pending = count(jobs) > 0'] });
+        expect(outline.slice(1, 3)).toEqual([{ 'nesting States "States"': ['busy "busy" [Robot:Terminator]: bool pending = count(jobs) > 0'] }, 'end_state "end state" [Robot:Terminator]']);
         expect(relations).toEqual([
             'condition Data → Data',
             "condition Data → job [not(count(jobs) < 20 and list contains(jobs, 'x') = false)]",   // full: the capacity
             'condition Data → take [not(count(waiting) > 0)]',
             'condition Data → clear [not(busy = true)]',
-            'response busy → busy',
+            'response end_state → States',
+            'milestone States → end_state',
             'update job → waiting := append(waiting, job)',
             'update job → jobs := append(append(jobs, job), job)',   // in the order they are written
             // the dequeued element is the front of the waiting before the step

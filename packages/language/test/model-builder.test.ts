@@ -17,15 +17,17 @@ describe('buildModel', () => {
         const { model } = await build(readFileSync('../../examples/sample.easy', 'utf8'));
         expect(model?.entities).toMatchObject([{
             name: 'Printer',
-            actions: ['start', 'print'],
+            actions: ['power on', 'submit', 'start', 'print'],
             states: ['online', 'idle', 'busy'],
             dataProperties: [
                 { name: 'speed', type: 'int' }, { name: 'ready', type: 'boolean' }, { name: 'jobs', type: 'list' }, { name: 'waiting', type: 'queue' }
             ]
         }]);
-        expect(model?.actions).toEqual(['start', 'print', 'reboot']);
-        expect(model?.inputs).toEqual({ start: [], print: [{ name: 'file', type: 'string' }, { name: 'copies', type: 'int' }], reboot: [] });
-        expect(model?.outputs).toEqual({ start: [], print: [], reboot: [] });
+        expect(model?.actions).toEqual(['power on', 'submit', 'start', 'print', 'reboot']);
+        expect(model?.inputs).toEqual({
+            'power on': [], submit: [{ name: 'job', type: 'string' }], start: [], print: [{ name: 'file', type: 'string' }, { name: 'copies', type: 'int' }], reboot: []
+        });
+        expect(model?.outputs).toEqual({ 'power on': [], submit: [], start: [], print: [], reboot: [] });
     });
 
     it('builds the actions available and the actions pending at the start', async () => {
@@ -74,7 +76,7 @@ describe('buildModel', () => {
 
     it('builds scenarios on named instances, with inputs and contexts', async () => {
         const { model } = await build(readFileSync('../../examples/sample.easy', 'utf8'));
-        const [print, next] = model!.scenarios;
+        const [, , print, next] = model!.scenarios;
         expect(print).toMatchObject({
             name: 'Print job', instances: { printer: 'Printer' }, when: 'print', whenCtx: ['printer'],
             inputs: [{ name: 'file', type: 'string' }, { name: 'copies', type: 'int' }]
@@ -95,11 +97,11 @@ describe('buildModel', () => {
                 { entity: 'Printer', property: 'waiting', operation: 'enqueued with', value: 'report.pdf' }
             ]
         });
-        // '42 is added to the Printer's jobs' is stored as 'the Printer's jobs is added with 42'
-        expect(next.then.dataAssignments).toEqual([
-            { entity: 'Printer', property: 'waiting', operation: 'dequeued', value: undefined, constant: undefined },
-            { entity: 'Printer', property: 'jobs', operation: 'added with', value: 42, constant: undefined }
-        ]);
+        // 'job is added to the Printer's jobs' is stored as 'the Printer's jobs is added with job', the element dequeued as job
+        const [dequeue, add] = next.then.dataAssignments;
+        expect(dequeue).toMatchObject({ entity: 'Printer', property: 'waiting', operation: 'dequeued', value: undefined, constant: { name: 'job' } });
+        expect(add).toMatchObject({ entity: 'Printer', property: 'jobs', operation: 'added with', constant: undefined });
+        expect(add.value).toBe(dequeue.constant);
     });
 
     it('builds element types, and named constants with the element type of their queue', async () => {
